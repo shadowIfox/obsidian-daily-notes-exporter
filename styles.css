@@ -1,27 +1,42 @@
+:root {
+    --bg: #f0f4f8;
+    --text: #222;
+    --card: #fff;
+    --accent: #1976d2;
+    --accent-dark: #0d47a1;
+    --success-bg: #e8f5e9;
+    --success-text: #388e3c;
+}
+
+body.dark {
+    --bg: #121212;
+    --text: #eee;
+    --card: #1e1e1e;
+    --accent: #64b5f6;
+    --accent-dark: #1976d2;
+    --success-bg: #1b5e20;
+    --success-text: #a5d6a7;
+}
+
 body {
     font-family: 'Segoe UI', sans-serif;
-    background: #f0f4f8;
-    color: #333;
+    background: var(--bg);
+    color: var(--text);
     margin: 0;
     padding: 20px;
+
+    * {
+        transition: all 0.3s ease;
+    }
 }
 
 .container {
     max-width: 700px;
     margin: auto;
-    background: white;
+    background: var(--card);
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.container {
-    max-width: 600px;
-    margin: auto;
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 input, textarea, button {
@@ -33,7 +48,7 @@ input, textarea, button {
 }
 
 button {
-    background-color: #1976d2;
+    background-color: var(--accent);
     color: white;
     border: none;
     padding: 10px 14px;
@@ -44,7 +59,7 @@ button {
 }
 
 button:hover {
-    background-color: #0d47a1;
+    background-color: var(--accent-dark);
 }
 
 ul {
@@ -93,8 +108,8 @@ button:hover {
     padding: 10px;
     border-radius: 6px;
     font-size: 0.9rem;
-    background-color: #e1f5fe;
-    color: #0277bd;
+    background-color: var(--success-bg);
+    color: var(--success-text);
     display: none;
 }
 
@@ -111,27 +126,6 @@ textarea {
     box-sizing: border-box;
 }
 
-.task-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.task-item input[type="text"] {
-    flex: 1;
-}
-
 .task-item input[type="checkbox"] {
     transform: scale(1.2);
-}
-
-.status-message {
-    margin-top: 15px;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    background-color: #e8f5e9;
-    color: #388e3c;
-    display: none;
 }

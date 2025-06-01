@@ -1,12 +1,47 @@
-// Установка сегодняшней даты
+// --- Элементы интерфейса ---
 const dateInput = document.getElementById('note-date');
 const todayBtn = document.getElementById('today-btn');
+const taskList = document.getElementById('task-list');
+const addTaskBtn = document.getElementById('add-task');
+const noteText = document.getElementById('note-text');
+const downloadBtn = document.getElementById('download-btn');
+const statusBox = document.getElementById('status');
+const clearAllBtn = document.getElementById('clear-all');
+const clearTasksBtn = document.getElementById('clear-tasks');
+const clearNoteBtn = document.getElementById('clear-note');
+const toggleThemeBtn = document.getElementById('toggle-theme');
 
+// --- Установка текущей даты ---
 function setToday() {
     const today = new Date().toISOString().split('T')[0];
     dateInput.value = today;
 }
 
+// --- Показ уведомлений ---
+function showStatus(message, duration = 2000) {
+    statusBox.textContent = message;
+    statusBox.style.display = 'block';
+    setTimeout(() => {
+        statusBox.style.display = 'none';
+    }, duration);
+}
+
+// --- Сохранение в localStorage ---
+function saveToLocalStorage() {
+    const date = dateInput.value;
+    const notes = noteText.value;
+    const tasks = Array.from(taskList.querySelectorAll('.task-item')).map(item => {
+        return {
+            text: item.querySelector('input[type="text"]').value,
+            done: item.querySelector('input[type="checkbox"]').checked
+        };
+    });
+
+    const data = { date, notes, tasks };
+    localStorage.setItem('dailyNoteData', JSON.stringify(data));
+}
+
+// --- Загрузка из localStorage ---
 function loadFromLocalStorage() {
     const data = JSON.parse(localStorage.getItem('dailyNoteData'));
     if (!data) return;
@@ -14,23 +49,11 @@ function loadFromLocalStorage() {
     if (data.date) dateInput.value = data.date;
     if (data.notes) noteText.value = data.notes;
     if (data.tasks && Array.isArray(data.tasks)) {
-        data.tasks.forEach(task => {
-            createTaskItem(task.text, task.done);
-        });
+        data.tasks.forEach(task => createTaskItem(task.text, task.done));
     }
 }
 
-window.addEventListener('load', () => {
-    setToday();
-    loadFromLocalStorage();
-});
-
-todayBtn.addEventListener('click', setToday);
-
-// Работа со списком задач
-const taskList = document.getElementById('task-list');
-const addTaskBtn = document.getElementById('add-task');
-
+// --- Создание новой задачи ---
 function createTaskItem(value = '', checked = false) {
     const li = document.createElement('li');
     li.classList.add('task-item');
@@ -45,7 +68,6 @@ function createTaskItem(value = '', checked = false) {
     input.value = value;
     input.placeholder = 'Введите задачу...';
     input.addEventListener('input', saveToLocalStorage);
-
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -64,19 +86,10 @@ function createTaskItem(value = '', checked = false) {
     li.appendChild(checkbox);
     li.appendChild(input);
     li.appendChild(removeBtn);
-
     taskList.appendChild(li);
 }
 
-addTaskBtn.addEventListener('click', () => {
-    createTaskItem();
-    saveToLocalStorage();
-});
-
-// Генерация Markdown
-const downloadBtn = document.getElementById('download-btn');
-const noteText = document.getElementById('note-text');
-
+// --- Генерация Markdown-файла ---
 downloadBtn.addEventListener('click', () => {
     const date = dateInput.value || 'Без даты';
 
@@ -93,48 +106,23 @@ downloadBtn.addEventListener('click', () => {
 
     const notes = noteText.value.trim();
 
-    const mdContent = `# ${date}\n\n## ✅ Задачи\n${tasks || '-'}\n\n## ✍️ Заметки\n${notes || '-'}`;
-
     if (!tasks && !notes) {
         showStatus("Нечего экспортировать");
         return;
     }
+
+    const mdContent = `# ${date}\n\n## ✅ Задачи\n${tasks || '-'}\n\n## ✍️ Заметки\n${notes || '-'}`;
+
     const blob = new Blob([mdContent], { type: 'text/markdown' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `${date}-daily-note.md`;
     link.click();
+
     showStatus("Файл успешно экспортирован");
 });
 
-// Сохранение в localStorage
-function saveToLocalStorage() {
-    const date = dateInput.value;
-    const notes = noteText.value;
-    const tasks = Array.from(taskList.querySelectorAll('.task-item')).map(item => {
-        return {
-            text: item.querySelector('input[type="text"]').value,
-            done: item.querySelector('input[type="checkbox"]').checked
-        };
-    });
-
-    const data = {
-        date,
-        notes,
-        tasks
-    };
-
-    localStorage.setItem('dailyNoteData', JSON.stringify(data));
-}
-
-noteText.addEventListener('input', saveToLocalStorage);
-dateInput.addEventListener('input', saveToLocalStorage);
-
-// Очистка задач, заметки и всего
-const clearAllBtn = document.getElementById('clear-all');
-const clearTasksBtn = document.getElementById('clear-tasks');
-const clearNoteBtn = document.getElementById('clear-note');
-
+// --- Очистка данных ---
 clearAllBtn.addEventListener('click', () => {
     taskList.innerHTML = '';
     noteText.value = '';
@@ -155,12 +143,25 @@ clearNoteBtn.addEventListener('click', () => {
     showStatus("Заметка очищена");
 });
 
-const statusBox = document.getElementById('status');
+// --- Обработчики событий ---
+addTaskBtn.addEventListener('click', () => {
+    createTaskItem();
+    saveToLocalStorage();
+});
 
-function showStatus(message, duration = 2000) {
-    statusBox.textContent = message;
-    statusBox.style.display = 'block';
-    setTimeout(() => {
-        statusBox.style.display = 'none';
-    }, duration);
-}
+noteText.addEventListener('input', saveToLocalStorage);
+dateInput.addEventListener('input', saveToLocalStorage);
+
+// --- Тёмная тема ---
+toggleThemeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+});
+
+// --- Загрузка темы и данных ---
+window.addEventListener('load', () => {
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark') document.body.classList.add('dark');
+    setToday();
+    loadFromLocalStorage();
+});
