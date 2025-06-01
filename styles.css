@@ -1,0 +1,51 @@
+body {
+    font-family: sans-serif;
+    background: #f9f9f9;
+    color: #333;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+input, textarea, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    font-size: 1rem;
+}
+
+button {
+    cursor: pointer;
+    background: #444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+.task-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.task-item input[type="text"] {
+    flex: 1;
+}
+
+.task-item button {
+    width: auto;
+    background: crimson;
+}

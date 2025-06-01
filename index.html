@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Obsidian Daily Note</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>📝 Заметки дня</h1>
+
+      <!-- Поле даты -->
+      <label>
+        Дата:
+        <input type="date" id="note-date" />
+        <button id="today-btn">Сегодня</button>
+      </label>
+
+      <!-- Список задач -->
+      <div class="tasks">
+        <h2>Задачи</h2>
+        <ul id="task-list"></ul>
+        <button id="add-task">Добавить задачу</button>
+      </div>
+
+      <!-- Поле заметок -->
+      <div class="notes">
+        <h2>Заметки</h2>
+        <textarea
+          id="note-text"
+          rows="8"
+          placeholder="Введите заметку..."
+        ></textarea>
+      </div>
+
+      <!-- Кнопка скачать -->
+      <button id="download-btn">📥 Скачать как Markdown</button>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
