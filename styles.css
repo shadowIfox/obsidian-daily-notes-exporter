@@ -1,20 +1,21 @@
 body {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
     margin: 0;
-    padding: 20px;
-
-    * {
-        transition: all 0.3s ease;
-    }
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.3s ease;
 }
 
 .container {
-    max-width: 700px;
-    margin: auto;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
     background: var(--card);
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 input, textarea, button {
