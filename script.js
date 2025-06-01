@@ -124,3 +124,25 @@ function saveToLocalStorage() {
 
 noteText.addEventListener('input', saveToLocalStorage);
 dateInput.addEventListener('input', saveToLocalStorage);
+
+// Очистка задач, заметки и всего
+const clearAllBtn = document.getElementById('clear-all');
+const clearTasksBtn = document.getElementById('clear-tasks');
+const clearNoteBtn = document.getElementById('clear-note');
+
+clearAllBtn.addEventListener('click', () => {
+    taskList.innerHTML = '';
+    noteText.value = '';
+    dateInput.value = new Date().toISOString().split('T')[0];
+    saveToLocalStorage();
+});
+
+clearTasksBtn.addEventListener('click', () => {
+    taskList.innerHTML = '';
+    saveToLocalStorage();
+});
+
+clearNoteBtn.addEventListener('click', () => {
+    noteText.value = '';
+    saveToLocalStorage();
+});
