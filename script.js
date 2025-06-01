@@ -95,11 +95,16 @@ downloadBtn.addEventListener('click', () => {
 
     const mdContent = `# ${date}\n\n## ✅ Задачи\n${tasks || '-'}\n\n## ✍️ Заметки\n${notes || '-'}`;
 
+    if (!tasks && !notes) {
+        showStatus("Нечего экспортировать");
+        return;
+    }
     const blob = new Blob([mdContent], { type: 'text/markdown' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `${date}-daily-note.md`;
     link.click();
+    showStatus("Файл успешно экспортирован");
 });
 
 // Сохранение в localStorage
@@ -135,14 +140,27 @@ clearAllBtn.addEventListener('click', () => {
     noteText.value = '';
     dateInput.value = new Date().toISOString().split('T')[0];
     saveToLocalStorage();
+    showStatus("Содержимое очищено и сохранено");
 });
 
 clearTasksBtn.addEventListener('click', () => {
     taskList.innerHTML = '';
     saveToLocalStorage();
+    showStatus("Задачи очищены");
 });
 
 clearNoteBtn.addEventListener('click', () => {
     noteText.value = '';
     saveToLocalStorage();
+    showStatus("Заметка очищена");
 });
+
+const statusBox = document.getElementById('status');
+
+function showStatus(message, duration = 2000) {
+    statusBox.textContent = message;
+    statusBox.style.display = 'block';
+    setTimeout(() => {
+        statusBox.style.display = 'none';
+    }, duration);
+}

@@ -70,3 +70,13 @@ button:hover {
 .clear-buttons button:hover {
     background-color: #c0392b;
 }
+
+.status-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background-color: #e1f5fe;
+    color: #0277bd;
+    display: none;
+}
