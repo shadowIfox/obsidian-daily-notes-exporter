@@ -11,6 +11,10 @@ const clearTasksBtn = document.getElementById('clear-tasks');
 const clearNoteBtn = document.getElementById('clear-note');
 const toggleThemeBtn = document.getElementById('toggle-theme');
 
+const filterButtons = document.querySelectorAll('.filter-btn');
+const progressTracker = document.getElementById('progress-tracker');
+let currentFilter = 'all';
+
 // --- Установка текущей даты ---
 function setToday() {
     const today = new Date().toISOString().split('T')[0];
@@ -61,7 +65,12 @@ function createTaskItem(value = '', checked = false) {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = checked;
-    checkbox.addEventListener('change', saveToLocalStorage);
+    checkbox.addEventListener('change', () => {
+        saveToLocalStorage();
+        li.dataset.done = checkbox.checked ? 'true' : 'false';
+        updateProgress();
+        filterTasks();
+    });
 
     const input = document.createElement('input');
     input.type = 'text';
@@ -86,7 +95,13 @@ function createTaskItem(value = '', checked = false) {
     li.appendChild(checkbox);
     li.appendChild(input);
     li.appendChild(removeBtn);
+
+    li.dataset.done = checked ? 'true' : 'false';
+
     taskList.appendChild(li);
+
+    updateProgress();
+    filterTasks();
 }
 
 // --- Генерация Markdown-файла ---
@@ -151,3 +166,29 @@ addTaskBtn.addEventListener('click', () => {
 
 noteText.addEventListener('input', saveToLocalStorage);
 dateInput.addEventListener('input', saveToLocalStorage);
+
+function updateProgress() {
+    const items = Array.from(taskList.querySelectorAll('.task-item'));
+    const total = items.length;
+    const done = items.filter(item => item.querySelector('input[type="checkbox"]').checked).length;
+    progressTracker.textContent = `Выполнено: ${done} из ${total}`;
+}
+
+function filterTasks() {
+    const items = Array.from(taskList.querySelectorAll('.task-item'));
+    items.forEach(item => {
+        const checked = item.querySelector('input[type="checkbox"]').checked;
+        if (currentFilter === 'all') item.style.display = '';
+        else if (currentFilter === 'active') item.style.display = checked ? 'none' : '';
+        else if (currentFilter === 'done') item.style.display = checked ? '' : 'none';
+    });
+}
+
+filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        filterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        filterTasks();
+    });
+});

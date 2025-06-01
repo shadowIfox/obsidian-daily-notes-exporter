@@ -24,7 +24,19 @@
       <!-- Список задач -->
       <div class="tasks">
         <h2>Задачи</h2>
+        <div class="filters">
+          <button type="button" data-filter="all" class="filter-btn active">
+            Все
+          </button>
+          <button type="button" data-filter="active" class="filter-btn">
+            Активные
+          </button>
+          <button type="button" data-filter="done" class="filter-btn">
+            Завершённые
+          </button>
+        </div>
         <ul id="task-list"></ul>
+        <div id="progress-tracker">Выполнено: 0 из 0</div>
         <button id="add-task" type="button">Добавить задачу</button>
       </div>
 
