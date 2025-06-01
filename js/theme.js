@@ -1,13 +1,20 @@
-// --- Тёмная тема ---
-toggleThemeBtn.addEventListener('click', () => {
-    document.body.classList.toggle('dark');
-    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-});
+// theme.js
+// Смена темы и кастомизация внешнего вида
 
-// --- Загрузка темы и данных ---
-window.addEventListener('load', () => {
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark') document.body.classList.add('dark');
-    setToday();
-    loadFromLocalStorage();
-});
+export function setupThemeSwitcher() {
+    const toggleThemeBtn = document.getElementById('toggle-theme');
+    const html = document.documentElement;
+
+    // Восстановление выбранной темы из localStorage
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) html.setAttribute('data-theme', savedTheme);
+
+    if (toggleThemeBtn) {
+        toggleThemeBtn.addEventListener('click', () => {
+            let currentTheme = html.getAttribute('data-theme') || 'light';
+            let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+}

@@ -1,31 +1,23 @@
-// tracker.js — отвечает за фильтрацию и трекер задач
+// tracker.js
+// Трекер задач и привычек
 
-const filterButtons = document.querySelectorAll('.filter-btn');
-const progressTracker = document.getElementById('progress-tracker');
-let currentFilter = 'all';
+import { taskList } from './storage.js';
 
-function updateProgress() {
-    const items = Array.from(document.querySelectorAll('.task-item'));
-    const total = items.length;
-    const done = items.filter(item => item.querySelector('input[type="checkbox"]').checked).length;
-    progressTracker.textContent = `Выполнено: ${done} из ${total}`;
+export function setupTracker() {
+    const progressBox = document.getElementById('progress');
+
+    function updateProgress() {
+        const items = taskList.querySelectorAll('li');
+        const total = items.length;
+        const done = [...items].filter(li => li.querySelector('input[type="checkbox"]').checked).length;
+        const percent = total ? Math.round((done / total) * 100) : 0;
+
+        if (progressBox) {
+            progressBox.textContent = `Выполнено: ${done} из ${total} (${percent}%)`;
+        }
+    }
+
+    taskList.addEventListener('change', updateProgress);
+
+    updateProgress();
 }
-
-function filterTasks() {
-    const items = Array.from(document.querySelectorAll('.task-item'));
-    items.forEach(item => {
-        const checked = item.querySelector('input[type="checkbox"]').checked;
-        if (currentFilter === 'all') item.style.display = '';
-        else if (currentFilter === 'active') item.style.display = checked ? 'none' : '';
-        else if (currentFilter === 'done') item.style.display = checked ? '' : 'none';
-    });
-}
-
-filterButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        filterButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.filter;
-        filterTasks();
-    });
-});

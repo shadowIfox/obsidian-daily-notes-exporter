@@ -1,32 +1,31 @@
-// --- Генерация Markdown-файла ---
-downloadBtn.addEventListener('click', () => {
-    const date = dateInput.value || 'Без даты';
+// exporter.js
+// Экспорт и синхронизация с календарём
 
-    const tasks = Array.from(taskList.querySelectorAll('.task-item'))
-        .map(item => {
-            const textInput = item.querySelector('input[type="text"]');
-            const checkbox = item.querySelector('input[type="checkbox"]');
-            const text = textInput ? textInput.value.trim() : '';
-            const checked = checkbox ? checkbox.checked : false;
-            return text ? `- [${checked ? 'x' : ' '}] ${text}` : '';
-        })
-        .filter(text => text !== '')
-        .join('\n');
+import { noteText, dateInput, taskList } from './storage.js';
 
-    const notes = (noteText.value || '').trim();
+export function setupExporter() {
+    const downloadBtn = document.getElementById('download-btn');
 
-    if (!tasks && !notes) {
-        showStatus("Нечего экспортировать");
-        return;
-    }
+    if (!downloadBtn) return;
 
-    const mdContent = `# ${date}\n\n## ✅ Задачи\n${tasks || '-'}\n\n## ✍️ Заметки\n${notes || '-'}`;
+    downloadBtn.addEventListener('click', () => {
+        const tasks = [];
+        taskList.querySelectorAll('li').forEach(li => {
+            const checked = li.querySelector('input[type="checkbox"]').checked ? '[x]' : '[ ]';
+            const text = li.querySelector('input[type="text"]').value;
+            tasks.push(`- ${checked} ${text}`);
+        });
+        const note = `# Заметка на ${dateInput.value}\n\n${noteText.value}\n\n## Задачи\n${tasks.join('\n')}`;
 
-    const blob = new Blob([mdContent], { type: 'text/markdown' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${date}-daily-note.md`;
-    link.click();
+        const blob = new Blob([note], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
 
-    showStatus("Файл успешно экспортирован");
-});
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `note_${dateInput.value}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+}
