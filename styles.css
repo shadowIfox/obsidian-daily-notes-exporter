@@ -134,3 +134,23 @@ textarea {
     margin-bottom: 12px;
     color: var(--text);
 }
+
+button {
+    background: var(--accent);
+    color: #fff;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+    background: var(--accent-dark);
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: scale(0.98);
+}
