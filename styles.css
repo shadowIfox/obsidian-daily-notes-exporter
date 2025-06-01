@@ -26,20 +26,6 @@ input, textarea, button {
     font-size: 1rem;
 }
 
-button {
-    background-color: var(--accent);
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-button:hover {
-    background-color: var(--accent-dark);
-}
 
 ul {
     list-style: none;
@@ -86,11 +72,6 @@ ul {
     background: #c62828;
 }
 
-button:hover {
-    background: #333;
-    transform: scale(1.02);
-    transition: 0.2s ease;
-}
 
 .clear-buttons {
     display: flex;
