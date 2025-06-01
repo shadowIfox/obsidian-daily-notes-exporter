@@ -7,45 +7,71 @@ function setToday() {
     dateInput.value = today;
 }
 
-window.addEventListener('load', setToday);
+function loadFromLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('dailyNoteData'));
+    if (!data) return;
+
+    if (data.date) dateInput.value = data.date;
+    if (data.notes) noteText.value = data.notes;
+    if (data.tasks && Array.isArray(data.tasks)) {
+        data.tasks.forEach(task => {
+            createTaskItem(task.text, task.done);
+        });
+    }
+}
+
+window.addEventListener('load', () => {
+    setToday();
+    loadFromLocalStorage();
+});
+
 todayBtn.addEventListener('click', setToday);
 
 // Работа со списком задач
 const taskList = document.getElementById('task-list');
 const addTaskBtn = document.getElementById('add-task');
 
-function createTaskItem(value = '') {
+function createTaskItem(value = '', checked = false) {
     const li = document.createElement('li');
     li.classList.add('task-item');
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = checked;
+    checkbox.addEventListener('change', saveToLocalStorage);
 
     const input = document.createElement('input');
     input.type = 'text';
     input.value = value;
     input.placeholder = 'Введите задачу...';
+    input.addEventListener('input', saveToLocalStorage);
 
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             createTaskItem();
+            saveToLocalStorage();
         }
     });
 
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = 'Удалить';
+    removeBtn.onclick = () => {
+        li.remove();
+        saveToLocalStorage();
+    };
 
     li.appendChild(checkbox);
     li.appendChild(input);
-
-    const removeBtn = document.createElement('button');
-    removeBtn.textContent = 'Удалить';
-    removeBtn.onclick = () => li.remove();
-
     li.appendChild(removeBtn);
 
     taskList.appendChild(li);
 }
 
-addTaskBtn.addEventListener('click', () => createTaskItem());
+addTaskBtn.addEventListener('click', () => {
+    createTaskItem();
+    saveToLocalStorage();
+});
 
 // Генерация Markdown
 const downloadBtn = document.getElementById('download-btn');
@@ -75,3 +101,26 @@ downloadBtn.addEventListener('click', () => {
     link.download = `${date}-daily-note.md`;
     link.click();
 });
+
+// Сохранение в localStorage
+function saveToLocalStorage() {
+    const date = dateInput.value;
+    const notes = noteText.value;
+    const tasks = Array.from(taskList.querySelectorAll('.task-item')).map(item => {
+        return {
+            text: item.querySelector('input[type="text"]').value,
+            done: item.querySelector('input[type="checkbox"]').checked
+        };
+    });
+
+    const data = {
+        date,
+        notes,
+        tasks
+    };
+
+    localStorage.setItem('dailyNoteData', JSON.stringify(data));
+}
+
+noteText.addEventListener('input', saveToLocalStorage);
+dateInput.addEventListener('input', saveToLocalStorage);
