@@ -5,26 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Obsidian Daily Note</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="theme.css" />
   </head>
   <body>
     <div class="container">
       <h1>📝 Заметки дня</h1>
       <div style="text-align: right; margin-bottom: 20px">
-        <button id="toggle-theme">🌓 Переключить тему</button>
+        <button id="toggle-theme" type="button">🌓 Переключить тему</button>
       </div>
 
       <!-- Поле даты -->
       <label>
         Дата:
         <input type="date" id="note-date" />
-        <button id="today-btn">Сегодня</button>
+        <button id="today-btn" type="button">Сегодня</button>
       </label>
 
       <!-- Список задач -->
       <div class="tasks">
         <h2>Задачи</h2>
         <ul id="task-list"></ul>
-        <button id="add-task">Добавить задачу</button>
+        <button id="add-task" type="button">Добавить задачу</button>
       </div>
 
       <!-- Поле заметок -->
@@ -38,16 +39,19 @@
       </div>
 
       <!-- Кнопка скачать -->
-      <button id="download-btn">📥 Скачать как Markdown</button>
+      <button id="download-btn" type="button">📥 Скачать как Markdown</button>
+
+      <div class="clear-buttons">
+        <button id="clear-all" type="button">🧹 Очистить всё</button>
+        <button id="clear-tasks" type="button">🗑 Очистить задачи</button>
+        <button id="clear-note" type="button">🗑 Очистить заметку</button>
+      </div>
+      <div class="clear-buttons"></div>
     </div>
 
     <div id="status" class="status-message"></div>
-    <div class="clear-buttons">
-      <button id="clear-all">🧹 Очистить всё</button>
-      <button id="clear-tasks">🗑 Очистить задачи</button>
-      <button id="clear-note">🗑 Очистить заметку</button>
-    </div>
 
     <script src="script.js"></script>
+    <script src="theme.js"></script>
   </body>
 </html>
