@@ -1,8 +1,18 @@
 body {
-    font-family: sans-serif;
-    background: #f9f9f9;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f4f8;
     color: #333;
+    margin: 0;
     padding: 20px;
+}
+
+.container {
+    max-width: 700px;
+    margin: auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .container {
@@ -23,11 +33,18 @@ input, textarea, button {
 }
 
 button {
-    cursor: pointer;
-    background: #444;
+    background-color: #1976d2;
     color: white;
     border: none;
+    padding: 10px 14px;
     border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+button:hover {
+    background-color: #0d47a1;
 }
 
 ul {
@@ -78,5 +95,43 @@ button:hover {
     font-size: 0.9rem;
     background-color: #e1f5fe;
     color: #0277bd;
+    display: none;
+}
+
+input[type="text"],
+input[type="date"],
+textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.task-item input[type="text"] {
+    flex: 1;
+}
+
+.task-item input[type="checkbox"] {
+    transform: scale(1.2);
+}
+
+.status-message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background-color: #e8f5e9;
+    color: #388e3c;
     display: none;
 }
