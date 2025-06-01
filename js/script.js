@@ -11,10 +11,6 @@ const clearTasksBtn = document.getElementById('clear-tasks');
 const clearNoteBtn = document.getElementById('clear-note');
 const toggleThemeBtn = document.getElementById('toggle-theme');
 
-const filterButtons = document.querySelectorAll('.filter-btn');
-const progressTracker = document.getElementById('progress-tracker');
-let currentFilter = 'all';
-
 // --- Установка текущей даты ---
 function setToday() {
     const today = new Date().toISOString().split('T')[0];
@@ -104,39 +100,6 @@ function createTaskItem(value = '', checked = false) {
     filterTasks();
 }
 
-// --- Генерация Markdown-файла ---
-downloadBtn.addEventListener('click', () => {
-    const date = dateInput.value || 'Без даты';
-
-    const tasks = Array.from(taskList.querySelectorAll('.task-item'))
-        .map(item => {
-            const textInput = item.querySelector('input[type="text"]');
-            const checkbox = item.querySelector('input[type="checkbox"]');
-            const text = textInput ? textInput.value.trim() : '';
-            const checked = checkbox ? checkbox.checked : false;
-            return text ? `- [${checked ? 'x' : ' '}] ${text}` : '';
-        })
-        .filter(text => text !== '')
-        .join('\n');
-
-    const notes = noteText.value.trim();
-
-    if (!tasks && !notes) {
-        showStatus("Нечего экспортировать");
-        return;
-    }
-
-    const mdContent = `# ${date}\n\n## ✅ Задачи\n${tasks || '-'}\n\n## ✍️ Заметки\n${notes || '-'}`;
-
-    const blob = new Blob([mdContent], { type: 'text/markdown' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${date}-daily-note.md`;
-    link.click();
-
-    showStatus("Файл успешно экспортирован");
-});
-
 // --- Очистка данных ---
 clearAllBtn.addEventListener('click', () => {
     taskList.innerHTML = '';
@@ -166,29 +129,3 @@ addTaskBtn.addEventListener('click', () => {
 
 noteText.addEventListener('input', saveToLocalStorage);
 dateInput.addEventListener('input', saveToLocalStorage);
-
-function updateProgress() {
-    const items = Array.from(taskList.querySelectorAll('.task-item'));
-    const total = items.length;
-    const done = items.filter(item => item.querySelector('input[type="checkbox"]').checked).length;
-    progressTracker.textContent = `Выполнено: ${done} из ${total}`;
-}
-
-function filterTasks() {
-    const items = Array.from(taskList.querySelectorAll('.task-item'));
-    items.forEach(item => {
-        const checked = item.querySelector('input[type="checkbox"]').checked;
-        if (currentFilter === 'all') item.style.display = '';
-        else if (currentFilter === 'active') item.style.display = checked ? 'none' : '';
-        else if (currentFilter === 'done') item.style.display = checked ? '' : 'none';
-    });
-}
-
-filterButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        filterButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.filter;
-        filterTasks();
-    });
-});
