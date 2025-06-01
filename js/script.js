@@ -1,4 +1,5 @@
-// --- Элементы интерфейса ---
+
+// --- Элементы интерфейса (только основные) ---
 const dateInput = document.getElementById('note-date');
 const todayBtn = document.getElementById('today-btn');
 const taskList = document.getElementById('task-list');
@@ -6,10 +7,6 @@ const addTaskBtn = document.getElementById('add-task');
 const noteText = document.getElementById('note-text');
 const downloadBtn = document.getElementById('download-btn');
 const statusBox = document.getElementById('status');
-const clearAllBtn = document.getElementById('clear-all');
-const clearTasksBtn = document.getElementById('clear-tasks');
-const clearNoteBtn = document.getElementById('clear-note');
-const toggleThemeBtn = document.getElementById('toggle-theme');
 
 // --- Установка текущей даты ---
 function setToday() {
@@ -26,7 +23,20 @@ function showStatus(message, duration = 2000) {
     }, duration);
 }
 
-// --- Создание новой задачи ---
+// --- Сохранение в LocalStorage ---
+function saveToLocalStorage() {
+    const tasks = [];
+    document.querySelectorAll('#task-list li').forEach(li => {
+        const input = li.querySelector('input[type="text"]');
+        const checkbox = li.querySelector('input[type="checkbox"]');
+        tasks.push({ text: input.value, checked: checkbox.checked });
+    });
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('note', noteText.value);
+    localStorage.setItem('date', dateInput.value);
+}
+
+// --- Создание задачи ---
 function createTaskItem(value = '', checked = false) {
     const li = document.createElement('li');
     li.classList.add('task-item');
@@ -37,8 +47,6 @@ function createTaskItem(value = '', checked = false) {
     checkbox.addEventListener('change', () => {
         saveToLocalStorage();
         li.dataset.done = checkbox.checked ? 'true' : 'false';
-        updateProgress();
-        filterTasks();
     });
 
     const input = document.createElement('input');
@@ -68,20 +76,29 @@ function createTaskItem(value = '', checked = false) {
     li.dataset.done = checked ? 'true' : 'false';
 
     taskList.appendChild(li);
-
-    updateProgress();
-    filterTasks();
 }
 
-// --- Обработчики событий ---
+// --- Добавление задачи по кнопке ---
 addTaskBtn.addEventListener('click', () => {
     createTaskItem();
     saveToLocalStorage();
 });
 
+// --- Сохраняем заметку и дату при вводе ---
 noteText.addEventListener('input', saveToLocalStorage);
 dateInput.addEventListener('input', saveToLocalStorage);
 
+// --- Установка даты по кнопке "Сегодня" ---
+todayBtn.addEventListener('click', setToday);
+
+// --- Инициализация при загрузке ---
 document.addEventListener('DOMContentLoaded', () => {
     if (!dateInput.value) setToday();
+
+    const savedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    taskList.innerHTML = '';
+    savedTasks.forEach(task => createTaskItem(task.text, task.checked));
+
+    noteText.value = localStorage.getItem('note') || '';
+    dateInput.value = localStorage.getItem('date') || new Date().toISOString().split('T')[0];
 });
