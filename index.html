@@ -2,77 +2,36 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Obsidian Daily Note</title>
+    <title>Todo & Habits App</title>
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/theme.css" />
   </head>
   <body>
-    <div class="container">
-      <h1>📝 Заметки дня</h1>
-      <div style="text-align: right; margin-bottom: 20px">
-        <button id="toggle-theme" type="button">🌓 Переключить тему</button>
-      </div>
-
-      <!-- Поле даты -->
-      <label>
-        Дата:
-        <input type="date" id="note-date" />
-        <button id="today-btn" type="button">Сегодня</button>
-      </label>
-
-      <!-- Список задач -->
-      <div class="tasks">
-        <h2>Задачи</h2>
-        <div class="filters">
-          <button type="button" data-filter="all" class="filter-btn active">
-            Все
-          </button>
-          <button type="button" data-filter="active" class="filter-btn">
-            Активные
-          </button>
-          <button type="button" data-filter="done" class="filter-btn">
-            Завершённые
-          </button>
-        </div>
-        <ul id="task-list"></ul>
-        <div id="progress-tracker">Выполнено: 0 из 0</div>
-        <button id="add-task" type="button">Добавить задачу</button>
-      </div>
-
-      <!-- Поле заметок -->
-      <div class="notes">
-        <h2>Заметки</h2>
-        <textarea
-          id="note-text"
-          rows="8"
-          placeholder="Введите заметку..."
-        ></textarea>
-      </div>
-
-      <!-- Кнопка скачать -->
-      <button id="download-btn" type="button">📥 Скачать как Markdown</button>
-
-      <div class="clear-buttons">
-        <button id="clear-all" type="button" aria-label="Очистить всё">
-          🧹 Очистить всё
-        </button>
-        <button id="clear-tasks" type="button" aria-label="Очистить задачи">
-          🗑 Очистить задачи
-        </button>
-        <button id="clear-note" type="button" aria-label="Очистить заметку">
-          🗑 Очистить заметку
-        </button>
-      </div>
-    </div>
-
-    <div id="status" class="status-message"></div>
-
-    <script type="module" src="js/storage.js"></script>
-    <script type="module" src="js/clear.js"></script>
-    <script type="module" src="js/tracker.js"></script>
-    <script type="module" src="js/exporter.js"></script>
+    <header>
+      <h1>Todo & Habits App</h1>
+      <nav>
+        <button data-section="todo">Задачи</button>
+        <button data-section="habits">Привычки</button>
+        <button data-section="mood">Опросник</button>
+        <button data-section="analytics">Аналитика</button>
+        <button data-section="settings">Настройки</button>
+      </nav>
+    </header>
+    <main>
+      <section id="todo-section" class="app-section"><!-- Задачи --></section>
+      <section id="habits-section" class="app-section" hidden>
+        <!-- Привычки -->
+      </section>
+      <section id="mood-section" class="app-section" hidden>
+        <!-- Опросник -->
+      </section>
+      <section id="analytics-section" class="app-section" hidden>
+        <!-- Аналитика -->
+      </section>
+      <section id="settings-section" class="app-section" hidden>
+        <!-- Настройки -->
+      </section>
+    </main>
     <script type="module" src="js/script.js"></script>
-    <script type="module" src="js/theme.js"></script>
   </body>
 </html>

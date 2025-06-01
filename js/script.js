@@ -1,30 +1,15 @@
 // script.js
-// Точка входа для инициализации приложения
 
-import { setToday, createTaskItem, restoreFromStorage, noteText, dateInput, taskList } from './storage.js';
-import { setupClearHandlers } from './clear.js';
-import { setupTracker } from './tracker.js';
-import { setupExporter } from './exporter.js';
-import { setupThemeSwitcher } from './theme.js';
+const navButtons = document.querySelectorAll('nav button');
+const sections = document.querySelectorAll('.app-section');
 
-// --- Элементы интерфейса (кратко) ---
-const addTaskBtn = document.getElementById('add-task');
-const todayBtn = document.getElementById('today-btn');
-
-// --- Добавление задачи по кнопке ---
-addTaskBtn.addEventListener('click', () => {
-    createTaskItem();
+navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-section');
+        sections.forEach(sec => {
+            sec.hidden = !(sec.id === `${target}-section`);
+        });
+    });
 });
 
-// --- Установка даты по кнопке "Сегодня" ---
-todayBtn.addEventListener('click', setToday);
-
-// --- Восстановление из storage при загрузке ---
-document.addEventListener('DOMContentLoaded', () => {
-    setToday();
-    restoreFromStorage();
-    setupClearHandlers();
-    setupTracker();
-    setupExporter();
-    setupThemeSwitcher();
-});
+// Дальше будем подключать остальные модули по мере реализации
