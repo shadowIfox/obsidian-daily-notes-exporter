@@ -47,7 +47,7 @@ function createTaskItem(value = '', checked = false) {
     input.placeholder = 'Введите задачу...';
     input.addEventListener('input', saveToLocalStorage);
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && input.value.trim() !== '') {
             e.preventDefault();
             createTaskItem();
             saveToLocalStorage();
@@ -81,3 +81,7 @@ addTaskBtn.addEventListener('click', () => {
 
 noteText.addEventListener('input', saveToLocalStorage);
 dateInput.addEventListener('input', saveToLocalStorage);
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (!dateInput.value) setToday();
+});

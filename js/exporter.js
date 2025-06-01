@@ -13,7 +13,7 @@ downloadBtn.addEventListener('click', () => {
         .filter(text => text !== '')
         .join('\n');
 
-    const notes = noteText.value.trim();
+    const notes = (noteText.value || '').trim();
 
     if (!tasks && !notes) {
         showStatus("Нечего экспортировать");
