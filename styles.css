@@ -49,3 +49,9 @@ ul {
     width: auto;
     background: crimson;
 }
+
+button:hover {
+    background: #333;
+    transform: scale(1.02);
+    transition: 0.2s ease;
+}
