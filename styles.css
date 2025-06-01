@@ -47,18 +47,43 @@ ul {
 }
 
 .task-item {
+    background: var(--card);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
     display: flex;
+    align-items: center;
     gap: 10px;
-    margin-bottom: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
+
 
 .task-item input[type="text"] {
     flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.task-item input[type="checkbox"] {
+    transform: scale(1.2);
+    cursor: pointer;
 }
 
 .task-item button {
-    width: auto;
-    background: crimson;
+    background: #e53935;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.task-item button:hover {
+    background: #c62828;
 }
 
 button:hover {
@@ -103,10 +128,6 @@ textarea {
     border-radius: 6px;
     font-size: 1rem;
     box-sizing: border-box;
-}
-
-.task-item input[type="checkbox"] {
-    transform: scale(1.2);
 }
 
 .filters {
