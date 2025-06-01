@@ -1,0 +1,13 @@
+/* mood.css */
+/* Стили для опросника состояния */
+#mood-section {}
+
+.mood-form {
+    margin-bottom: 20px;
+}
+
+.mood-history {}
+
+.mood-chart {
+    margin-top: 16px;
+}
