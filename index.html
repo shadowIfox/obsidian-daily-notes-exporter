@@ -3,18 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <title>Todo & Habits App</title>
+    <!-- Tailwind CSS (CDN для быстрого старта, потом можно заменить на сборку) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <!-- Кастомные стили по разделам -->
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/todo.css" />
+    <link rel="stylesheet" href="css/habits.css" />
+    <link rel="stylesheet" href="css/mood.css" />
+    <link rel="stylesheet" href="css/analytics.css" />
+    <link rel="stylesheet" href="css/settings.css" />
   </head>
-  <body>
+  <body class="bg-[var(--color-bg)] text-[var(--color-fg)]">
     <header>
-      <h1>Todo & Habits App</h1>
-      <nav>
-        <button data-section="todo">Задачи</button>
-        <button data-section="habits">Привычки</button>
-        <button data-section="mood">Опросник</button>
-        <button data-section="analytics">Аналитика</button>
-        <button data-section="settings">Настройки</button>
+      <h1 class="text-2xl font-bold">Todo & Habits App</h1>
+      <nav class="mt-4">
+        <button
+          data-section="todo"
+          class="mr-2 px-4 py-2 bg-white border rounded"
+        >
+          Задачи
+        </button>
+        <button
+          data-section="habits"
+          class="mr-2 px-4 py-2 bg-white border rounded"
+        >
+          Привычки
+        </button>
+        <button
+          data-section="mood"
+          class="mr-2 px-4 py-2 bg-white border rounded"
+        >
+          Опросник
+        </button>
+        <button
+          data-section="analytics"
+          class="mr-2 px-4 py-2 bg-white border rounded"
+        >
+          Аналитика
+        </button>
+        <button
+          data-section="settings"
+          class="px-4 py-2 bg-white border rounded"
+        >
+          Настройки
+        </button>
       </nav>
     </header>
     <main>
@@ -32,6 +68,12 @@
         <!-- Настройки -->
       </section>
     </main>
-    <script type="module" src="js/script.js"></script>
+
+    <!-- Chart.js и date-fns (через CDN для прототипа) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/dist/date-fns.min.js"></script>
+    <!-- Основной скрипт (после компиляции TypeScript) -->
+    <script type="module" src="dist/script.js"></script>
+    <!-- Для стадии без сборки: можно временно использовать src="js/script.ts", но браузер не поймёт ts! -->
   </body>
 </html>
