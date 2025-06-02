@@ -2,61 +2,48 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <title>Todo & Habits App</title>
-    <!-- Tailwind CSS (CDN для быстрого старта, потом можно заменить на сборку) -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
-    <!-- Кастомные стили по разделам -->
-    <link rel="stylesheet" href="css/styles.css" />
-    <link rel="stylesheet" href="css/theme.css" />
-    <link rel="stylesheet" href="css/todo.css" />
-    <link rel="stylesheet" href="css/habits.css" />
-    <link rel="stylesheet" href="css/mood.css" />
-    <link rel="stylesheet" href="css/analytics.css" />
-    <link rel="stylesheet" href="css/settings.css" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Todo App</title>
   </head>
-  <body class="bg-[var(--color-bg)] text-[var(--color-fg)]">
-    <header>
-      <h1 class="text-2xl font-bold">Todo & Habits App</h1>
-      <nav class="mt-4">
-        <button
-          data-section="todo"
-          class="mr-2 px-4 py-2 bg-white border rounded"
-        >
-          Задачи
-        </button>
-        <button
-          data-section="habits"
-          class="mr-2 px-4 py-2 bg-white border rounded"
-        >
-          Привычки
-        </button>
-        <button
-          data-section="mood"
-          class="mr-2 px-4 py-2 bg-white border rounded"
-        >
-          Опросник
-        </button>
-        <button
-          data-section="analytics"
-          class="mr-2 px-4 py-2 bg-white border rounded"
-        >
-          Аналитика
-        </button>
-        <button
-          data-section="settings"
-          class="px-4 py-2 bg-white border rounded"
-        >
-          Настройки
-        </button>
-      </nav>
-    </header>
+  <body class="bg-gray-50 min-h-screen">
+    <!-- Навигация -->
+    <nav class="flex gap-4 justify-center my-6">
+      <button
+        data-section="todo"
+        class="px-4 py-2 rounded text-black bg-white border"
+      >
+        Задачи
+      </button>
+      <button
+        data-section="habits"
+        class="px-4 py-2 rounded text-black bg-white border"
+      >
+        Привычки
+      </button>
+      <button
+        data-section="mood"
+        class="px-4 py-2 rounded text-black bg-white border"
+      >
+        Опросник
+      </button>
+      <button
+        data-section="analytics"
+        class="px-4 py-2 rounded text-black bg-white border"
+      >
+        Аналитика
+      </button>
+      <button
+        data-section="settings"
+        class="px-4 py-2 rounded text-black bg-white border"
+      >
+        Настройки
+      </button>
+    </nav>
+
     <main>
+      <!-- Секция задач -->
       <section id="todo-section" class="app-section">
         <h2 class="text-xl font-semibold mb-4">Список задач</h2>
-        <!-- Форма добавления задачи -->
         <form id="add-task-form" class="flex flex-wrap gap-2 mb-4 items-end">
           <div>
             <label for="task-text" class="block text-sm">Текст задачи</label>
@@ -87,9 +74,8 @@
               name="task-category"
               type="text"
               class="border rounded px-2 py-1"
-              placeholder="Введите категорию (например, Дом, Учёба, Спорт)"
+              placeholder="Категория (например, Учёба, Личное)"
             />
-            <!-- Можно заменить на select, если заранее знаешь список -->
           </div>
           <button
             type="submit"
@@ -99,49 +85,23 @@
           </button>
         </form>
 
-        <!-- Список задач -->
-        <ul id="task-list" class="space-y-2">
-          <li
-            class="flex items-center gap-2 p-2 border rounded bg-white shadow"
-          >
-            <input type="checkbox" class="accent-green-600" />
-            <span class="flex-1">Пример задачи</span>
-            <span class="text-xs text-gray-400 ml-2">до 2025-06-05</span>
-            <span
-              class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-2"
-              >Личное</span
-            >
-            <button
-              class="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-700"
-            >
-              Удалить
-            </button>
-          </li>
-        </ul>
+        <!-- Список задач (изначально пустой!) -->
+        <ul id="task-list" class="space-y-2"></ul>
       </section>
 
+      <!-- Остальные секции (пустые пока) -->
       <section id="habits-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Привычки</h2>
       </section>
-
       <section id="mood-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Опросник</h2>
       </section>
-
       <section id="analytics-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Аналитика</h2>
       </section>
-
       <section id="settings-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Настройки</h2>
       </section>
     </main>
-
-    <!-- Chart.js и date-fns (через CDN для прототипа) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/dist/date-fns.min.js"></script>
-    <!-- Основной скрипт (после компиляции TypeScript) -->
-    <script type="module" src="dist/script.js"></script>
-    <!-- Для стадии без сборки: можно временно использовать src="js/script.ts", но браузер не поймёт ts! -->
   </body>
 </html>

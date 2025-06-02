@@ -4,11 +4,11 @@
         "module": "ESNext",
         "moduleResolution": "Node",
         "outDir": "./dist",
-        "rootDir": "./js",
+        "rootDir": "./src",
         "strict": true,
         "esModuleInterop": true
     },
     "include": [
-        "js/**/*"
+        "src/**/*"
     ]
 }

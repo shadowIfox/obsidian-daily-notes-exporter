@@ -9,6 +9,15 @@
     "author": "",
     "license": "ISC",
     "devDependencies": {
+        "@tailwindcss/postcss": "^4.1.8",
+        "autoprefixer": "^10.4.21",
+        "postcss": "^8.5.4",
+        "tailwindcss": "^4.1.8",
         "typescript": "^5.8.3"
+    },
+    "dependencies": {
+        "chart.js": "^4.4.9",
+        "chartjs-adapter-date-fns": "^3.0.0",
+        "date-fns": "^4.1.0"
     }
 }
