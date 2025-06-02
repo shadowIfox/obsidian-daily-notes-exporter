@@ -56,16 +56,62 @@
     <main>
       <section id="todo-section" class="app-section">
         <h2 class="text-xl font-semibold mb-4">Список задач</h2>
+        <!-- Форма добавления задачи -->
+        <form id="add-task-form" class="flex flex-wrap gap-2 mb-4 items-end">
+          <div>
+            <label class="block text-sm">Текст задачи</label>
+            <input
+              id="task-text"
+              type="text"
+              class="border rounded px-2 py-1"
+              placeholder="Введите задачу..."
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm">Дедлайн</label>
+            <input
+              id="task-date"
+              type="date"
+              class="border rounded px-2 py-1"
+            />
+          </div>
+          <div>
+            <label class="block text-sm">Категория</label>
+            <input
+              id="task-category"
+              type="text"
+              class="border rounded px-2 py-1"
+              placeholder="Категория"
+            />
+            <!-- Можно заменить на select, если заранее знаешь список -->
+          </div>
+          <button
+            type="submit"
+            class="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Добавить
+          </button>
+        </form>
+
+        <!-- Список задач -->
+        <ul id="task-list" class="space-y-2">
+          <!-- Тут будут задачи -->
+        </ul>
       </section>
+
       <section id="habits-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Привычки</h2>
       </section>
+
       <section id="mood-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Опросник</h2>
       </section>
+
       <section id="analytics-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Аналитика</h2>
       </section>
+
       <section id="settings-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Настройки</h2>
       </section>
