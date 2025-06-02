@@ -59,30 +59,35 @@
         <!-- Форма добавления задачи -->
         <form id="add-task-form" class="flex flex-wrap gap-2 mb-4 items-end">
           <div>
-            <label class="block text-sm">Текст задачи</label>
+            <label for="task-text" class="block text-sm">Текст задачи</label>
             <input
               id="task-text"
+              name="task-text"
               type="text"
               class="border rounded px-2 py-1"
               placeholder="Введите задачу..."
               required
+              maxlength="100"
             />
           </div>
           <div>
-            <label class="block text-sm">Дедлайн</label>
+            <label for="task-date" class="block text-sm">Дедлайн</label>
             <input
               id="task-date"
+              name="task-date"
               type="date"
               class="border rounded px-2 py-1"
+              required
             />
           </div>
           <div>
-            <label class="block text-sm">Категория</label>
+            <label for="task-category" class="block text-sm">Категория</label>
             <input
               id="task-category"
+              name="task-category"
               type="text"
               class="border rounded px-2 py-1"
-              placeholder="Категория"
+              placeholder="Введите категорию (например, Дом, Учёба, Спорт)"
             />
             <!-- Можно заменить на select, если заранее знаешь список -->
           </div>
