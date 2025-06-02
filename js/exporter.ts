@@ -1,20 +1,23 @@
 // exporter.js
 // Экспорт и синхронизация с календарём
 
-import { noteText, dateInput, taskList } from './storage.js';
+import { noteText, dateInput, taskList } from './storage';
 
-export function setupExporter() {
+export function setupExporter(): void {
     const downloadBtn = document.getElementById('download-btn');
-
-    if (!downloadBtn) return;
+    if (!downloadBtn || !taskList || !noteText || !dateInput) return;
 
     downloadBtn.addEventListener('click', () => {
-        const tasks = [];
+        if (!taskList || !noteText || !dateInput) return;
+        const tasks: string[] = [];
         taskList.querySelectorAll('li').forEach(li => {
-            const checked = li.querySelector('input[type="checkbox"]').checked ? '[x]' : '[ ]';
-            const text = li.querySelector('input[type="text"]').value;
+            const checkbox = li.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+            const input = li.querySelector('input[type="text"]') as HTMLInputElement | null;
+            const checked = checkbox && checkbox.checked ? '[x]' : '[ ]';
+            const text = input?.value ?? '';
             tasks.push(`- ${checked} ${text}`);
         });
+
         const note = `# Заметка на ${dateInput.value}\n\n${noteText.value}\n\n## Задачи\n${tasks.join('\n')}`;
 
         const blob = new Blob([note], { type: 'text/markdown' });

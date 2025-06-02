@@ -1,15 +1,24 @@
 // tracker.js
 // Трекер задач и привычек
 
-import { taskList } from './storage.js';
+import { taskList } from './storage';
 
 export function setupTracker() {
     const progressBox = document.getElementById('progress');
 
     function updateProgress() {
+        if (!taskList) return;
+
+        // Явно приводим к NodeListOf<HTMLLIElement>
         const items = taskList.querySelectorAll('li');
         const total = items.length;
-        const done = [...items].filter(li => li.querySelector('input[type="checkbox"]').checked).length;
+        let done = 0;
+
+        items.forEach(li => {
+            const checkbox = li.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+            if (checkbox && checkbox.checked) done++;
+        });
+
         const percent = total ? Math.round((done / total) * 100) : 0;
 
         if (progressBox) {
@@ -17,7 +26,8 @@ export function setupTracker() {
         }
     }
 
-    taskList.addEventListener('change', updateProgress);
-
-    updateProgress();
+    if (taskList) {
+        taskList.addEventListener('change', updateProgress);
+        updateProgress();
+    }
 }

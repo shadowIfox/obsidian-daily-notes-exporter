@@ -1,32 +1,36 @@
 // storage.js
 // Логика хранения задач, заметок, привычек, состояния
 
-export const noteText = document.getElementById('note-text');
-export const dateInput = document.getElementById('note-date');
-export const taskList = document.getElementById('task-list');
+export const noteText = document.getElementById('note-text') as HTMLTextAreaElement | null;
+export const dateInput = document.getElementById('note-date') as HTMLInputElement | null;
+export const taskList = document.getElementById('task-list') as HTMLUListElement | null;
 
-export function setToday() {
+export function setToday(): void {
+    if (!dateInput) return;
     const today = new Date().toISOString().split('T')[0];
     dateInput.value = today;
 }
 
-export function saveToLocalStorage() {
-    const tasks = [];
-    document.querySelectorAll('#task-list li').forEach(li => {
-        const input = li.querySelector('input[type="text"]');
-        const checkbox = li.querySelector('input[type="checkbox"]');
-        tasks.push({ text: input.value, checked: checkbox.checked });
+export function saveToLocalStorage(): void {
+    if (!taskList || !noteText || !dateInput) return;
+    const tasks: { text: string; checked: boolean }[] = [];
+    taskList.querySelectorAll('li').forEach(li => {
+        const input = li.querySelector('input[type="text"]') as HTMLInputElement | null;
+        const checkbox = li.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+        tasks.push({ text: input?.value ?? '', checked: checkbox?.checked ?? false });
     });
     localStorage.setItem('tasks', JSON.stringify(tasks));
     localStorage.setItem('note', noteText.value);
     localStorage.setItem('date', dateInput.value);
 }
 
-export function restoreFromStorage() {
+export function restoreFromStorage(): void {
+    if (!taskList || !noteText || !dateInput) return;
+
     // Загрузка задач
     const savedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
     taskList.innerHTML = '';
-    savedTasks.forEach(task => createTaskItem(task.text, task.checked));
+    savedTasks.forEach((task: { text: string; checked: boolean }) => createTaskItem(task.text, task.checked));
 
     // Загрузка заметки и даты
     noteText.value = localStorage.getItem('note') || '';
@@ -37,7 +41,8 @@ export function restoreFromStorage() {
     dateInput.addEventListener('input', saveToLocalStorage);
 }
 
-export function createTaskItem(value = '', checked = false) {
+export function createTaskItem(value = '', checked = false): void {
+    if (!taskList) return;
     const li = document.createElement('li');
     li.classList.add('task-item');
 
