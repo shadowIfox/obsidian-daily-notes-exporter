@@ -44,6 +44,30 @@
       <!-- Секция задач -->
       <section id="todo-section" class="app-section">
         <h2 class="text-xl font-semibold mb-4">Список задач</h2>
+
+        <!-- Фильтры задач -->
+        <div id="todo-filters" class="flex gap-2 mb-4 justify-center">
+          <button
+            data-filter="all"
+            class="px-2 py-1 rounded border bg-blue-500 text-white"
+          >
+            Все
+          </button>
+          <button
+            data-filter="active"
+            class="px-2 py-1 rounded border bg-blue-500 text-white"
+          >
+            Активные
+          </button>
+          <button
+            data-filter="completed"
+            class="px-2 py-1 rounded border bg-blue-500 text-white"
+          >
+            Выполненные
+          </button>
+        </div>
+
+        <!-- Форма добавления задачи -->
         <form id="add-task-form" class="flex flex-wrap gap-2 mb-4 items-end">
           <div>
             <label for="task-text" class="block text-sm">Текст задачи</label>
@@ -88,7 +112,6 @@
         <!-- Список задач (изначально пустой!) -->
         <ul id="task-list" class="space-y-2"></ul>
       </section>
-
       <!-- Остальные секции (пустые пока) -->
       <section id="habits-section" class="app-section" hidden>
         <h2 class="text-xl font-semibold mb-4">Привычки</h2>

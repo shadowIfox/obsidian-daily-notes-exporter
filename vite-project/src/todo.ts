@@ -1,5 +1,3 @@
-// src/todo.ts — логика секции задач
-
 // --- Тип данных для задачи ---
 type Task = {
     text: string;
@@ -8,15 +6,13 @@ type Task = {
     completed: boolean;
 };
 
-// --- Массив для хранения всех задач ---
 let currentTasks: Task[] = [];
+let currentFilter: 'all' | 'active' | 'completed' = 'all';
 
-// --- Сохранение задач в localStorage ---
 function saveTasksToStorage(tasks: Task[]) {
     localStorage.setItem('tasks', JSON.stringify(tasks));
 }
 
-// --- Загрузка задач из localStorage ---
 function loadTasksFromStorage(): Task[] {
     const data = localStorage.getItem('tasks');
     if (!data) return [];
@@ -27,7 +23,7 @@ function loadTasksFromStorage(): Task[] {
     }
 }
 
-// --- Создание одного элемента задачи с редактированием по двойному клику ---
+// --- СОЗДАНИЕ ЭЛЕМЕНТА ЗАДАЧИ ---
 export function createTaskElement(task: Task, index: number): HTMLLIElement {
     const li = document.createElement('li');
     li.className = 'flex items-center gap-2 p-2 border rounded bg-white shadow';
@@ -48,6 +44,7 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
             li.classList.remove('opacity-60');
         }
         saveTasksToStorage(currentTasks);
+        renderTasks();
     });
 
     // Текст задачи (редактируемый по двойному клику)
@@ -55,7 +52,6 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
     spanText.className = 'flex-1';
     spanText.textContent = task.text;
 
-    // --- Редактирование текста задачи по двойному клику ---
     spanText.addEventListener('dblclick', () => {
         const input = document.createElement('input');
         input.type = 'text';
@@ -96,14 +92,12 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
         renderTasks();
     };
 
-    // --- Собираем задачу ---
     li.appendChild(checkbox);
     li.appendChild(spanText);
     if (task.date) li.appendChild(spanDate);
     if (task.category) li.appendChild(spanCat);
     li.appendChild(removeBtn);
 
-    // Визуальный статус "выполнено" при инициализации
     if (task.completed) {
         spanText.classList.add('line-through', 'text-gray-400');
         li.classList.add('opacity-60');
@@ -112,14 +106,42 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
     return li;
 }
 
-// --- Рендер списка задач ---
+// --- Рендер списка задач с учетом фильтра ---
 function renderTasks() {
     const taskList = document.getElementById('task-list') as HTMLUListElement | null;
     if (!taskList) return;
     taskList.innerHTML = '';
-    currentTasks.forEach((task, idx) => {
+
+    let filteredTasks = currentTasks;
+    if (currentFilter === 'active') {
+        filteredTasks = currentTasks.filter((task) => !task.completed);
+    } else if (currentFilter === 'completed') {
+        filteredTasks = currentTasks.filter((task) => task.completed);
+    }
+
+    filteredTasks.forEach((task, idx) => {
         const li = createTaskElement(task, idx);
         taskList.appendChild(li);
+    });
+}
+
+// --- Обработчик фильтров ---
+function setupFilters() {
+    const filterContainer = document.getElementById('todo-filters');
+    if (!filterContainer) return;
+
+    filterContainer.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'BUTTON' && target.dataset.filter) {
+            currentFilter = target.dataset.filter as 'all' | 'active' | 'completed';
+            renderTasks();
+
+            // Подсветка активной кнопки фильтра
+            Array.from(filterContainer.children).forEach((btn) =>
+                btn.classList.remove('bg-blue-700', 'text-white')
+            );
+            target.classList.add('bg-blue-700', 'text-white');
+        }
     });
 }
 
@@ -130,9 +152,9 @@ export function setupTodo() {
     const dateInput = document.getElementById('task-date') as HTMLInputElement | null;
     const categoryInput = document.getElementById('task-category') as HTMLInputElement | null;
 
-    // --- Инициализация массива из localStorage ---
     currentTasks = loadTasksFromStorage();
     renderTasks();
+    setupFilters();
 
     if (!form || !textInput || !dateInput || !categoryInput) {
         console.log('Не найдены нужные элементы формы!');

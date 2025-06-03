@@ -1,7 +1,7 @@
 import './style.css';
 import { setupTodo } from './todo';
 
-// Вставляем только свою разметку в #app
+// Вставляем разметку в #app
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <section id="todo-section" class="app-section">
     <h2 class="text-xl font-semibold mb-4">Список задач</h2>
@@ -45,6 +45,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         Добавить
       </button>
     </form>
+    <!-- Фильтры задач -->
+    <div id="todo-filters" class="flex gap-2 mb-4 justify-center">
+      <button data-filter="all" class="px-2 py-1 rounded border bg-blue-500 text-white">Все</button>
+      <button data-filter="active" class="px-2 py-1 rounded border bg-blue-500 text-white">Активные</button>
+      <button data-filter="completed" class="px-2 py-1 rounded border bg-blue-500 text-white">Выполненные</button>
+    </div>
     <ul id="task-list" class="space-y-2"></ul>
   </section>
 `;
