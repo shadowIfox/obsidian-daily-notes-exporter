@@ -168,15 +168,18 @@ function updateProgress() {
 function setupFilters() {
     const filterContainer = document.getElementById('todo-filters');
     if (!filterContainer) return;
+
     filterContainer.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (target.tagName === 'BUTTON' && target.dataset.filter) {
             currentFilter = target.dataset.filter as 'all' | 'active' | 'completed';
-            Array.from(filterContainer.children).forEach(btn =>
-                btn.classList.remove('bg-lime-700', 'text-white')
-            );
-            target.classList.add('bg-lime-700', 'text-white');
             renderTasks();
+
+            // Подсветка активной кнопки
+            Array.from(filterContainer.children).forEach(btn =>
+                btn.classList.remove('bg-lime-500', 'text-black')
+            );
+            target.classList.add('bg-lime-500', 'text-black');
         }
     });
 }
