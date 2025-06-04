@@ -9,11 +9,10 @@ type Task = {
 let currentTasks: Task[] = [];
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
 
-// --- Хранилище ---
+// --- Хранилище (LocalStorage) ---
 function saveTasksToStorage(tasks: Task[]) {
     localStorage.setItem('tasks', JSON.stringify(tasks));
 }
-
 function loadTasksFromStorage(): Task[] {
     const data = localStorage.getItem('tasks');
     if (!data) return [];
@@ -24,11 +23,15 @@ function loadTasksFromStorage(): Task[] {
     }
 }
 
-// --- Создание задачи (с индикацией дедлайна и анимацией) ---
+// --- Создание задачи (с цветовой индикацией дедлайна и анимацией) ---
 export function createTaskElement(task: Task, index: number): HTMLLIElement {
     const li = document.createElement('li');
     li.className =
-        'flex items-center gap-2 p-3 border rounded-2xl bg-white dark:bg-[#282846] shadow-xl fade-in transition';
+        'flex items-center gap-2 p-3 border rounded-2xl bg-white dark:bg-[#282846] shadow-xl opacity-0 translate-y-4 transition-all duration-300';
+
+    setTimeout(() => {
+        li.classList.remove('opacity-0', 'translate-y-4');
+    }, 10);
 
     // Чекбокс
     const checkbox = document.createElement('input');
@@ -48,6 +51,7 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
     spanText.className = 'flex-1 text-lg cursor-pointer select-none dark:text-gray-100';
     spanText.textContent = task.text;
 
+    // Редактирование текста по двойному клику
     spanText.addEventListener('dblclick', () => {
         const input = document.createElement('input');
         input.type = 'text';
@@ -101,7 +105,7 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
         renderTasks();
     };
 
-    // Применяем эффекты для выполненной задачи
+    // Стилизация выполненных задач
     if (task.completed) {
         spanText.classList.add('line-through', 'text-gray-400');
         li.classList.add('opacity-60');
@@ -153,7 +157,7 @@ function updateProgress() {
     if (bar) bar.style.width = percent + "%";
     if (text) text.textContent = `Выполнено: ${completed} из ${total}`;
 
-    // --- Если есть отдельный счетчик ---
+    // Если есть отдельный счетчик
     const counter = document.getElementById('progress-count');
     if (counter) counter.textContent = String(completed);
     const label = document.getElementById('progress-label');
@@ -186,7 +190,7 @@ function setupClearCompleted() {
     });
 }
 
-// --- "Сегодня" в дате ---
+// --- Кнопка "Сегодня" в дате ---
 function setupTodayBtn() {
     const btn = document.getElementById('today-btn') as HTMLButtonElement | null;
     const dateInput = document.getElementById('task-date') as HTMLInputElement | null;
@@ -198,7 +202,7 @@ function setupTodayBtn() {
     }
 }
 
-// --- Инициализация ---
+// --- Инициализация секции Todo ---
 export function setupTodo() {
     const form = document.getElementById('add-task-form') as HTMLFormElement | null;
     const textInput = document.getElementById('task-text') as HTMLInputElement | null;

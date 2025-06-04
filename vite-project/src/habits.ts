@@ -1,10 +1,12 @@
 import Chart from 'chart.js/auto';
+
 // --- Тип данных для привычки ---
 type Habit = {
     text: string;
-    dates: string[];
+    dates: string[]; // Массив дат, когда была отмечена привычка (ISO строки)
 };
 
+// --- Переменные ---
 let habits: Habit[] = [];
 let habitChart: Chart | null = null;
 
@@ -59,7 +61,7 @@ function updateHabitChart() {
             datasets: [{
                 label: 'Серия дней подряд',
                 data: streaks,
-                backgroundColor: 'rgba(132, 204, 22, 0.7)', // lime-500 с прозрачностью
+                backgroundColor: 'rgba(132, 204, 22, 0.7)', // lime-500
                 borderRadius: 12,
                 borderSkipped: false,
             }]
@@ -76,6 +78,7 @@ function updateHabitChart() {
         }
     });
 }
+
 // --- Рендер привычек ---
 function renderHabits() {
     const habitList = document.getElementById('habit-list');
@@ -84,7 +87,10 @@ function renderHabits() {
 
     habits.forEach((habit, idx) => {
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-4 p-2 bg-gray-100 shadow rounded-xl';
+        li.className = 'flex items-center gap-4 p-2 transition-all duration-300 translate-y-4 bg-gray-100 shadow opacity-0 rounded-xl';
+        setTimeout(() => {
+            li.classList.remove('opacity-0', 'translate-y-4');
+        }, 10);
 
         // Чекбокс "выполнено"
         const checkbox = document.createElement('input');
@@ -110,7 +116,10 @@ function renderHabits() {
 
         // Streak
         const streakBadge = document.createElement('span');
-        streakBadge.className = 'ml-2 px-2 py-0.5 rounded-xl text-xs font-semibold bg-lime-200 text-lime-800';
+        let streakClass = 'bg-lime-200 text-lime-800';
+        if (getStreak(habit.dates) > 10) streakClass = 'bg-rose-200 text-rose-800';
+        else if (getStreak(habit.dates) > 5) streakClass = 'bg-yellow-200 text-yellow-800';
+        streakBadge.className = `ml-2 px-2 py-0.5 rounded-xl text-xs font-semibold ${streakClass}`;
         streakBadge.textContent = `Серия: ${getStreak(habit.dates)}`;
 
         // Статистика за месяц
@@ -128,7 +137,7 @@ function renderHabits() {
         innerBar.style.width = `${Math.round(completedThisMonth / 30 * 100)}%`;
         progressBar.appendChild(innerBar);
 
-        // Мини-календарь
+        // Мини-календарь за 7 дней
         const calendar = document.createElement('div');
         calendar.className = 'flex gap-1 ml-2';
         for (let i = 6; i >= 0; i--) {
@@ -159,6 +168,7 @@ function renderHabits() {
         li.appendChild(streakBadge);
         li.appendChild(monthStats);
         li.appendChild(progressBar);
+        li.appendChild(calendar);
         li.appendChild(removeBtn);
 
         habitList.appendChild(li);

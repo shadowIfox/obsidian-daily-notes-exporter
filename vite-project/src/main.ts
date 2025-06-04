@@ -1,13 +1,17 @@
+import { setupHabits } from './habits';
 import './style.css';
 import { setupTodo } from './todo';
-setupTodo();
 
-import { setupHabits } from "./habits";
+// Инициализация разделов (один раз, при загрузке)
+setupTodo();
 setupHabits();
 
 document.addEventListener("DOMContentLoaded", () => {
     const navButtons = document.querySelectorAll<HTMLButtonElement>('nav button');
     const sections = document.querySelectorAll<HTMLElement>('[id$="-section"]');
+
+    // Показываем первую секцию (например, задачи)
+    sections.forEach((sec, idx) => sec.classList.toggle('hidden', idx !== 0));
 
     navButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
