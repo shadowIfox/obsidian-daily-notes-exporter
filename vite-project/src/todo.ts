@@ -1,4 +1,5 @@
-// --- Тип данных для задачи ---
+// todo.ts — эталон с цветовой индикацией дедлайна, анимацией и стилями
+
 type Task = {
     text: string;
     date: string;
@@ -23,68 +24,64 @@ function loadTasksFromStorage(): Task[] {
     }
 }
 
-// --- СОЗДАНИЕ ЭЛЕМЕНТА ЗАДАЧИ ---
+function getDeadlineColor(dateStr: string, completed: boolean) {
+    if (completed) return 'text-gray-400';
+    if (!dateStr) return '';
+    const deadline = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (deadline < today) return 'bg-pink-200 text-red-700 px-2 py-0.5 rounded';         // Просрочено
+    if (+deadline === +today) return 'bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded'; // Сегодня
+    if ((deadline.getTime() - today.getTime()) / 86400000 <= 2) return 'bg-blue-200 text-blue-800 px-2 py-0.5 rounded'; // Скоро
+    return 'text-gray-600';
+}
+
+// --- Создание элемента задачи (с анимацией) ---
 export function createTaskElement(task: Task, index: number): HTMLLIElement {
     const li = document.createElement('li');
-    li.className = 'flex items-center gap-2 p-2 border rounded bg-white shadow';
+    li.className = 'flex items-center gap-2 p-4 bg-white dark:bg-[#282846] rounded-xl shadow transition-all opacity-0 translate-y-4';
+    setTimeout(() => {
+        li.classList.remove('opacity-0', 'translate-y-4');
+        li.classList.add('opacity-100', 'translate-y-0');
+    }, 10);
 
-    // Чекбокс выполнения
+    // Чекбокс
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.className = 'accent-green-600';
+    checkbox.className = 'w-5 h-5 accent-lime-500 rounded border-gray-300 focus:ring-2 focus:ring-lime-600';
     checkbox.checked = task.completed;
 
     checkbox.addEventListener('change', () => {
         task.completed = checkbox.checked;
-        if (checkbox.checked) {
-            spanText.classList.add('line-through', 'text-gray-400');
-            li.classList.add('opacity-60');
-        } else {
-            spanText.classList.remove('line-through', 'text-gray-400');
-            li.classList.remove('opacity-60');
-        }
         saveTasksToStorage(currentTasks);
         renderTasks();
     });
 
-    // Текст задачи (редактируемый по двойному клику)
+    // Текст
     const spanText = document.createElement('span');
-    spanText.className = 'flex-1';
+    spanText.className = 'flex-1 text-lg';
     spanText.textContent = task.text;
 
-    spanText.addEventListener('dblclick', () => {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = spanText.textContent || '';
-        input.className = 'flex-1 border px-2 py-1 rounded';
+    if (task.completed) spanText.classList.add('line-through', 'text-gray-400');
 
-        input.addEventListener('blur', () => {
-            spanText.textContent = input.value;
-            task.text = input.value;
-            li.replaceChild(spanText, input);
-            saveTasksToStorage(currentTasks);
-        });
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') input.blur();
-        });
-
-        li.replaceChild(input, spanText);
-        input.focus();
-    });
-
-    // Дата дедлайна
+    // Дата
     const spanDate = document.createElement('span');
-    spanDate.className = 'text-xs text-gray-400 ml-2';
-    spanDate.textContent = task.date ? `до ${task.date}` : '';
+    spanDate.className = 'ml-2 ' + getDeadlineColor(task.date, task.completed);
+    if (task.date) {
+        spanDate.textContent = `до ${task.date}`;
+    }
 
     // Категория
     const spanCat = document.createElement('span');
-    spanCat.className = 'text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-2';
-    spanCat.textContent = task.category;
+    spanCat.className = 'ml-2 px-2 py-0.5 rounded bg-purple-200 text-purple-900 text-xs';
+    if (task.category) {
+        spanCat.textContent = task.category;
+    }
 
-    // Кнопка удаления
+    // Кнопка удалить
     const removeBtn = document.createElement('button');
-    removeBtn.className = 'ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-700';
+    removeBtn.className = 'ml-2 px-3 py-1 bg-red-500 text-white rounded-xl hover:bg-red-600 transition';
     removeBtn.textContent = 'Удалить';
     removeBtn.onclick = () => {
         currentTasks.splice(index, 1);
@@ -98,15 +95,10 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
     if (task.category) li.appendChild(spanCat);
     li.appendChild(removeBtn);
 
-    if (task.completed) {
-        spanText.classList.add('line-through', 'text-gray-400');
-        li.classList.add('opacity-60');
-    }
-
     return li;
 }
 
-// --- Рендер списка задач с учетом фильтра ---
+// --- Рендер списка с фильтрами ---
 function renderTasks() {
     const taskList = document.getElementById('task-list') as HTMLUListElement | null;
     if (!taskList) return;
@@ -123,21 +115,19 @@ function renderTasks() {
         const li = createTaskElement(task, idx);
         taskList.appendChild(li);
     });
-    // --- Обновление прогресса задач ---
-    function updateProgress() {
-        const text = document.getElementById('progress-text');
-        const bar = document.getElementById('progress-bar');
-        if (!text || !bar) return;
 
-        const total = currentTasks.length;
-        const completed = currentTasks.filter(t => t.completed).length;
-        text.textContent = total
-            ? `${completed} из ${total} задач выполнено`
-            : `Нет задач`;
-        const percent = total ? (completed / total) * 100 : 0;
-        bar.style.width = `${percent}%`;
-    }
     updateProgress();
+}
+
+// --- Прогресс-бар ---
+function updateProgress() {
+    const done = currentTasks.filter((t) => t.completed).length;
+    const all = currentTasks.length;
+    const percent = all ? Math.round((done / all) * 100) : 0;
+    const progressBar = document.getElementById('progress-bar') as HTMLDivElement | null;
+    const progressCount = document.getElementById('progress-count');
+    if (progressBar) progressBar.style.width = `${percent}%`;
+    if (progressCount) progressCount.textContent = `Выполнено: ${done} из ${all}`;
 }
 
 // --- Обработчик фильтров ---
@@ -150,17 +140,15 @@ function setupFilters() {
         if (target.tagName === 'BUTTON' && target.dataset.filter) {
             currentFilter = target.dataset.filter as 'all' | 'active' | 'completed';
             renderTasks();
-
-            // Подсветка активной кнопки фильтра
             Array.from(filterContainer.children).forEach((btn) =>
-                btn.classList.remove('bg-blue-700', 'text-white')
+                btn.classList.remove('ring', 'ring-lime-500', 'scale-105')
             );
-            target.classList.add('bg-blue-700', 'text-white');
+            target.classList.add('ring', 'ring-lime-500', 'scale-105');
         }
     });
 }
 
-// --- Основная функция инициализации секции Todo ---
+// --- Инициализация ---
 export function setupTodo() {
     const form = document.getElementById('add-task-form') as HTMLFormElement | null;
     const textInput = document.getElementById('task-text') as HTMLInputElement | null;
@@ -189,12 +177,11 @@ export function setupTodo() {
             text,
             date,
             category,
-            completed: false
+            completed: false,
         };
         currentTasks.push(newTask);
         saveTasksToStorage(currentTasks);
         renderTasks();
         form.reset();
     });
-
 }
