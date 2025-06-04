@@ -123,6 +123,21 @@ function renderTasks() {
         const li = createTaskElement(task, idx);
         taskList.appendChild(li);
     });
+    // --- Обновление прогресса задач ---
+    function updateProgress() {
+        const text = document.getElementById('progress-text');
+        const bar = document.getElementById('progress-bar');
+        if (!text || !bar) return;
+
+        const total = currentTasks.length;
+        const completed = currentTasks.filter(t => t.completed).length;
+        text.textContent = total
+            ? `${completed} из ${total} задач выполнено`
+            : `Нет задач`;
+        const percent = total ? (completed / total) * 100 : 0;
+        bar.style.width = `${percent}%`;
+    }
+    updateProgress();
 }
 
 // --- Обработчик фильтров ---
@@ -181,4 +196,5 @@ export function setupTodo() {
         renderTasks();
         form.reset();
     });
+
 }

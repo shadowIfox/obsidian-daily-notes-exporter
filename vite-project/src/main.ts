@@ -6,6 +6,15 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <section id="todo-section" class="app-section">
     <h2 class="text-xl font-semibold mb-4">Список задач</h2>
     <form id="add-task-form" class="flex flex-wrap gap-2 mb-4 items-end">
+        <!-- Прогресс задач -->
+    <div id="todo-progress" class="mb-4">
+      <div class="text-sm mb-1"><span id="progress-text"></span></div>
+      <div class="w-full bg-gray-200 rounded h-3">
+        <div id="progress-bar" class="bg-blue-600 h-3 rounded" style="width: 0%"></div>
+      </div>
+    </div>
+    <ul id="task-list" class="space-y-2"></ul>
+  </section>
       <div>
         <label for="task-text" class="block text-sm">Текст задачи</label>
         <input
