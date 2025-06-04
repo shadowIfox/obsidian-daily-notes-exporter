@@ -4,138 +4,74 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>Todo App</title>
+    <!-- Подключение TailwindCSS -->
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body
-    class="bg-gradient-to-br from-purple-100 to-blue-100 min-h-screen flex flex-col"
-  >
-    <!-- Навигация -->
-    <nav class="flex gap-4 justify-center py-8">
-      <button
-        class="px-6 py-2 rounded-xl bg-white shadow font-semibold text-gray-700 hover:bg-lime-100 transition"
-      >
+  <body class="flex flex-col min-h-screen bg-gradient-to-br from-purple-100 to-blue-100">
+    <!-- ====== Навигация ====== -->
+    <nav class="flex justify-center gap-4 py-8">
+      <button id="nav-todo" data-section="todo" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
         Задачи
       </button>
-      <button
-        class="px-6 py-2 rounded-xl bg-white shadow font-semibold text-gray-700 hover:bg-lime-100 transition"
-      >
+      <button id="nav-habits" data-section="habits" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
         Привычки
       </button>
-      <button
-        class="px-6 py-2 rounded-xl bg-white shadow font-semibold text-gray-700 hover:bg-lime-100 transition"
-      >
+      <button id="nav-mood" data-section="mood" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
         Опросник
       </button>
-      <button
-        class="px-6 py-2 rounded-xl bg-white shadow font-semibold text-gray-700 hover:bg-lime-100 transition"
-      >
+      <button id="nav-analytics" data-section="analytics" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
         Аналитика
       </button>
-      <button
-        class="px-6 py-2 rounded-xl bg-white shadow font-semibold text-gray-700 hover:bg-lime-100 transition"
-      >
+      <button id="nav-settings" data-section="settings" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
         Настройки
       </button>
     </nav>
-
-    <main class="flex flex-col items-center flex-1">
-      <!-- Карточка приложения -->
-      <section
-        class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl flex flex-col gap-6"
-      >
-        <!-- Заголовок -->
-        <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">
-          Список задач
-        </h2>
-
+    <main class="flex flex-col items-center justify-center flex-1 min-h-screen app-section">
+      <!-- ====== Карточка приложения: Список задач (TODO) ====== -->
+      <section id="todo-section" class="w-full max-w-xl gap-6 p-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Список задач</h2>
+        
         <!-- Прогресс -->
         <div>
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm text-gray-600"
-              >Выполнено:
-              <span id="progress-count" class="font-bold text-lime-500"
-                >0</span
-              ></span
-            >
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-600">
+              Выполнено: <span id="progress-count" class="font-bold text-lime-500">0</span>
+            </span>
             <span class="text-xs text-gray-400" id="progress-label"></span>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-            <div
-              id="progress-bar"
-              class="h-3 bg-lime-500 rounded-full transition-all"
-              style="width: 0%"
-            ></div>
+          <div class="w-full h-3 overflow-hidden bg-gray-200 rounded-full">
+            <div id="progress-bar" class="h-3 transition-all rounded-full bg-lime-500" style="width: 0%"></div>
           </div>
         </div>
 
         <!-- Форма добавления задачи -->
-        <form
-          id="add-task-form"
-          class="flex flex-wrap gap-4 items-end justify-center"
-        >
+        <form id="add-task-form" class="flex flex-wrap items-end justify-center gap-4">
           <div>
-            <label for="task-text" class="block text-sm mb-1 text-gray-700"
-              >Текст задачи</label
-            >
-            <input
-              id="task-text"
-              name="task-text"
-              type="text"
-              class="input-main border-none rounded-xl px-4 py-2 bg-gray-100 focus:ring-2 focus:ring-lime-400"
-              placeholder="Введите задачу..."
-              required
-              maxlength="100"
-            />
+            <label for="task-text" class="block mb-1 text-sm text-gray-700">Текст задачи</label>
+            <input id="task-text" name="task-text" type="text" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" placeholder="Введите задачу..." required maxlength="100" />
           </div>
           <div>
-            <label for="task-date" class="block text-sm mb-1 text-gray-700"
-              >Дедлайн</label
-            >
-            <input
-              id="task-date"
-              name="task-date"
-              type="date"
-              class="input-main border-none rounded-xl px-4 py-2 bg-gray-100 focus:ring-2 focus:ring-lime-400"
-              required
-            />
+            <label for="task-date" class="block mb-1 text-sm text-gray-700">Дедлайн</label>
+            <input id="task-date" name="task-date" type="date" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" required />
           </div>
           <div>
-            <label for="task-category" class="block text-sm mb-1 text-gray-700"
-              >Категория</label
-            >
-            <input
-              id="task-category"
-              name="task-category"
-              type="text"
-              class="input-main border-none rounded-xl px-4 py-2 bg-gray-100 focus:ring-2 focus:ring-lime-400"
-              placeholder="Категория (например, Учёба, Личное)"
-            />
+            <label for="task-category" class="block mb-1 text-sm text-gray-700">Категория</label>
+            <input id="task-category" name="task-category" type="text" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" placeholder="Категория (например, Учёба, Личное)" />
           </div>
-          <button
-            type="submit"
-            class="bg-lime-500 hover:bg-lime-600 text-black font-semibold px-6 py-2 rounded-xl shadow-xl transition"
-          >
+          <button type="submit" class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl">
             Добавить
           </button>
         </form>
 
         <!-- Фильтры задач -->
-        <div class="flex gap-2 justify-center mb-2">
-          <button
-            data-filter="all"
-            class="bg-white border border-lime-400 text-gray-800 font-semibold px-4 py-2 rounded-xl hover:bg-lime-100 transition shadow"
-          >
+        <div class="flex justify-center gap-2 mb-2">
+          <button data-filter="all" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
             Все
           </button>
-          <button
-            data-filter="active"
-            class="bg-white border border-lime-400 text-gray-800 font-semibold px-4 py-2 rounded-xl hover:bg-lime-100 transition shadow"
-          >
+          <button data-filter="active" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
             Активные
           </button>
-          <button
-            data-filter="completed"
-            class="bg-white border border-lime-400 text-gray-800 font-semibold px-4 py-2 rounded-xl hover:bg-lime-100 transition shadow"
-          >
+          <button data-filter="completed" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
             Выполненные
           </button>
         </div>
@@ -144,40 +80,44 @@
         <ul id="task-list" class="flex flex-col gap-2"></ul>
       </section>
 
-      <!-- Остальные секции (пустые пока) -->
-      <section
-        id="habits-section"
-        class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl mt-8 hidden"
-      >
-        <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">
-          Привычки
-        </h2>
+      <!-- ====== Остальные секции (пока скрыты) ====== -->
+      <section id="habits-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Привычки</h2>
+        <!-- Форма добавления привычки -->
+  <form id="add-habit-form" class="flex justify-center gap-4 mb-6">
+    <input
+      id="habit-text"
+      name="habit-text"
+      type="text"
+      class="px-4 py-2 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-lime-400"
+      placeholder="Введите привычку (например, Пить воду)"
+      required
+      maxlength="50"
+    />
+    <button type="submit" class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl">
+      Добавить
+    </button>
+  </form>
+  
+  <!-- Список привычек -->
+  <ul id="habit-list" class="flex flex-col gap-2"></ul>
+  <canvas id="habit-progress-chart" class="w-full my-4 bg-white shadow rounded-xl"></canvas>
+</section>
       </section>
-      <section
-        id="mood-section"
-        class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl mt-8 hidden"
-      >
-        <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">
-          Опросник
-        </h2>
+      <section id="mood-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Опросник</h2>
+        <!-- Здесь появится функционал опросника -->
       </section>
-      <section
-        id="analytics-section"
-        class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl mt-8 hidden"
-      >
-        <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">
-          Аналитика
-        </h2>
+      <section id="analytics-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Аналитика</h2>
+        <!-- Здесь появится функционал аналитики -->
       </section>
-      <section
-        id="settings-section"
-        class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl mt-8 hidden"
-      >
-        <h2 class="text-2xl font-bold text-gray-900 mb-4 text-center">
-          Настройки
-        </h2>
+      <section id="settings-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Настройки</h2>
+        <!-- Здесь появятся настройки -->
       </section>
     </main>
+    <!-- Подключение скрипта -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
