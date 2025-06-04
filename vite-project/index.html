@@ -81,28 +81,36 @@
       </section>
 
       <!-- ====== Остальные секции (пока скрыты) ====== -->
-      <section id="habits-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
-        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Привычки</h2>
-        <!-- Форма добавления привычки -->
-  <form id="add-habit-form" class="flex justify-center gap-4 mb-6">
-    <input
-      id="habit-text"
-      name="habit-text"
-      type="text"
-      class="px-4 py-2 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-lime-400"
-      placeholder="Введите привычку (например, Пить воду)"
-      required
-      maxlength="50"
-    />
-    <button type="submit" class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl">
-      Добавить
-    </button>
-  </form>
-  
-  <!-- Список привычек -->
-  <ul id="habit-list" class="flex flex-col gap-2 space-y-3"></ul>
-  <canvas id="habit-progress-chart" class="w-full my-4 bg-white shadow rounded-xl"></canvas>
-</section>
+      <section id="habits-section" class="hidden w-full max-w-xl p-8 mx-auto mt-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-6 text-xl font-semibold text-center text-lime-700">Привычки</h2>
+        
+        <!-- Форма добавления новой привычки -->
+        <form id="add-habit-form" class="flex items-end justify-center gap-3 mb-6">
+          <input
+            id="habit-text"
+            name="habit-text"
+            type="text"
+            class="flex-1 px-3 py-2 text-gray-900 border-none shadow outline-none rounded-xl bg-neutral-100 focus:ring-2 focus:ring-lime-400"
+            placeholder="Новая привычка (Например, Зарядка)"
+            required
+            maxlength="30"
+          />
+          <button
+            type="submit"
+            class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl"
+          >
+            Добавить
+          </button>
+        </form>
+        
+        <!-- Список привычек -->
+        <ul id="habit-list" class="space-y-2"></ul>
+        
+        <!-- График прогресса привычек -->
+        <div class="p-4 mt-8 bg-white shadow rounded-2xl">
+          <canvas id="habit-progress-chart" class="w-full"></canvas>
+        </div>
+      </section>
       </section>
       <section id="mood-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
         <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Опросник</h2>

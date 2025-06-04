@@ -87,7 +87,7 @@ function renderHabits() {
 
     habits.forEach((habit, idx) => {
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-4 p-2 transition-all duration-300 translate-y-4 bg-gray-100 shadow opacity-0 rounded-xl';
+        li.className = 'flex items-center gap-4 p-2 mb-3 transition-all duration-300 translate-y-4 bg-gray-100 shadow opacity-0 rounded-xl';
         setTimeout(() => {
             li.classList.remove('opacity-0', 'translate-y-4');
         }, 10);
@@ -117,10 +117,11 @@ function renderHabits() {
         // Streak
         const streakBadge = document.createElement('span');
         let streakClass = 'bg-lime-200 text-lime-800';
-        if (getStreak(habit.dates) > 10) streakClass = 'bg-rose-200 text-rose-800';
-        else if (getStreak(habit.dates) > 5) streakClass = 'bg-yellow-200 text-yellow-800';
+        const streakValue = getStreak(habit.dates);
+        if (streakValue > 10) streakClass = 'bg-rose-200 text-rose-800';
+        else if (streakValue > 5) streakClass = 'bg-yellow-200 text-yellow-800';
         streakBadge.className = `ml-2 px-2 py-0.5 rounded-xl text-xs font-semibold ${streakClass}`;
-        streakBadge.textContent = `Серия: ${getStreak(habit.dates)}`;
+        streakBadge.textContent = `Серия: ${streakValue}`;
 
         // Статистика за месяц
         const month = new Date().toISOString().slice(0, 7); // ГГГГ-ММ
