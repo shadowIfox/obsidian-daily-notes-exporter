@@ -1,60 +1,75 @@
 import Chart from 'chart.js/auto';
+import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
 
-// --- Массивы советов ---
-const tipsTasks = [
-    "Попробуйте планировать задачи с вечера!",
-    "Выполняйте сначала самые простые задачи — заряд бодрости.",
-    "Отмечайте прогресс — это мотивирует к новым успехам.",
-    "Выделяйте 5 минут на разбор задач утром.",
-];
+// --- Достаем реальные данные из localStorage ---
 
-const tipsHabits = [
-    "Отмечайте даже самые маленькие привычки.",
-    "Регулярность важнее количества — продолжайте!",
-    "Если сбились — начните снова, это нормально.",
-    "Заведите напоминание для полезных привычек.",
-];
-
-const tipsMoodGeneral = [
-    "Запланируйте маленькую радость на завтра.",
-    "Делитесь хорошим настроением с близкими.",
-    "Дайте себе время на отдых — вы заслужили!",
-    "Попробуйте вести дневник эмоций.",
-];
-
-// --- Генерация советов ---
-function generateMoodAdvice(avgScore: number, frequent: string): string {
-    const tipsSupport = [
-        "Погуляйте на свежем воздухе — это всегда помогает.",
-        "Не держите эмоции в себе, поговорите с кем-то.",
-        "Маленькая пауза в делах может восстановить силы.",
-    ];
-    const tipsMotivation = [
-        // Оставляем только общее сообщение, добавим frequent ниже
-        // "У вас отличная динамика! Продолжайте в том же духе.",
-        // "Хорошее настроение заразительно — поделитесь им.",
-    ];
-    if (avgScore < 3) {
-        return tipsSupport[Math.floor(Math.random() * tipsSupport.length)];
+function getTasks(): { text: string; done: boolean; date: string; }[] {
+    try {
+        return JSON.parse(localStorage.getItem('tasks') || '[]');
+    } catch {
+        return [];
     }
-    if (avgScore >= 4) {
-        // Совет с упоминанием frequent
-        return `У вас отличная динамика! Чаще всего вы ощущали ${frequent} настроение. Продолжайте в том же духе.`;
-    }
-    // Случайный общий совет + про frequent
-    return tipsMoodGeneral[Math.floor(Math.random() * tipsMoodGeneral.length)] + ` (чаще всего — ${frequent})`;
 }
 
-function generateTaskAdvice(avg: number, streak: number): string {
-    if (avg < 3) return "Рекомендуем ставить себе небольшие задачи на каждый день!";
-    if (streak > 3) return "Вы в отличной форме — не останавливайтесь!";
-    return tipsTasks[Math.floor(Math.random() * tipsTasks.length)];
+function getHabits(): { text: string; dates: string[] }[] {
+    try {
+        return JSON.parse(localStorage.getItem('habits') || '[]');
+    } catch {
+        return [];
+    }
 }
 
-function generateHabitAdvice(streak: number): string {
-    if (streak >= 7) return "Круто! Выдерживать привычки неделю подряд — достойно уважения!";
-    if (streak < 3) return "Не сдавайтесь, даже с малого начинается прогресс!";
-    return tipsHabits[Math.floor(Math.random() * tipsHabits.length)];
+function getMood(): { date: string; rating: number; note?: string }[] {
+    try {
+        return JSON.parse(localStorage.getItem('moodData') || '[]');
+    } catch {
+        return [];
+    }
+}
+
+// --- Функции для подсчета статистики ---
+
+function getTasksStatsByDay() {
+    // Вернет массив: [Пн, Вт, Ср, Чт, Пт, Сб, Вс]
+    //const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const stats = Array(7).fill(0);
+    const tasks = getTasks();
+    tasks.forEach(t => {
+        if (t.done && t.date) {
+            // t.date — должен быть в формате YYYY-MM-DD
+            const d = new Date(t.date);
+            const idx = (d.getDay() + 6) % 7; // Пн=0, ... Вс=6
+            stats[idx]++;
+        }
+    });
+    return stats;
+}
+
+function getHabitStreaks() {
+    // Вернет массив — сколько дней отмечено по каждой привычке за последнюю неделю
+    const habits = getHabits();
+    const weekDates = getLastNDates(7); // последние 7 дат (строки)
+    return habits.map(h => h.dates.filter(date => weekDates.includes(date)).length);
+}
+
+function getMoodStats() {
+    // Вернет массив по 5 категориям: [Отлично, Хорошо, Нормально, Плохо, Ужасно]
+    const data = [0, 0, 0, 0, 0];
+    getMood().forEach(m => {
+        if (m.rating >= 1 && m.rating <= 5) data[5 - m.rating]++;
+    });
+    return data;
+}
+
+// Вспомогательные функции
+function getLastNDates(n: number): string[] {
+    const arr = [];
+    let d = new Date();
+    for (let i = 0; i < n; i++) {
+        arr.unshift(d.toISOString().slice(0, 10));
+        d.setDate(d.getDate() - 1);
+    }
+    return arr;
 }
 
 // --- Главный рендер аналитики ---
@@ -80,7 +95,6 @@ export function renderAnalyticsPage() {
 function showAnalyticsDetails(section: string, container: HTMLElement) {
     const detailsDiv = container.querySelector('#analytics-details') as HTMLDivElement;
 
-    // --- Объявляем переменные один раз! ---
     let title = '';
     let chartData: number[] = [];
     let chartType = '';
@@ -94,18 +108,16 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
 
     if (section === 'tasks') {
         title = 'Задачи';
-        const dayLabelsShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-        const dayLabelsFull = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
-        labels = dayLabelsShort;
-        chartData = [2, 3, 5, 4, 3, 2, 1];
+        labels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        chartData = getTasksStatsByDay();
         chartType = 'bar';
         chartBg = '#60A5FA';
-        avg = Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10;
+        avg = chartData.length ? Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10 : 0;
         let max = Math.max(...chartData), min = Math.min(...chartData);
         let bestIdx = chartData.indexOf(max), worstIdx = chartData.indexOf(min);
-        best = dayLabelsFull[bestIdx];
-        worst = dayLabelsFull[worstIdx];
-        summary = `Ваше среднее выполнение задач за неделю — <b>${avg}</b>.<br>Наиболее активный день — <b>${best}</b>, спокойный — <b>${worst}</b>.`;
+        best = labels[bestIdx] || '';
+        worst = labels[worstIdx] || '';
+        summary = `Ваше среднее выполнение задач за неделю — <b>${avg}</b>.<br>Лучший день — <b>${best}</b>, спокойный — <b>${worst}</b>.`;
         adviceBlock = `
       <div class="flex flex-col items-center mt-4">
         <div id="advice-blur" class="backdrop-blur-md bg-blue-100/60 text-gray-800 rounded-xl px-5 py-4 mt-2 text-base font-medium shadow transition hover:backdrop-blur-0 hover:bg-blue-100/90 cursor-pointer select-none max-w-lg text-center">
@@ -119,16 +131,16 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
 
     if (section === 'habits') {
         title = 'Привычки';
-        labels = ['Неделя 1', 'Неделя 2', 'Неделя 3', 'Неделя 4'];
-        chartData = [3, 4, 2, 5];
-        chartType = 'line';
+        labels = getHabits().map(h => h.text);
+        chartData = getHabitStreaks();
+        chartType = 'bar';
         chartBg = '#34D399';
-        avg = Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10;
+        avg = chartData.length ? Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10 : 0;
         let max = Math.max(...chartData), min = Math.min(...chartData);
         let bestIdx = chartData.indexOf(max), worstIdx = chartData.indexOf(min);
-        best = labels[bestIdx];
-        worst = labels[worstIdx];
-        summary = `Среднее количество выполненных привычек в неделю — <b>${avg}</b>.<br>Самая стабильная неделя — <b>${best}</b>, самая сложная — <b>${worst}</b>.`;
+        best = labels[bestIdx] || '';
+        worst = labels[worstIdx] || '';
+        summary = `Среднее выполнение привычек за неделю — <b>${avg}</b>.<br>Лучшая привычка — <b>${best}</b>, сложная — <b>${worst}</b>.`;
         adviceBlock = `
       <div class="flex flex-col items-center mt-4">
         <div id="advice-blur" class="backdrop-blur-md bg-lime-100/60 text-gray-800 rounded-xl px-5 py-4 mt-2 text-base font-medium shadow transition hover:backdrop-blur-0 hover:bg-lime-100/90 cursor-pointer select-none max-w-lg text-center">
@@ -143,17 +155,19 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
     if (section === 'mood') {
         title = 'Настроение';
         labels = ['Отлично', 'Хорошо', 'Нормально', 'Плохо', 'Ужасно'];
-        chartData = [5, 8, 3, 2, 1];
+        chartData = getMoodStats();
         chartType = 'doughnut';
         chartBg = ['#F472B6', '#FB7185', '#FBCFE8', '#C026D3', '#A21CAF'];
         let sum = chartData.reduce((a, b) => a + b, 0);
-        avg = Math.round((chartData[0] * 5 + chartData[1] * 4 + chartData[2] * 3 + chartData[3] * 2 + chartData[4]) / sum * 10) / 10;
+        avg = sum
+            ? Math.round((chartData[0] * 5 + chartData[1] * 4 + chartData[2] * 3 + chartData[3] * 2 + chartData[4]) / sum * 10) / 10
+            : 0;
         let moods = ['отличное', 'хорошее', 'нормальное', 'плохое', 'ужасное'];
         let bestIdx = chartData.indexOf(Math.max(...chartData));
         let worstIdx = chartData.indexOf(Math.min(...chartData));
-        best = moods[bestIdx];
-        worst = moods[worstIdx];
-        summary = `Средняя оценка настроения — <b>${avg}</b>.<br>Чаще всего вы выбирали <b>${best}</b> настроение, а реже всего — <b>${worst}</b>.`;
+        best = moods[bestIdx] || '';
+        worst = moods[worstIdx] || '';
+        summary = `Средняя оценка настроения — <b>${avg}</b>.<br>Чаще всего вы выбирали <b>${best}</b>, реже всего — <b>${worst}</b>.`;
         adviceBlock = `
       <div class="flex flex-col items-center mt-4">
         <div id="advice-blur" class="backdrop-blur-md bg-pink-100/60 text-gray-800 rounded-xl px-5 py-4 mt-2 text-base font-medium shadow transition hover:backdrop-blur-0 hover:bg-pink-100/90 cursor-pointer select-none max-w-lg text-center">

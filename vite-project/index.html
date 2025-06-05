@@ -177,13 +177,60 @@
       Настроение
       <span class="mt-2 text-base font-normal text-gray-600">Статистика настроения</span>
     </button>
+    
   </div>
   <div id="analytics-details" class="mt-10"></div>
 </section>
-      <section id="settings-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
-        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Настройки</h2>
-        <!-- Здесь появятся настройки -->
-      </section>
+
+<section id="settings-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
+  <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Настройки</h2>
+  <div class="mt-8 space-y-8">
+    <!-- === Экспорт данных === -->
+    <div>
+      <h3 class="mb-4 text-xl font-semibold">Экспорт данных</h3>
+      <button id="open-export-dialog" class="px-4 py-2 text-gray-800 transition bg-gray-200 rounded-lg shadow hover:bg-gray-300">
+        Экспортировать данные
+      </button>
+      <!-- Модальное окно экспорта -->
+      <div id="export-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden w-full h-full bg-black bg-opacity-30">
+        <div class="bg-white rounded-2xl shadow-xl p-8 min-w-[300px] flex flex-col gap-4 relative">
+          <h4 class="mb-2 text-lg font-bold">Экспортировать:</h4>
+          <label class="block">
+            <span class="font-semibold">Период:</span>
+            <select id="export-period" class="block w-full px-2 py-1 mt-1 border rounded">
+              <option value="day">День</option>
+              <option value="week" selected>Неделя</option>
+              <option value="month">Месяц</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="font-semibold">Категории:</span>
+            <select id="export-category" class="block w-full px-2 py-1 mt-1 border rounded">
+              <option value="all" selected>Все разделы</option>
+              <option value="tasks">Только задачи</option>
+              <option value="habits">Только привычки</option>
+              <option value="mood">Только настроение</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="font-semibold">Формат:</span>
+            <select id="export-format" class="block w-full px-2 py-1 mt-1 border rounded">
+              <option value="md" selected>Markdown</option>
+              <option value="csv">CSV</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <div class="flex justify-end gap-2 mt-4">
+            <button id="close-export-modal" type="button" class="px-4 py-1 bg-gray-200 rounded hover:bg-gray-300">Отмена</button>
+            <button id="confirm-export" type="button" class="px-4 py-1 text-white bg-blue-600 rounded hover:bg-blue-700">Экспорт</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Здесь будут другие настройки по мере роста проекта -->
+  </div>
+</section>
+
     </main>
     <!-- Подключение скрипта -->
     <script type="module" src="/src/main.ts"></script>

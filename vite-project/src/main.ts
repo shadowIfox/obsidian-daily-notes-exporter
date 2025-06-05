@@ -5,11 +5,15 @@ import { setupHabits } from './habits';
 import { setupMood } from './mood';
 import './style.css';
 import { setupTodo } from './todo';
+import { setupSettings } from './settings';
+
+
 
 // Инициализация разделов (один раз, при загрузке)
 setupTodo();
 setupHabits();
 setupMood();
+setupSettings();
 
 document.addEventListener("DOMContentLoaded", () => {
     const navButtons = document.querySelectorAll<HTMLButtonElement>('nav button');
