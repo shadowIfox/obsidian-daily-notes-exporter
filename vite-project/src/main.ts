@@ -1,8 +1,10 @@
+// src/main.ts
+
+import { renderAnalyticsPage } from './analytics';
 import { setupHabits } from './habits';
+import { setupMood } from './mood';
 import './style.css';
 import { setupTodo } from './todo';
-import { setupMood } from './mood';
-
 
 // Инициализация разделов (один раз, при загрузке)
 setupTodo();
@@ -25,6 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
             // Показать нужную секцию
             const target = document.getElementById(`${sectionName}-section`);
             if (target) target.classList.remove("hidden");
+
+            // При переходе на аналитику — вызываем её отрисовку
+            if (sectionName === "analytics") {
+                renderAnalyticsPage();
+            }
         });
     });
 });
