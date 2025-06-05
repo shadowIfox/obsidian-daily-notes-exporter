@@ -158,46 +158,27 @@
     <canvas id="mood-chart" class="w-full max-w-lg bg-white shadow rounded-xl"></canvas>
   </div>
 </section>
-<section
-  id="analytics-section"
-  class="hidden w-full max-w-4xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl"
->
+<!-- Аналитика и отчёты -->
+<section id="analytics-section" class="hidden w-full max-w-4xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
   <h2 class="mb-8 text-3xl font-bold text-center text-gray-900">Аналитика и отчёты</h2>
-  <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-    <!-- Задачи -->
-    <div class="flex flex-col items-center p-4 shadow-inner bg-blue-50 rounded-2xl">
-      <h3 class="mb-2 text-lg font-semibold text-blue-900">Задачи</h3>
-      <canvas id="analytics-tasks-chart" class="w-full max-w-xs"></canvas>
-      <div class="mt-4 text-sm text-center text-gray-600">Выполнено за неделю</div>
-    </div>
-    <!-- Привычки -->
-    <div class="flex flex-col items-center p-4 shadow-inner bg-lime-50 rounded-2xl">
-      <h3 class="mb-2 text-lg font-semibold text-lime-900">Привычки</h3>
-      <canvas id="analytics-habits-chart" class="w-full max-w-xs"></canvas>
-      <div class="mt-4 text-sm text-center text-gray-600">Серия по привычкам</div>
-    </div>
-    <!-- Настроение -->
-    <div class="flex flex-col items-center p-4 shadow-inner bg-pink-50 rounded-2xl">
-      <h3 class="mb-2 text-lg font-semibold text-pink-900">Настроение</h3>
-      <canvas id="analytics-mood-chart" class="w-full max-w-xs"></canvas>
-      <div class="mt-4 text-sm text-center text-gray-600">Среднее настроение</div>
-    </div>
+  <div id="analytics-menu" class="grid grid-cols-1 gap-8 md:grid-cols-3">
+    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition bg-blue-100 shadow-xl hover:bg-blue-200 rounded-2xl" data-analytics="tasks">
+      <span class="mb-4 text-4xl">✅</span>
+      Задачи
+      <span class="mt-2 text-base font-normal text-gray-600">Еженедельная активность по задачам</span>
+    </button>
+    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition shadow-xl bg-lime-100 hover:bg-lime-200 rounded-2xl" data-analytics="habits">
+      <span class="mb-4 text-4xl">🌱</span>
+      Привычки
+      <span class="mt-2 text-base font-normal text-gray-600">Ваш прогресс по привычкам</span>
+    </button>
+    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition bg-pink-100 shadow-xl hover:bg-pink-200 rounded-2xl" data-analytics="mood">
+      <span class="mb-4 text-4xl">😊</span>
+      Настроение
+      <span class="mt-2 text-base font-normal text-gray-600">Статистика настроения</span>
+    </button>
   </div>
-  <!-- Summary блоки -->
-  <div class="grid grid-cols-1 gap-6 mt-10 md:grid-cols-3">
-    <div class="flex flex-col items-center p-4 bg-gradient-to-br from-lime-100 to-lime-300 rounded-2xl">
-      <div class="text-3xl font-bold text-lime-800" id="summary-best-week">0</div>
-      <div class="mt-2 text-sm text-gray-700">Лучшая неделя</div>
-    </div>
-    <div class="flex flex-col items-center p-4 bg-gradient-to-br from-blue-100 to-blue-300 rounded-2xl">
-      <div class="text-3xl font-bold text-blue-800" id="summary-habits-streak">0</div>
-      <div class="mt-2 text-sm text-gray-700">Макс. серия привычек</div>
-    </div>
-    <div class="flex flex-col items-center p-4 bg-gradient-to-br from-pink-100 to-pink-300 rounded-2xl">
-      <div class="text-3xl font-bold text-pink-800" id="summary-mood-average">0</div>
-      <div class="mt-2 text-sm text-gray-700">Среднее настроение</div>
-    </div>
-  </div>
+  <div id="analytics-details" class="mt-10"></div>
 </section>
       <section id="settings-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
         <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Настройки</h2>
