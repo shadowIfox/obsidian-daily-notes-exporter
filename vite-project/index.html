@@ -112,10 +112,52 @@
         </div>
       </section>
       </section>
-      <section id="mood-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
-        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Опросник</h2>
-        <!-- Здесь появится функционал опросника -->
-      </section>
+<!-- Опросник по моральному состоянию -->
+<section id="mood-section" class="hidden w-full max-w-xl p-8 mx-auto bg-white shadow-2xl app-section rounded-2xl">
+  <h2 class="mb-6 text-xl font-semibold">Опросник: Как прошёл твой день?</h2>
+  <!-- Форма оценки -->
+  <form id="mood-form" class="flex flex-col gap-4 mb-8">
+    <div class="flex items-center gap-2">
+      <label class="text-base font-medium">Оценка:</label>
+      <div class="flex gap-1" id="mood-rating">
+        <label>
+          <input type="radio" name="rating" value="1" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-red-400 peer-checked:text-white">1</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="2" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-orange-400 peer-checked:text-white">2</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="3" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-yellow-400 peer-checked:text-white">3</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="4" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-lime-400 peer-checked:text-white">4</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="5" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-green-400 peer-checked:text-white">5</span>
+        </label>
+      </div>
+    </div>
+    <div>
+      <label for="mood-note" class="text-base">Заметка:</label>
+      <textarea id="mood-note" rows="2" placeholder="Как прошёл твой день?" class="w-full px-3 py-2 border rounded-xl bg-gray-50"></textarea>
+    </div>
+    <button type="submit" class="self-end px-4 py-2 font-semibold text-black transition bg-lime-500 hover:bg-lime-600 rounded-xl">
+      Сохранить
+    </button>
+  </form>
+  <!-- История за 7 дней -->
+  <div>
+    <h3 class="mb-2 text-base font-semibold">История за неделю</h3>
+    <ul id="mood-history" class="flex flex-col gap-1 mb-6"></ul>
+    <!-- График -->
+    <canvas id="mood-chart" class="w-full max-w-lg bg-white shadow rounded-xl"></canvas>
+  </div>
+</section>
       <section id="analytics-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
         <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Аналитика</h2>
         <!-- Здесь появится функционал аналитики -->
