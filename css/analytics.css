@@ -1,0 +1,21 @@
+/* analytics.css */
+/* Стили для аналитики/отчётов */
+#analytics-section {}
+
+.analytics-report {
+    margin-bottom: 18px;
+}
+
+.chart {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.achievement-block {
+    background: var(--color-accent);
+    color: #fff;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+}

@@ -1,24 +1,23 @@
+/* theme.css */
+/* CSS-переменные для темы и поддержка светлой/тёмной темы */
+
 :root {
-    --bg: #f0f4f8;
-    --text: #222;
-    --card: #fff;
-    --accent: #1976d2;
-    --accent-dark: #0d47a1;
-    --success-bg: #e8f5e9;
-    --success-text: #388e3c;
+    --color-bg: #fafafc;
+    --color-fg: #222;
+    --color-accent: #5c9ded;
+    --color-border: #aaa;
+    --color-header: #353746;
 }
 
-body.dark {
-    --bg: #121212;
-    --text: #eee;
-    --card: #1e1e1e;
-    --accent: #64b5f6;
-    --accent-dark: #1976d2;
-    --success-bg: #1b5e20;
-    --success-text: #a5d6a7;
+[data-theme="dark"] {
+    --color-bg: #232336;
+    --color-fg: #e0e0f0;
+    --color-accent: #87bfff;
+    --color-border: #444a;
+    --color-header: #22223a;
 }
 
 body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--color-bg);
+    color: var(--color-fg);
 }

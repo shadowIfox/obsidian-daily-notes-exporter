@@ -1,0 +1,16 @@
+/* settings.css */
+/* Стили для страницы настроек */
+#settings-section {}
+
+.settings-form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.theme-picker {
+    margin-top: 20px;
+}
+
+.auth-block {
+    margin-top: 24px;
+}

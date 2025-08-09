@@ -1,0 +1,42 @@
+/* === Подключение Tailwind (обязательно оставить в самом верху!) === */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === Глобальные стили для body === */
+body {
+  @apply min-h-screen font-sans antialiased;
+  background: linear-gradient(135deg, #ede9fe 0%, #e0f2fe 100%);
+  color: #22223b;
+}
+
+/* === Сброс ненужных стилей для корня и #app (опционально) === */
+#app {
+  @apply min-h-screen flex items-center justify-center;
+}
+
+/* === Кастомная скролл-полоса (только для красоты, можно удалить) === */
+::-webkit-scrollbar {
+  width: 10px;
+  background: #f4f4f4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a5b4fc;
+  border-radius: 8px;
+}
+
+/* === Карточки и секции (можно применять классами или кастомно) === */
+.card {
+  @apply bg-white shadow-xl rounded-2xl p-6;
+}
+
+/* === Темная тема (если используешь) === */
+.dark body {
+  background: linear-gradient(135deg, #23223b 0%, #37377a 100%);
+  color: #f3f3fa;
+}
+
+.dark .card {
+  @apply bg-[#282846] text-gray-100;
+}

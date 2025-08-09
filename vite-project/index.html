@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Todo App</title>
+    <!-- Подключение TailwindCSS -->
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="flex flex-col min-h-screen bg-gradient-to-br from-purple-100 to-blue-100">
+    <!-- ====== Навигация ====== -->
+    <nav class="flex justify-center gap-4 py-8">
+      <button id="nav-todo" data-section="todo" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
+        Задачи
+      </button>
+      <button id="nav-habits" data-section="habits" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
+        Привычки
+      </button>
+      <button id="nav-mood" data-section="mood" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
+        Опросник
+      </button>
+      <button id="nav-analytics" data-section="analytics" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
+        Аналитика
+      </button>
+      <button id="nav-settings" data-section="settings" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
+        Настройки
+      </button>
+    </nav>
+    <main class="flex flex-col items-center justify-center flex-1 min-h-screen app-section">
+      <!-- ====== Карточка приложения: Список задач (TODO) ====== -->
+      <section id="todo-section" class="w-full max-w-xl gap-6 p-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Список задач</h2>
+        
+        <!-- Прогресс -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-600">
+              Выполнено: <span id="progress-count" class="font-bold text-lime-500">0</span>
+            </span>
+            <span class="text-xs text-gray-400" id="progress-label"></span>
+          </div>
+          <div class="w-full h-3 overflow-hidden bg-gray-200 rounded-full">
+            <div id="progress-bar" class="h-3 transition-all rounded-full bg-lime-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Форма добавления задачи -->
+        <form id="add-task-form" class="flex flex-wrap items-end justify-center gap-4">
+          <div>
+            <label for="task-text" class="block mb-1 text-sm text-gray-700">Текст задачи</label>
+            <input id="task-text" name="task-text" type="text" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" placeholder="Введите задачу..." required maxlength="100" />
+          </div>
+          <div>
+            <label for="task-date" class="block mb-1 text-sm text-gray-700">Дедлайн</label>
+            <input id="task-date" name="task-date" type="date" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" required />
+          </div>
+          <div>
+            <label for="task-category" class="block mb-1 text-sm text-gray-700">Категория</label>
+            <input id="task-category" name="task-category" type="text" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" placeholder="Категория (например, Учёба, Личное)" />
+          </div>
+          <button type="submit" class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl">
+            Добавить
+          </button>
+        </form>
+
+        <!-- Фильтры задач -->
+        <div id="todo-filters" class="flex justify-center gap-2 mb-2">
+          <button data-filter="all" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
+            Все
+          </button>
+          <button data-filter="active" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
+            Активные
+          </button>
+          <button data-filter="completed" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
+            Выполненные
+          </button>
+        </div>
+
+        <!-- Список задач -->
+        <ul id="task-list" class="flex flex-col gap-2"></ul>
+      </section>
+
+      <!-- ====== Остальные секции (пока скрыты) ====== -->
+      <section id="habits-section" class="hidden w-full max-w-xl p-8 mx-auto mt-8 bg-white shadow-2xl app-section rounded-2xl">
+        <h2 class="mb-6 text-xl font-semibold text-center text-lime-700">Привычки</h2>
+        
+        <!-- Форма добавления новой привычки -->
+        <form id="add-habit-form" class="flex items-end justify-center gap-3 mb-6">
+          <input
+            id="habit-text"
+            name="habit-text"
+            type="text"
+            class="flex-1 px-3 py-2 text-gray-900 border-none shadow outline-none rounded-xl bg-neutral-100 focus:ring-2 focus:ring-lime-400"
+            placeholder="Новая привычка (Например, Зарядка)"
+            required
+            maxlength="30"
+          />
+          <button
+            type="submit"
+            class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl"
+          >
+            Добавить
+          </button>
+        </form>
+        
+        <!-- Список привычек -->
+        <ul id="habit-list" class="space-y-2"></ul>
+        
+        <!-- График прогресса привычек -->
+        <div class="p-4 mt-8 bg-white shadow rounded-2xl">
+          <canvas id="habit-progress-chart" class="w-full"></canvas>
+        </div>
+      </section>
+      </section>
+<!-- Опросник по моральному состоянию -->
+<section id="mood-section" class="hidden w-full max-w-xl p-8 mx-auto bg-white shadow-2xl app-section rounded-2xl">
+  <h2 class="mb-4 text-xl font-semibold">Опросник: как вы себя чувствуете?</h2>
+  <!-- Форма оценки -->
+  <form id="mood-form" class="flex flex-col gap-4 mb-8">
+    <div class="flex items-center gap-2">
+      <label class="text-base font-medium">Оценка:</label>
+      <div class="flex gap-1" id="mood-rating">
+        <label>
+          <input type="radio" name="rating" value="1" class="hidden peer" required>
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-red-400 peer-checked:text-white">1</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="2" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-orange-400 peer-checked:text-white">2</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="3" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-yellow-400 peer-checked:text-white">3</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="4" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-lime-400 peer-checked:text-white">4</span>
+        </label>
+        <label>
+          <input type="radio" name="rating" value="5" class="hidden peer">
+          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-green-400 peer-checked:text-white">5</span>
+        </label>
+      </div>
+    </div>
+    <div>
+      <label for="mood-note" class="text-base">Заметка:</label>
+      <textarea id="mood-note" rows="2" placeholder="Как прошёл твой день?" class="w-full px-3 py-2 border rounded-xl bg-gray-50"></textarea>
+    </div>
+    <button type="submit" class="self-end px-4 py-2 font-semibold text-black transition bg-lime-500 hover:bg-lime-600 rounded-xl">
+      Сохранить
+    </button>
+  </form>
+  <!-- История за 7 дней -->
+  <div>
+    <h3 class="mb-2 text-base font-semibold">История за неделю</h3>
+    <ul id="mood-history" class="flex flex-col gap-1 mb-6"></ul>
+    <!-- График -->
+    <canvas id="mood-chart" class="w-full max-w-lg bg-white shadow rounded-xl"></canvas>
+  </div>
+</section>
+<!-- Аналитика и отчёты -->
+<section id="analytics-section" class="hidden w-full max-w-4xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
+  <h2 class="mb-8 text-3xl font-bold text-center text-gray-900">Аналитика и отчёты</h2>
+  <div id="analytics-menu" class="grid grid-cols-1 gap-8 md:grid-cols-3">
+    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition bg-blue-100 shadow-xl hover:bg-blue-200 rounded-2xl" data-analytics="tasks">
+      <span class="mb-4 text-4xl">✅</span>
+      Задачи
+      <span class="mt-2 text-base font-normal text-gray-600">Еженедельная активность по задачам</span>
+    </button>
+    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition shadow-xl bg-lime-100 hover:bg-lime-200 rounded-2xl" data-analytics="habits">
+      <span class="mb-4 text-4xl">🌱</span>
+      Привычки
+      <span class="mt-2 text-base font-normal text-gray-600">Ваш прогресс по привычкам</span>
+    </button>
+    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition bg-pink-100 shadow-xl hover:bg-pink-200 rounded-2xl" data-analytics="mood">
+      <span class="mb-4 text-4xl">😊</span>
+      Настроение
+      <span class="mt-2 text-base font-normal text-gray-600">Статистика настроения</span>
+    </button>
+    
+  </div>
+  <div id="analytics-details" class="mt-10"></div>
+</section>
+
+<section id="settings-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
+  <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Настройки</h2>
+  <div class="mt-8 space-y-8">
+    <!-- === Экспорт данных === -->
+    <div>
+      <h3 class="mb-4 text-xl font-semibold">Экспорт данных</h3>
+      <button id="open-export-dialog" class="px-4 py-2 text-gray-800 transition bg-gray-200 rounded-lg shadow hover:bg-gray-300">
+        Экспортировать данные
+      </button>
+      <!-- Модальное окно экспорта -->
+      <div id="export-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden w-full h-full bg-black bg-opacity-30">
+        <div class="bg-white rounded-2xl shadow-xl p-8 min-w-[300px] flex flex-col gap-4 relative">
+          <h4 class="mb-2 text-lg font-bold">Экспортировать:</h4>
+          <label class="block">
+            <span class="font-semibold">Период:</span>
+            <select id="export-period" class="block w-full px-2 py-1 mt-1 border rounded">
+              <option value="day">День</option>
+              <option value="week" selected>Неделя</option>
+              <option value="month">Месяц</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="font-semibold">Категории:</span>
+            <select id="export-category" class="block w-full px-2 py-1 mt-1 border rounded">
+              <option value="all" selected>Все разделы</option>
+              <option value="tasks">Только задачи</option>
+              <option value="habits">Только привычки</option>
+              <option value="mood">Только настроение</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="font-semibold">Формат:</span>
+            <select id="export-format" class="block w-full px-2 py-1 mt-1 border rounded">
+              <option value="md" selected>Markdown</option>
+              <option value="csv">CSV</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <div class="flex justify-end gap-2 mt-4">
+            <button id="close-export-modal" type="button" class="px-4 py-1 bg-gray-200 rounded hover:bg-gray-300">Отмена</button>
+            <button id="confirm-export" type="button" class="px-4 py-1 text-white bg-blue-600 rounded hover:bg-blue-700">Экспорт</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Здесь будут другие настройки по мере роста проекта -->
+  </div>
+</section>
+
+    </main>
+    <!-- Подключение скрипта -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
