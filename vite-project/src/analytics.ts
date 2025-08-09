@@ -1,13 +1,18 @@
-import Chart from 'chart.js/auto';
 import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
+import { createThemedChart } from './utils/chartTheme';
 
 // --- Достаем реальные данные из localStorage ---
 
-function getTasks(): { text: string; done: boolean; date: string; }[] {
+function getTasks(): any[] {
     try {
-        return JSON.parse(localStorage.getItem('tasks') || '[]');
+        // Пытаемся прочитать из нескольких возможных ключей
+        const raw = localStorage.getItem('tasks')
+          || localStorage.getItem('todo')
+          || localStorage.getItem('todoItems')
+          || '[]';
+        return JSON.parse(raw);
     } catch {
-        return [];
+        return [] as any[];
     }
 }
 
@@ -27,20 +32,47 @@ function getMood(): { date: string; rating: number; note?: string }[] {
     }
 }
 
+// Универсальный парсер даты (YYYY-MM-DD или DD.MM.YYYY)
+function parseDateMaybe(s: any): Date | null {
+    if (!s || typeof s !== 'string') return null;
+    // YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    // DD.MM.YYYY
+    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (m) {
+        const iso = `${m[3]}-${m[2]}-${m[1]}`;
+        const d = new Date(iso);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+// Достаём признак выполнения и подходящую дату из разных форматов задач
+function pickTaskDoneAndDate(t: any): { done: boolean; date: Date | null } {
+    const done = !!(t?.done || t?.completed || t?.isCompleted || t?.status === 'completed' || t?.state === 'done');
+    // приоритет дат: completedAt > date > dueDate/deadline > createdAt
+    const dateStr = t?.completedAt || t?.date || t?.dueDate || t?.deadline || t?.createdAt;
+    const date = parseDateMaybe(dateStr);
+    return { done, date };
+}
+
 // --- Функции для подсчета статистики ---
 
 function getTasksStatsByDay() {
-    // Вернет массив: [Пн, Вт, Ср, Чт, Пт, Сб, Вс]
-    //const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     const stats = Array(7).fill(0);
     const tasks = getTasks();
     tasks.forEach(t => {
-        if (t.done && t.date) {
-            // t.date — должен быть в формате YYYY-MM-DD
-            const d = new Date(t.date);
-            const idx = (d.getDay() + 6) % 7; // Пн=0, ... Вс=6
-            stats[idx]++;
-        }
+        const info = pickTaskDoneAndDate(t);
+        // если нет явного done, но есть дата — считаем как «созданные задачи» на этот день
+        const shouldCount = info.done || (!!info.date && (t.done === undefined && t.completed === undefined && t.isCompleted === undefined && t.status === undefined && t.state === undefined));
+        const d = info.date;
+        if (!shouldCount || !d) return;
+        const idx = (d.getDay() + 6) % 7; // Пн=0
+        stats[idx]++;
     });
     return stats;
 }
@@ -70,6 +102,19 @@ function getLastNDates(n: number): string[] {
         d.setDate(d.getDate() - 1);
     }
     return arr;
+}
+// Палитра для круговой диаграммы настроения из CSS-переменных
+function getMoodPalette(): (string | CanvasGradient)[] {
+    const s = getComputedStyle(document.documentElement);
+    const v = (n: string, fb: string) => (s.getPropertyValue(n).trim() || fb);
+    // Порядок соответствует легенде: Отлично, Хорошо, Нормально, Плохо, Ужасно
+    return [
+        v('--mood-5', '#a78bfa'),
+        v('--mood-4', '#86efac'),
+        v('--mood-3', '#fde68a'),
+        v('--mood-2', '#fdba74'),
+        v('--mood-1', '#fca5a5'),
+    ];
 }
 
 // --- Главный рендер аналитики ---
@@ -103,7 +148,6 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
     let best = '';
     let worst = '';
     let summary = '';
-    let chartBg: any = '';
     let adviceBlock = '';
 
     if (section === 'tasks') {
@@ -111,7 +155,6 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
         labels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
         chartData = getTasksStatsByDay();
         chartType = 'bar';
-        chartBg = '#60A5FA';
         avg = chartData.length ? Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10 : 0;
         let max = Math.max(...chartData), min = Math.min(...chartData);
         let bestIdx = chartData.indexOf(max), worstIdx = chartData.indexOf(min);
@@ -134,7 +177,6 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
         labels = getHabits().map(h => h.text);
         chartData = getHabitStreaks();
         chartType = 'bar';
-        chartBg = '#34D399';
         avg = chartData.length ? Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10 : 0;
         let max = Math.max(...chartData), min = Math.min(...chartData);
         let bestIdx = chartData.indexOf(max), worstIdx = chartData.indexOf(min);
@@ -157,7 +199,6 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
         labels = ['Отлично', 'Хорошо', 'Нормально', 'Плохо', 'Ужасно'];
         chartData = getMoodStats();
         chartType = 'doughnut';
-        chartBg = ['#F472B6', '#FB7185', '#FBCFE8', '#C026D3', '#A21CAF'];
         let sum = chartData.reduce((a, b) => a + b, 0);
         avg = sum
             ? Math.round((chartData[0] * 5 + chartData[1] * 4 + chartData[2] * 3 + chartData[3] * 2 + chartData[4]) / sum * 10) / 10
@@ -183,13 +224,13 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
     <button id="back-to-analytics" class="mb-4 text-blue-700 hover:underline">&larr; Назад к аналитике</button>
     <h3 class="mb-6 text-2xl font-bold">${title}</h3>
     <div class="flex flex-col items-center">
-      <canvas id="analytics-detail-chart" class="w-full max-w-xl h-72 mb-6 bg-white rounded-xl shadow"></canvas>
+      <canvas id="analytics-detail-chart" class="w-full max-w-xl h-72 mb-6 rounded-xl shadow"></canvas>
       <div class="w-full flex flex-wrap gap-4 justify-center mb-4">
-        <span class="text-base text-gray-800"><b>Среднее:</b> <span id="avg-value"></span></span>
-        <span class="text-base text-gray-800"><b>Лучший:</b> <span id="best-day"></span></span>
-        <span class="text-base text-gray-800"><b>Менее активный:</b> <span id="worst-day"></span></span>
+        <span class="text-base text-token"><b>Среднее:</b> <span id="avg-value"></span></span>
+        <span class="text-base text-token"><b>Лучший:</b> <span id="best-day"></span></span>
+        <span class="text-base text-token"><b>Менее активный:</b> <span id="worst-day"></span></span>
       </div>
-      <div id="analytics-summary" class="w-full mt-2 p-4 bg-gray-100 rounded-lg text-gray-700 text-sm">${summary}</div>
+      <div id="analytics-summary" class="w-full mt-2 p-4 app-section rounded-lg text-sm">${summary}</div>
       ${adviceBlock}
     </div>
   `;
@@ -202,17 +243,18 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
     });
 
     // Chart
-    const chartCtx = detailsDiv.querySelector('#analytics-detail-chart') as HTMLCanvasElement;
-    if (chartCtx) {
-        new Chart(chartCtx, {
+    const canvas = detailsDiv.querySelector('#analytics-detail-chart') as HTMLCanvasElement | null;
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const ch = createThemedChart(ctx, {
             type: chartType as any,
             data: {
                 labels: labels,
                 datasets: [{
                     label: title,
                     data: chartData,
-                    backgroundColor: chartBg,
-                    borderColor: chartBg,
+                    // цвета подставятся из темы автоматически
                     fill: section === 'habits',
                 }]
             },
@@ -222,6 +264,25 @@ function showAnalyticsDetails(section: string, container: HTMLElement) {
                 scales: section === 'mood' ? {} : { y: { beginAtZero: true } }
             }
         });
+        if (section === 'mood') {
+            try {
+                // Задаём палитру для сегментов
+                (ch.data.datasets[0] as any).backgroundColor = getMoodPalette();
+                (ch.data.datasets[0] as any).borderColor = getMoodPalette();
+                ch.update('none');
+                // Мгновенная перекраска при смене темы
+                const handler = () => {
+                    try {
+                        (ch.data.datasets[0] as any).backgroundColor = getMoodPalette();
+                        (ch.data.datasets[0] as any).borderColor = getMoodPalette();
+                        ch.update('none');
+                    } catch {}
+                };
+                window.addEventListener('themechange', handler, { once: false });
+            } catch {}
+        }
+        (window as any).analyticsCharts = (window as any).analyticsCharts || [];
+        (window as any).analyticsCharts.push(ch);
     }
 
     // Совет (blur + обновить)

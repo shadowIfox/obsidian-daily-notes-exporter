@@ -1,4 +1,4 @@
-import Chart from 'chart.js/auto';
+import { createThemedChart, registerChart } from './utils/chartTheme';
 
 // --- Тип данных для привычки ---
 type Habit = {
@@ -8,7 +8,7 @@ type Habit = {
 
 // --- Переменные ---
 let habits: Habit[] = [];
-let habitChart: Chart | null = null;
+let habitChart: any = null;
 
 // --- Получить streak (дни подряд) ---
 function getStreak(dates: string[]): number {
@@ -46,37 +46,35 @@ function loadHabitsFromStorage(): Habit[] {
 }
 
 // --- Обновление графика привычек (Chart.js) ---
-function updateHabitChart() {
-    const ctx = document.getElementById('habit-progress-chart') as HTMLCanvasElement | null;
+export function updateHabitChart() {
+    const canvas = document.getElementById('habit-progress-chart') as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const streaks = habits.map(h => getStreak(h.dates));
     const labels = habits.map(h => h.text);
 
     if (habitChart) habitChart.destroy();
-    habitChart = new Chart(ctx, {
+    habitChart = createThemedChart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
                 label: 'Серия дней подряд',
                 data: streaks,
-                backgroundColor: 'rgba(132, 204, 22, 0.7)', // lime-500
+                // Цвета возьмутся из темы автоматически (accent/grid/text)
                 borderRadius: 12,
                 borderSkipped: false,
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { display: false },
-                title: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } }
-            }
+            plugins: { legend: { display: false }, title: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
         }
     });
+    registerChart(habitChart as any);
 }
 
 // --- Рендер привычек ---
@@ -87,7 +85,7 @@ function renderHabits() {
 
     habits.forEach((habit, idx) => {
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-4 p-2 mb-3 transition-all duration-300 translate-y-4 bg-gray-100 shadow opacity-0 rounded-xl';
+        li.className = 'flex items-center gap-4 p-2 mb-3 transition-all duration-300 translate-y-4 opacity-0 app-section rounded-xl';
         setTimeout(() => {
             li.classList.remove('opacity-0', 'translate-y-4');
         }, 10);
@@ -95,7 +93,7 @@ function renderHabits() {
         // Чекбокс "выполнено"
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.className = 'w-5 h-5 accent-lime-500';
+        checkbox.className = 'w-5 h-5 accent-current';
         const today = new Date().toISOString().slice(0, 10);
         checkbox.checked = habit.dates.includes(today);
         checkbox.addEventListener('change', () => {
@@ -111,30 +109,35 @@ function renderHabits() {
 
         // Текст привычки
         const spanText = document.createElement('span');
-        spanText.className = 'flex-1 text-gray-800';
+        spanText.className = 'flex-1 text-token';
         spanText.textContent = habit.text;
 
         // Streak
         const streakBadge = document.createElement('span');
-        let streakClass = 'bg-lime-200 text-lime-800';
         const streakValue = getStreak(habit.dates);
-        if (streakValue > 10) streakClass = 'bg-rose-200 text-rose-800';
-        else if (streakValue > 5) streakClass = 'bg-yellow-200 text-yellow-800';
-        streakBadge.className = `ml-2 px-2 py-0.5 rounded-xl text-xs font-semibold ${streakClass}`;
+        const baseBadge = 'ml-2 px-2 py-0.5 rounded-xl text-xs font-semibold badge';
+        let streakClass = baseBadge;            // базовый бейдж под тему
+        if (streakValue > 10) {
+          streakClass = `${baseBadge} theme-accent`; // яркий бейдж на высоком стрике
+        }
+        else if (streakValue > 5) {
+          streakClass = `${baseBadge}`; // средний — оставим базовый
+        }
+        streakBadge.className = streakClass;
         streakBadge.textContent = `Серия: ${streakValue}`;
 
         // Статистика за месяц
         const month = new Date().toISOString().slice(0, 7); // ГГГГ-ММ
         const completedThisMonth = habit.dates.filter(date => date.startsWith(month)).length;
         const monthStats = document.createElement('span');
-        monthStats.className = 'text-xs text-gray-500';
+        monthStats.className = 'text-xs theme-muted';
         monthStats.textContent = `В этом месяце: ${completedThisMonth} дней`;
 
         // Прогресс-бар за месяц
         const progressBar = document.createElement('div');
-        progressBar.className = 'w-24 h-2 overflow-hidden bg-gray-200 rounded-full';
+        progressBar.className = 'w-24 h-2 overflow-hidden border rounded-full border-token';
         const innerBar = document.createElement('div');
-        innerBar.className = 'h-2 transition-all rounded-full bg-lime-400';
+        innerBar.className = 'h-2 transition-all rounded-full theme-accent';
         innerBar.style.width = `${Math.round(completedThisMonth / 30 * 100)}%`;
         progressBar.appendChild(innerBar);
 
@@ -147,14 +150,14 @@ function renderHabits() {
             const dayStr = date.toISOString().slice(0, 10);
             const dot = document.createElement('span');
             dot.className = habit.dates.includes(dayStr)
-                ? 'inline-block w-3 h-3 rounded-full bg-lime-500 border-2 border-lime-300'
-                : 'inline-block w-3 h-3 rounded-full bg-gray-300 border';
+              ? 'inline-block w-3 h-3 rounded-full theme-accent border-2'
+              : 'inline-block w-3 h-3 rounded-full bg-token border border-token';
             calendar.appendChild(dot);
         }
 
         // Кнопка удаления
         const removeBtn = document.createElement('button');
-        removeBtn.className = 'px-2 py-1 ml-2 text-xs text-white transition bg-red-400 rounded hover:bg-red-600';
+        removeBtn.className = 'px-2 py-1 ml-2 text-xs btn btn-danger';
         removeBtn.textContent = 'Удалить';
         removeBtn.onclick = () => {
             habits.splice(idx, 1);
@@ -186,6 +189,11 @@ export function setupHabits() {
     habits = loadHabitsFromStorage();
     renderHabits();
 
+    // Перекрашиваем график при смене темы (без кликов)
+    window.addEventListener('themechange', () => {
+        updateHabitChart();
+    });
+
     if (!form || !input) return;
     form.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -197,3 +205,5 @@ export function setupHabits() {
         form.reset();
     });
 }
+// Делаем функцию доступной глобально для плавной перерисовки при смене темы (fallback)
+;(window as any).updateHabitChart = updateHabitChart;

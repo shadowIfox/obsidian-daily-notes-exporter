@@ -3,19 +3,22 @@
 import { renderAnalyticsPage } from './analytics';
 import { setupHabits } from './habits';
 import { setupMood } from './mood';
-import './style.css';
-import { setupTodo } from './todo';
 import { setupSettings } from './settings';
+import './style.css';
+import { initThemeSwitcher } from './theme';
+import { setupTodo } from './todo';
 
 
 
-// Инициализация разделов (один раз, при загрузке)
+// Инициализация разделов
 setupTodo();
 setupHabits();
 setupMood();
 setupSettings();
 
 document.addEventListener("DOMContentLoaded", () => {
+    initThemeSwitcher();
+
     const navButtons = document.querySelectorAll<HTMLButtonElement>('nav button');
     const sections = document.querySelectorAll<HTMLElement>('[id$="-section"]');
 

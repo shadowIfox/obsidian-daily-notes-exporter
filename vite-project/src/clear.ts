@@ -2,6 +2,7 @@
 // Очистка данных (todo, заметок, привычек)
 
 import { dateInput, noteText, saveToLocalStorage, taskList } from './storage';
+import { createThemedChart } from './utils/chartTheme';
 
 // Типизация аргументов функции showStatus
 function showStatus(message: string, duration: number = 2000): void {
