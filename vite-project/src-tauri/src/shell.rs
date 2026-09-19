@@ -2,9 +2,11 @@
 
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
+    plugin::TauriPlugin,
     tray::TrayIconBuilder,
-    AppHandle, Emitter, Manager,
+    AppHandle, Emitter, Manager, Wry,
 };
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 /// Событие для фронтенда: открыть окно «Новая задача».
 pub const NEW_TASK_EVENT: &str = "open-new-task";
@@ -45,4 +47,27 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
     Ok(())
+}
+
+/// Глобальная горячая клавиша «Новая задача»: ⌥⌘N, работает из любого приложения.
+fn new_task_shortcut() -> Shortcut {
+    Shortcut::new(Some(Modifiers::ALT | Modifiers::SUPER), Code::KeyN)
+}
+
+/// Плагин горячих клавиш: по ⌥⌘N открывает окно «Новая задача».
+pub fn global_shortcut_plugin() -> TauriPlugin<Wry> {
+    tauri_plugin_global_shortcut::Builder::new()
+        .with_handler(|app, shortcut, event| {
+            if event.state() == ShortcutState::Pressed && *shortcut == new_task_shortcut() {
+                request_new_task(app);
+            }
+        })
+        .build()
+}
+
+/// Регистрирует ⌥⌘N. Если сочетание занято другим приложением, это не ошибка запуска: приложение работает без него.
+pub fn register_new_task_shortcut(app: &AppHandle) {
+    if let Err(e) = app.global_shortcut().register(new_task_shortcut()) {
+        log::warn!("Не удалось занять горячую клавишу ⌥⌘N: {e}");
+    }
 }

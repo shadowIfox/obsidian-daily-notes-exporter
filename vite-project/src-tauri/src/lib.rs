@@ -22,6 +22,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(shell::global_shortcut_plugin())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle()
@@ -33,6 +34,7 @@ pub fn run() {
             let db = Db::open(&dir.join("myday.sqlite"))?;
             app.manage(db);
             shell::setup_tray(app.handle())?;
+            shell::register_new_task_shortcut(app.handle());
             Ok(())
         })
         // Красная кнопка окна не завершает приложение, а прячет окно: оно остаётся в меню-баре
