@@ -4,11 +4,16 @@
 
 import { parseDateStr } from './dates';
 
+export type Priority = 'low' | 'normal' | 'high';
+
 export type Task = {
     id: string;
     text: string;
     date: string;          // дедлайн YYYY-MM-DD, может быть пустым
+    time?: string;         // время HH:MM, необязательно
     category: string;
+    priority: Priority;
+    notes: string;
     completed: boolean;
     completedAt?: string;  // YYYY-MM-DD, когда отмечена выполненной
 };
@@ -31,6 +36,8 @@ export type UserSettings = {
     themeMode: ThemeMode;
     userName: string;
 };
+
+const PRIORITIES: Priority[] = ['low', 'normal', 'high'];
 
 const KEYS = { tasks: 'tasks', habits: 'habits', mood: 'moodData', settings: 'userSettings' } as const;
 
@@ -64,7 +71,10 @@ export function loadTasks(): Task[] {
         id: str(t.id) || newId(),
         text: str(t.text),
         date: str(t.date),
+        time: /^\d{2}:\d{2}$/.test(str(t.time)) ? str(t.time) : undefined,
         category: str(t.category),
+        priority: PRIORITIES.includes(t.priority as Priority) ? (t.priority as Priority) : 'normal',
+        notes: str(t.notes),
         // checked/done — поля старых версий приложения
         completed: Boolean(t.completed ?? t.checked ?? t.done),
         completedAt: str(t.completedAt) || undefined,

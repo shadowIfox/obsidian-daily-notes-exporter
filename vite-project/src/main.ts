@@ -3,6 +3,7 @@
 import '@fontsource-variable/manrope';
 import './style.css';
 
+import { setupDashboard } from './dashboard';
 import { setupHabits } from './habits';
 import { hydrateIcons } from './icons';
 import { setupMood } from './mood';
@@ -23,6 +24,7 @@ setupTodo();
 setupHabits();
 setupMood();
 setupSettings();
+setupDashboard();
 
 // Сворачивание сайдбара (запоминается)
 const frame = document.getElementById('app-frame');

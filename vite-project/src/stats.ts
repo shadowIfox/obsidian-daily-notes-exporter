@@ -3,6 +3,10 @@
 import { addDays, lastNDates, todayStr, weekdayIndex } from './dates';
 import type { Habit, MoodEntry, Task } from './store';
 
+export type DayCount = { date: string; count: number };
+export type MoodSeries = { days: number; points: { i: number; date: string; rating: number }[] };
+export type TaskListFilter = 'today' | 'week' | 'overdue';
+
 /** Серия дней подряд, заканчивающаяся сегодня. */
 export function getStreak(dates: string[], today: string = todayStr()): number {
     const set = new Set(dates);
@@ -97,4 +101,50 @@ export function moodOverview(entries: MoodEntry[], today: string = todayStr(), d
         min: Math.min(...ratings),
         max: Math.max(...ratings),
     };
+}
+
+/** Сколько задач выполнено в каждый из последних days дней (по возрастанию, последний — сегодня). */
+export function tasksCompletedByDay(tasks: Task[], today: string = todayStr(), days = 7): DayCount[] {
+    const counts = new Map(lastNDates(days, today).map((d) => [d, 0]));
+    for (const t of tasks) {
+        const day = completionDay(t);
+        if (day && counts.has(day)) counts.set(day, (counts.get(day) ?? 0) + 1);
+    }
+    return [...counts.entries()].map(([date, count]) => ({ date, count }));
+}
+
+/** Оценки настроения за последние days дней: позиция дня (0 — самый ранний) и оценка. */
+export function moodSeries(entries: MoodEntry[], today: string = todayStr(), days = 14): MoodSeries {
+    const dates = lastNDates(days, today);
+    const byDate = new Map(entries.map((e) => [e.date, e.rating]));
+    const points = dates.flatMap((date, i) => (byDate.has(date) ? [{ i, date, rating: byDate.get(date) as number }] : []));
+    return { days, points };
+}
+
+const PRIORITY_RANK = { high: 0, normal: 1, low: 2 } as const;
+
+function byDeadline(a: Task, b: Task): number {
+    return (
+        a.date.localeCompare(b.date) ||
+        (a.time ?? '99:99').localeCompare(b.time ?? '99:99') ||
+        PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]
+    );
+}
+
+/** Невыполненные задачи для списка на главной: на сегодня / на 7 дней вперёд / просроченные. */
+export function tasksForList(tasks: Task[], filter: TaskListFilter, today: string = todayStr()): Task[] {
+    const weekEnd = addDays(today, 7);
+    const active = tasks.filter((t) => !t.completed);
+    const picked =
+        filter === 'overdue'
+            ? active.filter((t) => t.date && t.date < today)
+            : filter === 'week'
+              ? active.filter((t) => t.date >= today && t.date <= weekEnd)
+              : active.filter((t) => t.date === today);
+    return picked.sort(byDeadline);
+}
+
+/** Ближайший дедлайн среди невыполненных задач (просроченные идут первыми); null, если дедлайнов нет. */
+export function nearestDeadline(tasks: Task[], _today: string = todayStr()): Task | null {
+    return tasks.filter((t) => !t.completed && t.date).sort(byDeadline)[0] ?? null;
 }

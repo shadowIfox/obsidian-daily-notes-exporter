@@ -5,6 +5,30 @@ import { loadTasks, newId, saveTasks, type Task } from './store';
 let currentTasks: Task[] = [];
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
 
+// --- API для других разделов (главная меняет задачи через него, чтобы не разъезжалось состояние) ---
+export function toggleTask(id: string): void {
+    const task = currentTasks.find((t) => t.id === id);
+    if (!task) return;
+    task.completed = !task.completed;
+    task.completedAt = task.completed ? todayStr() : undefined;
+    saveTasks(currentTasks);
+    renderTasks();
+}
+
+export function updateTask(id: string, patch: Partial<Omit<Task, 'id'>>): void {
+    const task = currentTasks.find((t) => t.id === id);
+    if (!task) return;
+    Object.assign(task, patch);
+    saveTasks(currentTasks);
+    renderTasks();
+}
+
+export function removeTask(id: string): void {
+    currentTasks = currentTasks.filter((t) => t.id !== id);
+    saveTasks(currentTasks);
+    renderTasks();
+}
+
 // --- Создание строки задачи ---
 export function createTaskElement(task: Task): HTMLLIElement {
     const li = document.createElement('li');
@@ -17,12 +41,7 @@ export function createTaskElement(task: Task): HTMLLIElement {
     checkbox.checked = task.completed;
     checkbox.setAttribute('aria-label', 'Выполнено');
 
-    checkbox.addEventListener('change', () => {
-        task.completed = checkbox.checked;
-        task.completedAt = checkbox.checked ? todayStr() : undefined;
-        saveTasks(currentTasks);
-        renderTasks();
-    });
+    checkbox.addEventListener('change', () => toggleTask(task.id));
 
     // Текст задачи (редактируется по двойному клику)
     const spanText = document.createElement('span');
@@ -61,9 +80,16 @@ export function createTaskElement(task: Task): HTMLLIElement {
         const today = todayStr();
         const badge = document.createElement('span');
         badge.className = 'badge ' + (task.date < today ? 'badge--overdue' : task.date === today ? 'badge--today' : 'badge--upcoming');
-        badge.textContent = `до ${formatDateShort(task.date)}`;
+        badge.textContent = `до ${formatDateShort(task.date)}${task.time ? ` ${task.time}` : ''}`;
         badge.title = task.date;
         meta.appendChild(badge);
+    }
+
+    if (task.priority === 'high') {
+        const important = document.createElement('span');
+        important.className = 'badge badge--high';
+        important.textContent = 'Важно';
+        meta.appendChild(important);
     }
 
     if (task.category) {
@@ -80,11 +106,7 @@ export function createTaskElement(task: Task): HTMLLIElement {
     removeBtn.setAttribute('aria-label', 'Удалить задачу');
     removeBtn.title = 'Удалить';
     removeBtn.innerHTML = icon('trash-2', 16);
-    removeBtn.onclick = () => {
-        currentTasks = currentTasks.filter((t) => t.id !== task.id);
-        saveTasks(currentTasks);
-        renderTasks();
-    };
+    removeBtn.onclick = () => removeTask(task.id);
     meta.appendChild(removeBtn);
 
     li.append(checkbox, spanText, meta);
@@ -193,7 +215,7 @@ export function setupTodo() {
 
         if (!text) return;
 
-        currentTasks.push({ id: newId(), text, date, category, completed: false });
+        currentTasks.push({ id: newId(), text, date, category, priority: 'normal', notes: '', completed: false });
         saveTasks(currentTasks);
         renderTasks();
         form.reset();

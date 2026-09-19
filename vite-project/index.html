@@ -77,6 +77,7 @@
                   <div><div class="stat-card__value" data-stat="tasks.active">0</div><div class="stat-card__label">в работе</div></div>
                   <div><div class="stat-card__value" data-stat="tasks.overdue">0</div><div class="stat-card__label">просрочено</div></div>
                 </div>
+                <div class="viz" id="viz-tasks"></div>
               </article>
 
               <article class="card card--pink stat-card">
@@ -89,6 +90,7 @@
                   <div><div class="stat-card__value" data-stat="mood.min">—</div><div class="stat-card__label">минимум</div></div>
                   <div><div class="stat-card__value" data-stat="mood.max">—</div><div class="stat-card__label">максимум</div></div>
                 </div>
+                <div class="viz" id="viz-mood"></div>
               </article>
 
               <article class="card card--green stat-card">
@@ -101,6 +103,7 @@
                   <div><div class="stat-card__value" data-stat="habits.left">0</div><div class="stat-card__label">осталось</div></div>
                   <div><div class="stat-card__value" data-stat="habits.streak">0</div><div class="stat-card__label">лучшая серия</div></div>
                 </div>
+                <div class="viz" id="viz-habits"></div>
               </article>
 
               <article class="card card--blue stat-card">
@@ -113,7 +116,28 @@
                   <div><div class="stat-card__value" data-stat="deadlines.today">0</div><div class="stat-card__label">сегодня</div></div>
                   <div><div class="stat-card__value" data-stat="deadlines.week">0</div><div class="stat-card__label">на неделе</div></div>
                 </div>
+                <div class="viz" id="viz-deadline"></div>
               </article>
+            </div>
+
+            <div class="dash-lower">
+              <section class="card" aria-labelledby="dash-list-title">
+                <div class="toolbar">
+                  <h2 id="dash-list-title" class="card__title card__title--flush">Задачи</h2>
+                  <div id="dash-list-filter" class="segmented" role="group" aria-label="Период списка">
+                    <button type="button" class="segmented__btn" data-filter="today">Сегодня</button>
+                    <button type="button" class="segmented__btn" data-filter="week">Неделя</button>
+                    <button type="button" class="segmented__btn" data-filter="overdue">Просрочено</button>
+                  </div>
+                </div>
+                <ul id="dash-task-list" class="stack"></ul>
+                <p id="dash-task-empty" class="empty hidden"></p>
+              </section>
+
+              <section class="card card--pink" aria-labelledby="dash-details-title">
+                <h2 id="dash-details-title" class="card__title">Детали задачи</h2>
+                <div id="task-details"></div>
+              </section>
             </div>
           </section>
 

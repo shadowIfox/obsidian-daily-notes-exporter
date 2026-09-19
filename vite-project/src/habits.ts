@@ -42,6 +42,16 @@ export function updateHabitChart() {
     });
 }
 
+// --- API для главной: отметить/снять привычку на сегодня ---
+export function toggleHabitToday(id: string): void {
+    const habit = habits.find((h) => h.id === id);
+    if (!habit) return;
+    const today = todayStr();
+    habit.dates = habit.dates.includes(today) ? habit.dates.filter((d) => d !== today) : [...habit.dates, today];
+    saveHabits(habits);
+    renderHabits();
+}
+
 // --- Рендер привычек ---
 function renderHabits() {
     const habitList = document.getElementById('habit-list');
