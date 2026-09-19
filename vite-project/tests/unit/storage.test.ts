@@ -13,6 +13,7 @@ import {
     saveMood,
     saveSettings,
     saveTasks,
+    DEFAULT_NOTIFICATIONS,
 } from '../../src/store';
 import { mkHabit, mkMood, mkTask } from './factories';
 
@@ -151,7 +152,7 @@ describe('сбой записи', () => {
         saveSettings({ userName: 'Вторая' }); // должна записаться
         await flushStore();
         consoleError.mockRestore();
-        assert.deepEqual(backend.writes, [{ themeMode: 'system', userName: 'Вторая' }]);
+        assert.deepEqual(backend.writes, [{ themeMode: 'system', userName: 'Вторая', notifications: DEFAULT_NOTIFICATIONS }]);
         assert.equal(loadSettings().userName, 'Вторая');
     });
 });

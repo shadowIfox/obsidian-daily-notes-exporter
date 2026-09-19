@@ -47,9 +47,35 @@ export type MoodEntry = {
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
+/** Системные уведомления (приложение для Mac). Времена — «ЧЧ:ММ». Расписание считает Rust (src-tauri/src/notify.rs) по этим же полям. */
+export type NotificationSettings = {
+    enabled: boolean; // главный переключатель: пока выключен, ничего не приходит
+    dayStart: string; // начало дня: с этого времени идут утренние уведомления
+    taskAtDayStart: boolean; // в начале дня — по уведомлению на каждую задачу со временем
+    taskBeforeDeadline: boolean; // за 2 часа до срока задачи
+    repeatEnabled: boolean; // повторное напоминание о несделанном на сегодня
+    repeatTime: string;
+    morningDigest: boolean; // утренняя сводка: задачи, просроченное, привычки
+    eveningEnabled: boolean; // итоги дня и напоминание про настроение
+    eveningTime: string;
+};
+
+export const DEFAULT_NOTIFICATIONS: NotificationSettings = {
+    enabled: false,
+    dayStart: '09:00',
+    taskAtDayStart: true,
+    taskBeforeDeadline: true,
+    repeatEnabled: false,
+    repeatTime: '18:00',
+    morningDigest: false,
+    eveningEnabled: false,
+    eveningTime: '21:00',
+};
+
 export type UserSettings = {
     themeMode: ThemeMode;
     userName: string;
+    notifications: NotificationSettings;
 };
 
 const PRIORITIES: Priority[] = ['low', 'normal', 'high'];
@@ -238,13 +264,36 @@ export function saveMood(entries: MoodEntry[]): void {
 
 const THEME_MODES: ThemeMode[] = ['system', 'light', 'dark'];
 
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Приводит сохранённые настройки уведомлений к правильному виду: неизвестное или битое заменяется значениями по умолчанию. */
+export function normalizeNotifications(raw: unknown): NotificationSettings {
+    const d = DEFAULT_NOTIFICATIONS;
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ...d };
+    const r = raw as Raw;
+    const flag = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback);
+    const time = (v: unknown, fallback: string): string => (typeof v === 'string' && TIME_RE.test(v) ? v : fallback);
+    return {
+        enabled: flag(r.enabled, d.enabled),
+        dayStart: time(r.dayStart, d.dayStart),
+        taskAtDayStart: flag(r.taskAtDayStart, d.taskAtDayStart),
+        taskBeforeDeadline: flag(r.taskBeforeDeadline, d.taskBeforeDeadline),
+        repeatEnabled: flag(r.repeatEnabled, d.repeatEnabled),
+        repeatTime: time(r.repeatTime, d.repeatTime),
+        morningDigest: flag(r.morningDigest, d.morningDigest),
+        eveningEnabled: flag(r.eveningEnabled, d.eveningEnabled),
+        eveningTime: time(r.eveningTime, d.eveningTime),
+    };
+}
+
 export function normalizeSettings(raw: unknown): UserSettings {
-    const defaults: UserSettings = { themeMode: 'system', userName: '' };
+    const defaults: UserSettings = { themeMode: 'system', userName: '', notifications: { ...DEFAULT_NOTIFICATIONS } };
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return defaults;
     const r = raw as Raw;
     return {
         themeMode: THEME_MODES.includes(r.themeMode as ThemeMode) ? (r.themeMode as ThemeMode) : defaults.themeMode,
         userName: str(r.userName),
+        notifications: normalizeNotifications(r.notifications),
     };
 }
 

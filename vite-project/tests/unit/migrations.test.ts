@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'vitest';
 import { MIGRATIONS, migrate, SCHEMA_VERSION, SchemaTooNewError, type Migration, type RawData } from '../../src/migrations';
 import { createMemoryBackend } from '../../src/storage';
-import { flushStore, initStore, loadHabits, loadSettings, loadTasks } from '../../src/store';
+import { flushStore, initStore, loadHabits, loadSettings, loadTasks, DEFAULT_NOTIFICATIONS } from '../../src/store';
 import { parseBackup, BACKUP_VERSION, buildBackup } from '../../src/backup';
 
 const empty: RawData = { tasks: [], habits: [], mood: [], settings: {} };
@@ -136,7 +136,7 @@ describe('initStore и версия схемы', () => {
         await initStore(backend);
 
         assert.equal(loadTasks()[0].completed, true);
-        assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Аня' });
+        assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Аня', notifications: DEFAULT_NOTIFICATIONS });
         assert.equal(backend.data.get('schemaVersion'), SCHEMA_VERSION);
         const savedTasks = backend.data.get('tasks') as { id: string; completed: boolean }[];
         assert.equal(savedTasks[0].completed, true);

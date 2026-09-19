@@ -10,6 +10,7 @@ import {
     loadTasks,
     saveHabits,
     saveSettings,
+    DEFAULT_NOTIFICATIONS,
 } from '../../src/store';
 import { seed } from './seed';
 
@@ -102,18 +103,18 @@ describe('store: график и архив привычек', () => {
 
 describe('store: настройки', () => {
     it('по умолчанию', async () => {
-        assert.deepEqual(loadSettings(), { themeMode: 'system', userName: '' });
+        assert.deepEqual(loadSettings(), { themeMode: 'system', userName: '', notifications: DEFAULT_NOTIFICATIONS });
     });
 
     it('патчи не затирают друг друга', async () => {
         saveSettings({ userName: 'Анна' });
         saveSettings({ themeMode: 'dark' });
-        assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Анна' });
+        assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Анна', notifications: DEFAULT_NOTIFICATIONS });
     });
 
     it('мусор → значения по умолчанию', async () => {
         await seed.settings({ themeMode: 'bogus', userName: 5 });
-        assert.deepEqual(loadSettings(), { themeMode: 'system', userName: '' });
+        assert.deepEqual(loadSettings(), { themeMode: 'system', userName: '', notifications: DEFAULT_NOTIFICATIONS });
     });
 
     it('сохранение сообщает интерфейсу событием datachange', async () => {
