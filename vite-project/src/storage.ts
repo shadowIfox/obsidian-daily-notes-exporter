@@ -5,7 +5,8 @@
  * Ключи данных. Совпадают с ключами localStorage, поэтому уже сохранённые данные подхватываются.
  * schemaVersion — версия схемы данных (см. migrations.ts); migrationBackup — копия данных перед последней миграцией.
  */
-export type StoreKey = 'tasks' | 'habits' | 'moodData' | 'userSettings' | 'schemaVersion' | 'migrationBackup';
+export const STORE_KEYS = ['tasks', 'habits', 'moodData', 'userSettings', 'schemaVersion', 'migrationBackup'] as const;
+export type StoreKey = (typeof STORE_KEYS)[number];
 
 export interface StorageBackend {
     /** Сохранённое значение (уже разобранный JSON) или undefined, если ничего нет или запись повреждена. */

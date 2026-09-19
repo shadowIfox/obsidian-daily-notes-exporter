@@ -10,6 +10,8 @@ import { setupMood } from './mood';
 import { readPref, writePref } from './prefs';
 import { initRouter } from './router';
 import { setupSettings } from './settings';
+import { localStorageBackend, type StorageBackend } from './storage';
+import { importFromLocalStorage, isTauri, sqliteBackend } from './storageTauri';
 import { initStore } from './store';
 import { initThemeSwitcher } from './theme';
 import { openTaskModal } from './taskModal';
@@ -36,12 +38,19 @@ window.addEventListener('storeerror', (e) => {
     window.alert(`Не удалось сохранить данные: ${message}`);
 });
 
+/** В окне Tauri данные лежат в SQLite (при первом запуске подтягиваются из localStorage), в браузере — в localStorage. */
+async function openBackend(): Promise<StorageBackend> {
+    if (!isTauri()) return localStorageBackend;
+    await importFromLocalStorage(sqliteBackend, localStorageBackend);
+    return sqliteBackend;
+}
+
 async function start(): Promise<void> {
     // Иконки из разметки → inline-SVG (до остальной инициализации, чтобы кнопки уже были с иконками)
     hydrateIcons();
 
     // Данные читаются один раз, до запуска разделов
-    await initStore();
+    await initStore(await openBackend());
 
     // Тема — раньше остальных разделов
     initThemeSwitcher();
