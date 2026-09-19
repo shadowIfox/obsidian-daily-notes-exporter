@@ -1,6 +1,6 @@
 // @ts-nocheck — перенесено из временного скрипта (smoke2b.mjs) без изменений; типы появятся при переписывании на локаторы Playwright.
 import { test } from '@playwright/test';
-import { createHarness } from './harness';
+import { createHarness } from '../harness';
 
 test("общее: задачи, привычки, настроение, тема", async ({ page }) => {
     const { sleep, ev, send, check, go, finish } = createHarness(page);

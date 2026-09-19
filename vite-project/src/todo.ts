@@ -25,7 +25,9 @@ function loadView(): void {
         if (['all', 'active', 'completed'].includes(v.filter)) currentFilter = v.filter;
         if (SORTS.includes(v.sort)) currentSort = v.sort;
         if (typeof v.category === 'string') currentCategory = v.category;
-    } catch {}
+    } catch {
+        // повреждённая запись настроек вида — остаются значения по умолчанию
+    }
 }
 
 function saveView(): void {

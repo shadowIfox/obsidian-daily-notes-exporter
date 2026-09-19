@@ -152,7 +152,7 @@ function renderDeadlineViz(tasks: Task[], today: string): void {
     if (!box) return;
     box.replaceChildren();
 
-    const next = nearestDeadline(tasks, today);
+    const next = nearestDeadline(tasks);
     if (!next) {
         box.innerHTML = '<p class="viz__empty">Активных дедлайнов нет.</p>';
         return;

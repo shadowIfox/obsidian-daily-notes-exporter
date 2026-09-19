@@ -178,8 +178,8 @@ describe('список задач на главной', () => {
     });
 
     it('nearestDeadline: просроченная — первая; пусто — null', () => {
-        assert.equal(S.nearestDeadline(list, T)!.id, 'late');
-        assert.equal(S.nearestDeadline([mkTask(), mkTask({ date: T, completed: true })], T), null);
+        assert.equal(S.nearestDeadline(list)!.id, 'late');
+        assert.equal(S.nearestDeadline([mkTask(), mkTask({ date: T, completed: true })]), null);
     });
 });
 

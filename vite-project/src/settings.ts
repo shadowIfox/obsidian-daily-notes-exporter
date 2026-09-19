@@ -118,7 +118,7 @@ function setupBackup(): void {
         const file = fileInput.files?.[0];
         fileInput.value = ''; // чтобы можно было выбрать тот же файл ещё раз
         if (!file) return;
-        let text = '';
+        let text: string;
         try {
             text = await file.text();
         } catch {

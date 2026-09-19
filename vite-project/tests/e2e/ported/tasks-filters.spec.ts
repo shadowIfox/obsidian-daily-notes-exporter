@@ -1,6 +1,6 @@
 // @ts-nocheck — перенесено из временного скрипта (smoke8.mjs) без изменений; типы появятся при переписывании на локаторы Playwright.
 import { test } from '@playwright/test';
-import { createHarness } from './harness';
+import { createHarness } from '../harness';
 
 test("фильтры и сортировка задач", async ({ page }) => {
     const { sleep, ev, send, check, go, finish } = createHarness(page);

@@ -7,6 +7,20 @@ import { expect, type Page } from '@playwright/test';
 
 export const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Параметры тех вызовов CDP, которые использовали наборы. */
+type CdpParams = {
+    width?: number;
+    height?: number;
+    url?: string;
+    key?: string;
+    features?: { name: string; value: string }[];
+};
+
+const required = <T>(value: T | undefined, name: string): T => {
+    if (value === undefined) throw new Error(`Не задан параметр ${name}`);
+    return value;
+};
+
 export function createHarness(page: Page) {
     const problems: string[] = [];
 
@@ -16,7 +30,7 @@ export function createHarness(page: Page) {
     });
 
     /** Выполняет выражение в странице; ошибка возвращается строкой «ERR …», как в исходных наборах. */
-    const ev = async (expression: string): Promise<any> => {
+    const ev = async (expression: string): Promise<unknown> => {
         try {
             return await page.evaluate(expression);
         } catch (e) {
@@ -25,24 +39,24 @@ export function createHarness(page: Page) {
     };
 
     /** Низкоуровневые действия, которые использовали наборы. */
-    const send = async (method: string, params: any = {}): Promise<void> => {
+    const send = async (method: string, params: CdpParams = {}): Promise<void> => {
         switch (method) {
             case 'Page.enable':
             case 'Runtime.enable':
                 return;
             case 'Emulation.setDeviceMetricsOverride':
-                await page.setViewportSize({ width: params.width, height: params.height });
+                await page.setViewportSize({ width: required(params.width, 'width'), height: required(params.height, 'height') });
                 return;
             case 'Emulation.setEmulatedMedia': {
-                const scheme = params.features?.find((f: any) => f.name === 'prefers-color-scheme')?.value;
-                if (scheme) await page.emulateMedia({ colorScheme: scheme });
+                const scheme = params.features?.find((f) => f.name === 'prefers-color-scheme')?.value;
+                if (scheme) await page.emulateMedia({ colorScheme: scheme as 'light' | 'dark' });
                 return;
             }
             case 'Page.navigate':
-                await page.goto(params.url);
+                await page.goto(required(params.url, 'url'));
                 return;
             case 'Input.dispatchKeyEvent':
-                await page.keyboard.press(params.key);
+                await page.keyboard.press(required(params.key, 'key'));
                 return;
             default:
                 throw new Error(`Неподдерживаемый вызов: ${method}`);

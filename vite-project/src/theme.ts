@@ -63,5 +63,12 @@ export function initThemeSwitcher() {
 }
 
 // Для отладки из консоли:
-;(window as any).setThemeMode = setThemeMode;
-;(window as any).getThemeMode = getThemeMode;
+window.setThemeMode = setThemeMode;
+window.getThemeMode = getThemeMode;
+
+declare global {
+  interface Window {
+    setThemeMode: typeof setThemeMode;
+    getThemeMode: typeof getThemeMode;
+  }
+}

@@ -166,7 +166,7 @@ export function tasksForList(tasks: Task[], filter: TaskListFilter, today: strin
 }
 
 /** Ближайший дедлайн среди невыполненных задач (просроченные идут первыми); null, если дедлайнов нет. */
-export function nearestDeadline(tasks: Task[], _today: string = todayStr()): Task | null {
+export function nearestDeadline(tasks: Task[]): Task | null {
     return tasks.filter((t) => !t.completed && t.date).sort(byDeadline)[0] ?? null;
 }
 
