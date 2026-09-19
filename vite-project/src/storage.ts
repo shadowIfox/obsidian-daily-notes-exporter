@@ -1,8 +1,11 @@
 // storage.ts — «где физически лежат данные». Интерфейс асинхронный: в Tauri база SQLite отвечает через IPC.
 // Остальной код про хранилище ничего не знает: он работает через store.ts.
 
-/** Ключи данных. Совпадают с ключами localStorage, поэтому уже сохранённые данные подхватываются. */
-export type StoreKey = 'tasks' | 'habits' | 'moodData' | 'userSettings';
+/**
+ * Ключи данных. Совпадают с ключами localStorage, поэтому уже сохранённые данные подхватываются.
+ * schemaVersion — версия схемы данных (см. migrations.ts); migrationBackup — копия данных перед последней миграцией.
+ */
+export type StoreKey = 'tasks' | 'habits' | 'moodData' | 'userSettings' | 'schemaVersion' | 'migrationBackup';
 
 export interface StorageBackend {
     /** Сохранённое значение (уже разобранный JSON) или undefined, если ничего нет или запись повреждена. */

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, vi } from 'vitest';
+import { SCHEMA_VERSION } from '../../src/migrations';
 import { createMemoryBackend, localStorageBackend, type StorageBackend } from '../../src/storage';
 import { flushStore, initStore, loadHabits, loadMood, loadSettings, loadTasks, saveHabits, saveMood, saveSettings, saveTasks } from '../../src/store';
 import { mkHabit, mkMood, mkTask } from './factories';
@@ -98,7 +99,7 @@ describe('сбой записи', () => {
         let calls = 0;
         return {
             writes,
-            read: async () => undefined,
+            read: async (key) => (key === 'schemaVersion' ? SCHEMA_VERSION : undefined), // уже актуальная версия: при открытии ничего не пишется
             write: async (_key, value) => {
                 if (++calls === failOn) throw new Error('диск переполнен');
                 writes.push(value);

@@ -6,10 +6,16 @@
 //  • при запуске initStore() один раз читает всё из хранилища в память, дальше load*() отдают данные мгновенно;
 //  • save*() сразу обновляют память и сообщают интерфейсу (событие datachange), а в хранилище пишут следом
 //    по очереди (записи не обгоняют друг друга); сбой записи — событие storeerror, а не тихая потеря;
-//  • load*() отдают копии: изменить данные можно только через save*().
+//  • load*() отдают копии: изменить данные можно только через save*();
+//  • вместе с данными хранится версия схемы: при запуске данные более старой версии проходят миграции
+//    (migrations.ts), а данные более новой версии не трогаются — приложение сообщает об этом.
 
 import { parseDateStr } from './dates';
+import { migrate, SCHEMA_VERSION, type RawData } from './migrations';
 import { localStorageBackend, type StorageBackend, type StoreKey } from './storage';
+import { newId } from './utils/id';
+
+export { newId };
 
 export type Priority = 'low' | 'normal' | 'high';
 
@@ -48,16 +54,18 @@ export type UserSettings = {
 
 const PRIORITIES: Priority[] = ['low', 'normal', 'high'];
 
-const KEYS = { tasks: 'tasks', habits: 'habits', mood: 'moodData', settings: 'userSettings' } as const satisfies Record<string, StoreKey>;
+const KEYS = {
+    tasks: 'tasks',
+    habits: 'habits',
+    mood: 'moodData',
+    settings: 'userSettings',
+    version: 'schemaVersion',
+    migrationBackup: 'migrationBackup',
+} as const satisfies Record<string, StoreKey>;
 
 type Raw = Record<string, unknown>;
 
 const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : fallback);
-
-export function newId(): string {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function toRecords(parsed: unknown): Raw[] {
     if (!Array.isArray(parsed)) return [];
@@ -104,26 +112,49 @@ export function flushStore(): Promise<void> {
 export async function initStore(next: StorageBackend = backend): Promise<void> {
     await pending; // дописываем то, что ещё не ушло в прежнее хранилище
     backend = next;
-    const [tasks, habits, mood, settings] = await Promise.all([
+    cache = null; // если открыть не получится, старые данные из памяти не должны сойти за актуальные
+
+    const [tasks, habits, mood, settings, version] = await Promise.all([
         next.read(KEYS.tasks),
         next.read(KEYS.habits),
         next.read(KEYS.mood),
         next.read(KEYS.settings),
+        next.read(KEYS.version),
     ]);
+    // Нет версии — данные записаны до появления версий (версия 0)
+    const storedVersion = typeof version === 'number' && Number.isInteger(version) && version >= 0 ? version : 0;
+
+    const raw: RawData = { tasks, habits, mood, settings };
+    const migrated = migrate(raw, storedVersion); // данные из более новой версии: бросает SchemaTooNewError, ничего не записав
+
     cache = {
-        tasks: normalizeTasks(tasks),
-        habits: normalizeHabits(habits),
-        mood: normalizeMood(mood),
-        settings: normalizeSettings(settings),
+        tasks: normalizeTasks(migrated.tasks),
+        habits: normalizeHabits(migrated.habits),
+        mood: normalizeMood(migrated.mood),
+        settings: normalizeSettings(migrated.settings),
     };
+
+    if (storedVersion < SCHEMA_VERSION) {
+        const isFirstRun = Object.values(raw).every((v) => v === undefined);
+        if (!isFirstRun) {
+            // Сначала страховочная копия того, что было, потом новые данные, версия — последней:
+            // если запись прервётся, при следующем запуске миграция просто повторится.
+            persist(KEYS.migrationBackup, { fromVersion: storedVersion, savedAt: new Date().toISOString(), data: raw });
+            commit(KEYS.tasks, false);
+            commit(KEYS.habits, false);
+            commit(KEYS.mood, false);
+            commit(KEYS.settings, false);
+        }
+        persist(KEYS.version, SCHEMA_VERSION);
+        await pending;
+    }
 }
 
-/** Фиксирует изменение: запись в хранилище + сообщение интерфейсу (например, колокольчику). */
-function commit(key: StoreKey): void {
+/** Фиксирует изменение: запись в хранилище + (по умолчанию) сообщение интерфейсу, например колокольчику. */
+function commit(key: 'tasks' | 'habits' | 'moodData' | 'userSettings', notify = true): void {
     const s = state();
-    const value = { tasks: s.tasks, habits: s.habits, moodData: s.mood, userSettings: s.settings }[key];
-    persist(key, value);
-    emit('datachange');
+    persist(key, { tasks: s.tasks, habits: s.habits, moodData: s.mood, userSettings: s.settings }[key]);
+    if (notify) emit('datachange');
 }
 
 // --- Задачи ---
