@@ -11,14 +11,11 @@ import {
     type BackupCounts,
     type ImportSummary,
 } from './backup';
-import { writeDailyNote } from './dailyNote';
-import { formatDateShort, todayStr } from './dates';
+import { formatDateShort } from './dates';
 import { exportFullData } from './exporter';
-import { readPref, writePref } from './prefs';
 import { loadSettings, saveSettings } from './store';
 import { plural } from './utils/plural';
 import { downloadText } from './utils/download';
-import { isTauri } from './utils/platform';
 
 function setupProfile() {
     const form = document.getElementById('profile-form') as HTMLFormElement | null;
@@ -181,76 +178,8 @@ function setupBackup(): void {
     });
 }
 
-// ===== Obsidian: заметка дня в vault (только в приложении) =====
-
-const VAULT_PATH_KEY = 'vaultPath';
-const VAULT_AUTO_KEY = 'vaultAuto';
-const AUTO_DELAY_MS = 2000;
-
-function setupVault(): void {
-    const card = $('vault-card');
-    if (!card || !isTauri()) return; // в браузере нет доступа к файлам vault
-    card.hidden = false;
-
-    const pathText = $('vault-path');
-    const chooseBtn = $<HTMLButtonElement>('vault-choose');
-    const writeBtn = $<HTMLButtonElement>('vault-write');
-    const autoBox = $<HTMLInputElement>('vault-auto');
-    const status = $('vault-status');
-    if (!pathText || !chooseBtn || !writeBtn || !autoBox || !status) return;
-
-    let vault = readPref(VAULT_PATH_KEY) ?? '';
-    autoBox.checked = readPref(VAULT_AUTO_KEY) === '1';
-
-    const setStatus = (text: string, isError = false): void => {
-        status.textContent = text;
-        status.classList.toggle('hint--error', isError);
-        status.setAttribute('role', isError ? 'alert' : 'status');
-    };
-    const render = (): void => {
-        pathText.textContent = vault || 'Не выбрана';
-        writeBtn.disabled = autoBox.disabled = !vault;
-    };
-    const write = async (): Promise<void> => {
-        try {
-            await writeDailyNote(vault, todayStr());
-            setStatus(`Заметка за сегодня записана в ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}.`);
-        } catch (error) {
-            console.error('Не удалось записать заметку в vault', error);
-            setStatus(`Не удалось записать заметку: ${error instanceof Error ? error.message : String(error)}`, true);
-        }
-    };
-
-    chooseBtn.addEventListener('click', async () => {
-        try {
-            const { open } = await import('@tauri-apps/plugin-dialog');
-            const chosen = await open({ directory: true, title: 'Папка Obsidian-vault' });
-            if (typeof chosen !== 'string') return; // диалог закрыли
-            vault = chosen;
-            writePref(VAULT_PATH_KEY, vault);
-            render();
-            setStatus('');
-        } catch (error) {
-            setStatus(`Не удалось выбрать папку: ${error instanceof Error ? error.message : String(error)}`, true);
-        }
-    });
-    writeBtn.addEventListener('click', () => void write());
-    autoBox.addEventListener('change', () => writePref(VAULT_AUTO_KEY, autoBox.checked ? '1' : '0'));
-
-    // Автообновление: любое изменение данных → одна запись через паузу
-    let timer: number | undefined;
-    window.addEventListener('datachange', () => {
-        if (!vault || !autoBox.checked) return;
-        window.clearTimeout(timer);
-        timer = window.setTimeout(() => void write(), AUTO_DELAY_MS);
-    });
-
-    render();
-}
-
 export function setupSettings() {
     setupProfile();
     setupExportModal();
     setupBackup();
-    setupVault();
 }
