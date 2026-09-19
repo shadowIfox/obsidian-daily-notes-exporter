@@ -1,1 +1,11 @@
 index.html
+dist
+node_modules
+test-results
+playwright-report
+package-lock.json
+# Наборы перенесены из временных скриптов дословно; отформатируем при переписывании на локаторы Playwright
+tests/e2e/ported
+package.json
+# Стили оставлены в авторском (компактном) виде — иначе Prettier раздувает их в тысячи строк
+src/styles

@@ -1,238 +1,668 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>Todo App</title>
-    <!-- Подключение TailwindCSS -->
+    <title>Мой день</title>
+    <!-- Тема выставляется до отрисовки, чтобы страница не мигала светлой в тёмном режиме -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('userSettings') || '{}');
+        var m = s.themeMode || 'system';
+        var dark = m === 'dark' || (m === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body class="flex flex-col min-h-screen bg-gradient-to-br from-purple-100 to-blue-100">
-    <!-- ====== Навигация ====== -->
-    <nav class="flex justify-center gap-4 py-8">
-      <button id="nav-todo" data-section="todo" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
-        Задачи
-      </button>
-      <button id="nav-habits" data-section="habits" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
-        Привычки
-      </button>
-      <button id="nav-mood" data-section="mood" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
-        Опросник
-      </button>
-      <button id="nav-analytics" data-section="analytics" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
-        Аналитика
-      </button>
-      <button id="nav-settings" data-section="settings" class="px-6 py-2 font-semibold text-gray-700 transition bg-white shadow rounded-xl hover:bg-lime-100">
-        Настройки
-      </button>
-    </nav>
-    <main class="flex flex-col items-center justify-center flex-1 min-h-screen app-section">
-      <!-- ====== Карточка приложения: Список задач (TODO) ====== -->
-      <section id="todo-section" class="w-full max-w-xl gap-6 p-8 bg-white shadow-2xl app-section rounded-2xl">
-        <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Список задач</h2>
-        
-        <!-- Прогресс -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-gray-600">
-              Выполнено: <span id="progress-count" class="font-bold text-lime-500">0</span>
-            </span>
-            <span class="text-xs text-gray-400" id="progress-label"></span>
-          </div>
-          <div class="w-full h-3 overflow-hidden bg-gray-200 rounded-full">
-            <div id="progress-bar" class="h-3 transition-all rounded-full bg-lime-500" style="width: 0%"></div>
-          </div>
-        </div>
-
-        <!-- Форма добавления задачи -->
-        <form id="add-task-form" class="flex flex-wrap items-end justify-center gap-4">
-          <div>
-            <label for="task-text" class="block mb-1 text-sm text-gray-700">Текст задачи</label>
-            <input id="task-text" name="task-text" type="text" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" placeholder="Введите задачу..." required maxlength="100" />
-          </div>
-          <div>
-            <label for="task-date" class="block mb-1 text-sm text-gray-700">Дедлайн</label>
-            <input id="task-date" name="task-date" type="date" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" required />
-          </div>
-          <div>
-            <label for="task-category" class="block mb-1 text-sm text-gray-700">Категория</label>
-            <input id="task-category" name="task-category" type="text" class="px-4 py-2 bg-gray-100 border-none input-main rounded-xl focus:ring-2 focus:ring-lime-400" placeholder="Категория (например, Учёба, Личное)" />
-          </div>
-          <button type="submit" class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl">
-            Добавить
-          </button>
-        </form>
-
-        <!-- Фильтры задач -->
-        <div id="todo-filters" class="flex justify-center gap-2 mb-2">
-          <button data-filter="all" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
-            Все
-          </button>
-          <button data-filter="active" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
-            Активные
-          </button>
-          <button data-filter="completed" class="px-4 py-2 font-semibold text-gray-800 transition bg-white border shadow border-lime-400 rounded-xl hover:bg-lime-100">
-            Выполненные
+  <body>
+    <div class="app-frame" id="app-frame">
+      <!-- ====== Сайдбар ====== -->
+      <aside class="sidebar" aria-label="Навигация">
+        <div class="brand">
+          <span class="brand__name">мой день</span>
+          <button id="sidebar-toggle" class="brand__toggle" type="button" aria-label="Свернуть меню">
+            <i data-icon="chevron-left" data-size="16"></i>
           </button>
         </div>
 
-        <!-- Список задач -->
-        <ul id="task-list" class="flex flex-col gap-2"></ul>
-      </section>
+        <nav class="nav">
+          <div class="nav-group">
+            <p class="nav-group__title">Основное</p>
+            <a class="nav-item" href="#/dashboard" data-route="dashboard"><i data-icon="layout-dashboard"></i><span class="nav-item__label">Главная</span></a>
+            <a class="nav-item" href="#/tasks" data-route="tasks"><i data-icon="list-checks"></i><span class="nav-item__label">Задачи</span></a>
+            <a class="nav-item" href="#/habits" data-route="habits"><i data-icon="repeat"></i><span class="nav-item__label">Привычки</span></a>
+            <a class="nav-item" href="#/mood" data-route="mood"><i data-icon="smile"></i><span class="nav-item__label">Настроение</span></a>
+            <a class="nav-item" href="#/analytics" data-route="analytics"><i data-icon="chart-column"></i><span class="nav-item__label">Аналитика</span></a>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group__title">Инструменты</p>
+            <a class="nav-item" href="#/settings" data-route="settings"><i data-icon="settings"></i><span class="nav-item__label">Настройки</span></a>
+          </div>
+        </nav>
 
-      <!-- ====== Остальные секции (пока скрыты) ====== -->
-      <section id="habits-section" class="hidden w-full max-w-xl p-8 mx-auto mt-8 bg-white shadow-2xl app-section rounded-2xl">
-        <h2 class="mb-6 text-xl font-semibold text-center text-lime-700">Привычки</h2>
-        
-        <!-- Форма добавления новой привычки -->
-        <form id="add-habit-form" class="flex items-end justify-center gap-3 mb-6">
-          <input
-            id="habit-text"
-            name="habit-text"
-            type="text"
-            class="flex-1 px-3 py-2 text-gray-900 border-none shadow outline-none rounded-xl bg-neutral-100 focus:ring-2 focus:ring-lime-400"
-            placeholder="Новая привычка (Например, Зарядка)"
-            required
-            maxlength="30"
-          />
-          <button
-            type="submit"
-            class="px-6 py-2 font-semibold text-black transition shadow-xl bg-lime-500 hover:bg-lime-600 rounded-xl"
-          >
-            Добавить
-          </button>
-        </form>
-        
-        <!-- Список привычек -->
-        <ul id="habit-list" class="space-y-2"></ul>
-        
-        <!-- График прогресса привычек -->
-        <div class="p-4 mt-8 bg-white shadow rounded-2xl">
-          <canvas id="habit-progress-chart" class="w-full"></canvas>
-        </div>
-      </section>
-      </section>
-<!-- Опросник по моральному состоянию -->
-<section id="mood-section" class="hidden w-full max-w-xl p-8 mx-auto bg-white shadow-2xl app-section rounded-2xl">
-  <h2 class="mb-4 text-xl font-semibold">Опросник: как вы себя чувствуете?</h2>
-  <!-- Форма оценки -->
-  <form id="mood-form" class="flex flex-col gap-4 mb-8">
-    <div class="flex items-center gap-2">
-      <label class="text-base font-medium">Оценка:</label>
-      <div class="flex gap-1" id="mood-rating">
-        <label>
-          <input type="radio" name="rating" value="1" class="hidden peer" required>
-          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-red-400 peer-checked:text-white">1</span>
-        </label>
-        <label>
-          <input type="radio" name="rating" value="2" class="hidden peer">
-          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-orange-400 peer-checked:text-white">2</span>
-        </label>
-        <label>
-          <input type="radio" name="rating" value="3" class="hidden peer">
-          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-yellow-400 peer-checked:text-white">3</span>
-        </label>
-        <label>
-          <input type="radio" name="rating" value="4" class="hidden peer">
-          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-lime-400 peer-checked:text-white">4</span>
-        </label>
-        <label>
-          <input type="radio" name="rating" value="5" class="hidden peer">
-          <span class="inline-block px-3 py-1 bg-gray-100 rounded-lg cursor-pointer peer-checked:bg-green-400 peer-checked:text-white">5</span>
-        </label>
+        <p class="sidebar__foot">Данные хранятся только на этом устройстве</p>
+      </aside>
+
+      <div class="content">
+        <!-- ====== Верхняя панель ====== -->
+        <header class="topbar">
+          <span class="topbar__date" id="today-label"></span>
+
+          <div id="search" class="search">
+            <div class="search__field">
+              <button id="search-btn" type="button" class="search__btn" aria-label="Искать"><i data-icon="search" data-size="18"></i></button>
+              <input id="search-input" type="text" class="search__input" placeholder="Поиск по задачам, привычкам, настроению" autocomplete="off" spellcheck="false"
+                     role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" aria-label="Поиск" />
+              <kbd id="search-kbd" class="search__kbd">⌘K</kbd>
+            </div>
+            <div id="search-panel" class="search__panel" hidden>
+              <div id="search-scope" class="search__scope" role="group" aria-label="Где искать">
+                <span class="search__scope-label">Искать в:</span>
+                <button type="button" class="chip-btn" data-scope="all">Везде</button>
+                <button type="button" class="chip-btn" data-scope="tasks">Задачи</button>
+                <button type="button" class="chip-btn" data-scope="habits">Привычки</button>
+                <button type="button" class="chip-btn" data-scope="mood">Настроение</button>
+              </div>
+              <div id="search-results" role="listbox" aria-label="Результаты поиска"></div>
+            </div>
+          </div>
+
+          <div class="topbar__actions">
+            <div id="notif" class="notif">
+              <button id="notif-btn" class="icon-btn" type="button" aria-label="Уведомления" aria-expanded="false" aria-controls="notif-panel" title="Уведомления">
+                <i data-icon="bell"></i>
+                <span id="notif-badge" class="notif__badge" hidden>0</span>
+              </button>
+              <div id="notif-panel" class="popover" hidden>
+                <p class="popover__title">Уведомления</p>
+                <div id="notif-list"></div>
+              </div>
+            </div>
+            <button id="theme-toggle" class="icon-btn" type="button" aria-label="Сменить тему" title="Сменить тему">
+              <i data-icon="moon" class="theme-icon-light"></i>
+              <i data-icon="sun" class="theme-icon-dark"></i>
+            </button>
+            <a href="#/settings" class="icon-btn" aria-label="Настройки" title="Настройки"><i data-icon="settings"></i></a>
+          </div>
+        </header>
+
+        <main>
+          <!-- ====== Главная ====== -->
+          <section id="dashboard-section" class="page page--wide">
+            <div class="dash">
+            <div class="dash__main">
+            <header class="page-head">
+              <h1 id="greeting" class="page-title page-title--xl">Добрый день</h1>
+              <p id="greeting-sub" class="page-sub"></p>
+            </header>
+
+            <div class="grid-2">
+              <article class="card card--yellow stat-card">
+                <header class="stat-card__head">
+                  <h2 class="stat-card__title">Задачи</h2>
+                  <a class="stat-card__link" href="#/tasks">Все →</a>
+                </header>
+                <div class="stat-card__row">
+                  <div><div class="stat-card__value" data-stat="tasks.done">0</div><div class="stat-card__label">выполнено</div></div>
+                  <div><div class="stat-card__value" data-stat="tasks.active">0</div><div class="stat-card__label">в работе</div></div>
+                  <div><div class="stat-card__value" data-stat="tasks.overdue">0</div><div class="stat-card__label">просрочено</div></div>
+                </div>
+                <div class="viz" id="viz-tasks"></div>
+              </article>
+
+              <article class="card card--pink stat-card">
+                <header class="stat-card__head">
+                  <h2 class="stat-card__title">Настроение</h2>
+                  <a class="stat-card__link" href="#/mood">Записать →</a>
+                </header>
+                <div class="stat-card__row">
+                  <div><div class="stat-card__value" data-stat="mood.avg">—</div><div class="stat-card__label">среднее, 14 дн.</div></div>
+                  <div><div class="stat-card__value" data-stat="mood.min">—</div><div class="stat-card__label">минимум</div></div>
+                  <div><div class="stat-card__value" data-stat="mood.max">—</div><div class="stat-card__label">максимум</div></div>
+                </div>
+                <div class="viz" id="viz-mood"></div>
+              </article>
+
+              <article class="card card--green stat-card">
+                <header class="stat-card__head">
+                  <h2 class="stat-card__title">Привычки</h2>
+                  <a class="stat-card__link" href="#/habits">Все →</a>
+                </header>
+                <div class="stat-card__row">
+                  <div><div class="stat-card__value" data-stat="habits.done">0</div><div class="stat-card__label">отмечено сегодня</div></div>
+                  <div><div class="stat-card__value" data-stat="habits.left">0</div><div class="stat-card__label">осталось</div></div>
+                  <div><div class="stat-card__value" data-stat="habits.streak">0</div><div class="stat-card__label">лучшая серия</div></div>
+                </div>
+                <div class="viz" id="viz-habits"></div>
+              </article>
+
+              <article class="card card--blue stat-card">
+                <header class="stat-card__head">
+                  <h2 class="stat-card__title">Дедлайны</h2>
+                  <a class="stat-card__link" href="#/tasks">Задачи →</a>
+                </header>
+                <div class="stat-card__row">
+                  <div><div class="stat-card__value" data-stat="deadlines.overdue">0</div><div class="stat-card__label">просрочено</div></div>
+                  <div><div class="stat-card__value" data-stat="deadlines.today">0</div><div class="stat-card__label">сегодня</div></div>
+                  <div><div class="stat-card__value" data-stat="deadlines.week">0</div><div class="stat-card__label">ближ. 7 дней</div></div>
+                </div>
+                <div class="viz" id="viz-deadline"></div>
+              </article>
+            </div>
+
+            <div class="dash-lower">
+              <section class="card" aria-labelledby="dash-list-title">
+                <div class="toolbar">
+                  <h2 id="dash-list-title" class="card__title card__title--flush">Задачи</h2>
+                  <div id="dash-list-filter" class="segmented" role="group" aria-label="Период списка">
+                    <button type="button" class="segmented__btn" data-filter="today">Сегодня</button>
+                    <button type="button" class="segmented__btn" data-filter="week" title="Текущая неделя: с понедельника по воскресенье, включая просроченное и выполненное">Неделя</button>
+                    <button type="button" class="segmented__btn" data-filter="overdue">Просрочено</button>
+                  </div>
+                </div>
+                <ul id="dash-task-list" class="stack"></ul>
+                <p id="dash-task-empty" class="empty hidden"></p>
+              </section>
+
+              <section class="card card--pink" aria-labelledby="dash-details-title">
+                <h2 id="dash-details-title" class="card__title">Детали задачи</h2>
+                <div id="task-details"></div>
+              </section>
+            </div>
+            </div>
+
+            <aside class="dash__side" aria-label="Календарь и расписание">
+              <section class="card cal" aria-label="Календарь">
+                <div class="cal__head">
+                  <button id="cal-prev" type="button" class="icon-btn icon-btn--sm" aria-label="Предыдущий месяц"><i data-icon="chevron-left" data-size="16"></i></button>
+                  <span id="cal-month" class="cal__month"></span>
+                  <button id="cal-next" type="button" class="icon-btn icon-btn--sm" aria-label="Следующий месяц"><i data-icon="chevron-right" data-size="16"></i></button>
+                </div>
+                <div id="cal-grid" class="cal__grid"></div>
+                <div class="cal__actions">
+                  <button id="cal-add" type="button" class="btn btn--primary"><i data-icon="plus" data-size="18"></i> Добавить задачу</button>
+                  <button id="cal-today" type="button" class="icon-btn" aria-label="К сегодняшнему дню" title="К сегодняшнему дню"><i data-icon="calendar-days"></i></button>
+                </div>
+              </section>
+
+              <section class="card" aria-labelledby="tl-title">
+                <div class="tl__head">
+                  <div>
+                    <h2 id="tl-title" class="tl__date"></h2>
+                    <p id="tl-sub" class="hint"></p>
+                  </div>
+                  <div id="tl-filter" class="segmented" role="group" aria-label="Фильтр расписания">
+                    <button type="button" class="segmented__btn" data-filter="all">Все</button>
+                    <button type="button" class="segmented__btn" data-filter="active">Активные</button>
+                  </div>
+                </div>
+                <div id="tl"></div>
+                <a class="btn btn--primary tl__all" href="#/tasks">Открыть все задачи</a>
+              </section>
+            </aside>
+            </div>
+          </section>
+
+          <!-- ====== Задачи ====== -->
+          <section id="todo-section" class="page hidden">
+            <header class="page-head">
+              <h1 class="page-title">Задачи</h1>
+              <p id="progress-text" class="page-sub">Выполнено: 0 из 0</p>
+            </header>
+            <div class="progress" aria-hidden="true"><div id="progress-bar" class="progress__bar" style="width: 0%"></div></div>
+
+            <form id="add-task-form" class="card task-form">
+              <div class="field task-form__text">
+                <label class="field__label" for="task-text">Задача</label>
+                <input id="task-text" name="task-text" type="text" class="input" placeholder="Что нужно сделать?" required maxlength="100" />
+              </div>
+              <div class="field task-form__date">
+                <label class="field__label" for="task-date">Дедлайн</label>
+                <div class="input-group">
+                  <input id="task-date" name="task-date" type="date" class="input" />
+                  <button id="today-btn" type="button" class="btn btn--ghost">Сегодня</button>
+                </div>
+              </div>
+              <div class="field task-form__time">
+                <label class="field__label" for="task-time">Время</label>
+                <input id="task-time" name="task-time" type="time" class="input" />
+              </div>
+              <div class="field task-form__category">
+                <label class="field__label" for="task-category">Категория</label>
+                <input id="task-category" name="task-category" type="text" class="input" placeholder="Учёба, Личное…" maxlength="30" />
+              </div>
+              <div class="field task-form__priority">
+                <span class="field__label">Приоритет</span>
+                <div class="segmented" role="radiogroup" aria-label="Приоритет">
+                  <label class="segmented__opt"><input type="radio" name="task-priority" value="low" /><span class="segmented__btn">Низкий</span></label>
+                  <label class="segmented__opt"><input type="radio" name="task-priority" value="normal" checked /><span class="segmented__btn">Обычный</span></label>
+                  <label class="segmented__opt"><input type="radio" name="task-priority" value="high" /><span class="segmented__btn">Высокий</span></label>
+                </div>
+              </div>
+              <div class="field task-form__notes">
+                <label class="field__label" for="task-notes">Заметка</label>
+                <textarea id="task-notes" name="task-notes" rows="2" class="input" placeholder="Подробности, ссылки, что нужно не забыть…"></textarea>
+              </div>
+              <button type="submit" class="btn btn--primary task-form__submit"><i data-icon="plus" data-size="18"></i> Добавить</button>
+            </form>
+
+            <div class="card">
+              <div class="toolbar">
+                <div id="todo-filters" class="segmented" role="group" aria-label="Фильтр задач">
+                  <button type="button" class="segmented__btn" data-filter="all">Все</button>
+                  <button type="button" class="segmented__btn" data-filter="active">Активные</button>
+                  <button type="button" class="segmented__btn" data-filter="completed">Выполненные</button>
+                </div>
+                <div class="toolbar__controls">
+                  <select id="task-category-filter" class="input input--sm" aria-label="Категория"></select>
+                  <select id="task-sort" class="input input--sm" aria-label="Сортировка">
+                    <option value="added">По добавлению</option>
+                    <option value="deadline">По дедлайну</option>
+                    <option value="priority">По приоритету</option>
+                    <option value="title">По названию</option>
+                  </select>
+                  <button id="clear-completed" type="button" class="btn btn--ghost btn--sm"><i data-icon="trash-2" data-size="16"></i> Очистить выполненные</button>
+                </div>
+              </div>
+              <ul id="task-list" class="stack"></ul>
+              <p id="empty-list-msg" class="empty hidden">Здесь пока пусто.</p>
+            </div>
+          </section>
+
+          <!-- ====== Привычки ====== -->
+          <section id="habits-section" class="page hidden">
+            <header class="page-head">
+              <h1 class="page-title">Привычки</h1>
+              <p class="page-sub">Отмечайте выполненное — серии считаются по дням подряд.</p>
+            </header>
+
+            <form id="add-habit-form" class="card habit-form">
+              <div class="inline-form">
+                <div class="field">
+                  <label class="field__label" for="habit-text">Новая привычка</label>
+                  <input id="habit-text" name="habit-text" type="text" class="input" placeholder="Например, зарядка" required maxlength="30" />
+                </div>
+                <button type="submit" class="btn btn--primary"><i data-icon="plus" data-size="18"></i> Добавить</button>
+              </div>
+              <div class="field">
+                <span class="field__label">Дни недели</span>
+                <div id="habit-days" class="weekdays" role="group" aria-label="Дни недели"></div>
+                <p class="hint">Ничего не выбрано — привычка на каждый день.</p>
+              </div>
+            </form>
+
+            <div class="card">
+              <ul id="habit-list" class="stack"></ul>
+              <p id="habit-empty" class="empty hidden">Привычек пока нет — добавьте первую выше.</p>
+            </div>
+
+            <section id="habit-archive-card" class="card hidden" aria-labelledby="habit-archive-title">
+              <div class="card__head">
+                <h2 id="habit-archive-title" class="card__title">Архив</h2>
+                <span class="card__meta">история сохраняется, в списках и статистике не учитывается</span>
+              </div>
+              <ul id="habit-archive-list" class="stack"></ul>
+            </section>
+
+            <div class="card">
+              <h2 class="card__title">Серии по привычкам</h2>
+              <div id="habit-streaks"></div>
+            </div>
+          </section>
+
+          <!-- ====== Настроение ====== -->
+          <section id="mood-section" class="page hidden">
+            <header class="page-head">
+              <h1 class="page-title">Настроение</h1>
+              <p class="page-sub">Одна запись в день. Можно записать или исправить любой прошлый день: выберите дату или нажмите на запись в истории.</p>
+            </header>
+
+            <div class="grid-2">
+              <form id="mood-form" class="card form-stack">
+                <h2 class="card__title card__title--flush">Как вы себя чувствуете?</h2>
+                <div class="field mood-date-field">
+                  <label class="field__label" for="mood-date">Дата</label>
+                  <input id="mood-date" type="date" class="input" />
+                </div>
+                <div class="field">
+                  <span class="field__label">Оценка</span>
+                  <div class="rating" id="mood-rating" role="radiogroup" aria-label="Оценка настроения">
+                    <label class="rating__opt" data-r="1"><input type="radio" name="rating" value="1" required /><span>1</span></label>
+                    <label class="rating__opt" data-r="2"><input type="radio" name="rating" value="2" /><span>2</span></label>
+                    <label class="rating__opt" data-r="3"><input type="radio" name="rating" value="3" /><span>3</span></label>
+                    <label class="rating__opt" data-r="4"><input type="radio" name="rating" value="4" /><span>4</span></label>
+                    <label class="rating__opt" data-r="5"><input type="radio" name="rating" value="5" /><span>5</span></label>
+                  </div>
+                  <div class="rating__legend"><span>плохо</span><span>отлично</span></div>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="mood-note">Заметка</label>
+                  <textarea id="mood-note" rows="3" class="input" placeholder="Как прошёл день?"></textarea>
+                </div>
+                <p id="mood-hint" class="hint" role="status"></p>
+                <div class="mood-actions">
+                  <button type="submit" class="btn btn--primary">Сохранить</button>
+                  <button id="mood-delete" type="button" class="btn btn--ghost btn--danger-text hidden">Удалить запись</button>
+                  <span id="mood-status" class="hint" role="status"></span>
+                </div>
+              </form>
+
+              <div class="card">
+                <div class="card__head">
+                  <h2 class="card__title">История</h2>
+                  <div id="mood-range" class="segmented" role="group" aria-label="Период истории">
+                    <button type="button" class="segmented__btn" data-days="7">7 дней</button>
+                    <button type="button" class="segmented__btn" data-days="30">30 дней</button>
+                  </div>
+                </div>
+                <ul id="mood-history" class="stack"></ul>
+                <p id="mood-empty" class="empty hidden">За последние 7 дней записей нет.</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card__title">График за неделю</h2>
+              <div id="mood-week-chart"></div>
+            </div>
+          </section>
+
+          <!-- ====== Аналитика ====== -->
+          <section id="analytics-section" class="page page--wide hidden">
+            <header class="page-head page-head--row">
+              <div class="page-head__text">
+                <h1 class="page-title">Аналитика</h1>
+                <p id="analytics-sub" class="page-sub"></p>
+              </div>
+              <div id="analytics-period" class="segmented" role="group" aria-label="Период">
+                <button type="button" class="segmented__btn" data-days="7">7 дней</button>
+                <button type="button" class="segmented__btn" data-days="30">30 дней</button>
+                <button type="button" class="segmented__btn" data-days="91">3 месяца</button>
+              </div>
+            </header>
+
+            <div class="grid-4">
+              <article class="card card--yellow kpi">
+                <p class="kpi__label">Выполнено задач</p>
+                <p class="kpi__value" data-kpi="tasks">0</p>
+                <p class="kpi__note" data-kpi-note="tasks"></p>
+              </article>
+              <article class="card card--blue kpi">
+                <p class="kpi__label">Закрыто в срок</p>
+                <p class="kpi__value" data-kpi="ontime">—</p>
+                <p class="kpi__note" data-kpi-note="ontime"></p>
+              </article>
+              <article class="card card--green kpi">
+                <p class="kpi__label">Привычки</p>
+                <p class="kpi__value" data-kpi="habits">—</p>
+                <p class="kpi__note" data-kpi-note="habits"></p>
+              </article>
+              <article class="card card--pink kpi">
+                <p class="kpi__label">Настроение</p>
+                <p class="kpi__value" data-kpi="mood">—</p>
+                <p class="kpi__note" data-kpi-note="mood"></p>
+              </article>
+            </div>
+
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Выполненные задачи</h2>
+                <span id="an-tasks-meta" class="card__meta"></span>
+              </div>
+              <div id="an-tasks-days"></div>
+            </section>
+
+            <div class="grid-2">
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">По дням недели</h2>
+                  <span id="an-weekdays-meta" class="card__meta"></span>
+                </div>
+                <div id="an-weekdays"></div>
+              </section>
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">По категориям</h2>
+                  <span class="card__meta">топ-5</span>
+                </div>
+                <div id="an-categories"></div>
+              </section>
+            </div>
+
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Привычки</h2>
+                <span id="an-habits-meta" class="card__meta"></span>
+              </div>
+              <div id="an-habits"></div>
+            </section>
+
+            <div class="grid-2">
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">Настроение</h2>
+                  <span id="an-mood-meta" class="card__meta"></span>
+                </div>
+                <div id="an-mood-line" class="area-box"></div>
+              </section>
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">Оценки</h2>
+                  <span class="card__meta">распределение</span>
+                </div>
+                <div id="an-mood-donut"></div>
+              </section>
+            </div>
+
+            <div class="grid-2 grid-2--top">
+              <section class="card">
+                <h2 class="card__title">Наблюдения</h2>
+                <ul id="an-insights" class="insights"></ul>
+              </section>
+              <section class="card card--pink">
+                <h2 class="card__title">Советы</h2>
+                <div id="an-advice" class="advice-list"></div>
+                <button id="an-advice-refresh" type="button" class="btn btn--ghost btn--sm">Другие советы</button>
+              </section>
+            </div>
+          </section>
+
+          <!-- ====== Настройки ====== -->
+          <section id="settings-section" class="page hidden">
+            <header class="page-head">
+              <h1 class="page-title">Настройки</h1>
+            </header>
+
+            <div class="card">
+              <h2 class="card__title">Профиль</h2>
+              <form id="profile-form" class="setting-form">
+                <div class="field">
+                  <label class="field__label" for="user-name">Ваше имя</label>
+                  <input id="user-name" type="text" class="input" placeholder="Как к вам обращаться?" maxlength="40" />
+                </div>
+                <button type="submit" class="btn btn--primary">Сохранить</button>
+                <span id="profile-hint" class="hint" role="status"></span>
+              </form>
+            </div>
+
+            <div class="card">
+              <h2 class="card__title">Оформление</h2>
+              <div class="setting">
+                <div>
+                  <p class="setting__name">Тема</p>
+                  <p class="setting__desc">«Системная» следует настройкам macOS</p>
+                </div>
+                <div id="theme-mode-group" class="segmented" role="radiogroup" aria-label="Тема">
+                  <label class="segmented__opt"><input type="radio" name="themeMode" value="system" checked /><span class="segmented__btn">Системная</span></label>
+                  <label class="segmented__opt"><input type="radio" name="themeMode" value="light" /><span class="segmented__btn">Светлая</span></label>
+                  <label class="segmented__opt"><input type="radio" name="themeMode" value="dark" /><span class="segmented__btn">Тёмная</span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card__title">Данные</h2>
+              <div class="setting">
+                <div>
+                  <p class="setting__name">Экспорт</p>
+                  <p class="setting__desc">Markdown для Obsidian, CSV или PDF за день, неделю или месяц</p>
+                </div>
+                <button id="open-export-dialog" type="button" class="btn btn--ghost"><i data-icon="download" data-size="18"></i> Экспортировать</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="card__title">Резервная копия</h2>
+              <div class="setting">
+                <div>
+                  <p class="setting__name">Скачать копию</p>
+                  <p class="setting__desc">Все данные одним файлом: задачи, привычки, настроение и настройки</p>
+                </div>
+                <button id="backup-download" type="button" class="btn btn--ghost"><i data-icon="download" data-size="18"></i> Скачать</button>
+              </div>
+              <div class="setting">
+                <div>
+                  <p class="setting__name">Восстановить из копии</p>
+                  <p class="setting__desc">Объединить с текущими данными или заменить их файлом, скачанным ранее</p>
+                </div>
+                <div>
+                  <input id="backup-file" type="file" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true" />
+                  <button id="backup-choose" type="button" class="btn btn--ghost"><i data-icon="upload" data-size="18"></i> Выбрать файл…</button>
+                </div>
+              </div>
+              <p id="backup-status" class="hint backup-status" role="status"></p>
+            </div>
+          </section>
+        </main>
       </div>
     </div>
-    <div>
-      <label for="mood-note" class="text-base">Заметка:</label>
-      <textarea id="mood-note" rows="2" placeholder="Как прошёл твой день?" class="w-full px-3 py-2 border rounded-xl bg-gray-50"></textarea>
-    </div>
-    <button type="submit" class="self-end px-4 py-2 font-semibold text-black transition bg-lime-500 hover:bg-lime-600 rounded-xl">
-      Сохранить
-    </button>
-  </form>
-  <!-- История за 7 дней -->
-  <div>
-    <h3 class="mb-2 text-base font-semibold">История за неделю</h3>
-    <ul id="mood-history" class="flex flex-col gap-1 mb-6"></ul>
-    <!-- График -->
-    <canvas id="mood-chart" class="w-full max-w-lg bg-white shadow rounded-xl"></canvas>
-  </div>
-</section>
-<!-- Аналитика и отчёты -->
-<section id="analytics-section" class="hidden w-full max-w-4xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
-  <h2 class="mb-8 text-3xl font-bold text-center text-gray-900">Аналитика и отчёты</h2>
-  <div id="analytics-menu" class="grid grid-cols-1 gap-8 md:grid-cols-3">
-    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition bg-blue-100 shadow-xl hover:bg-blue-200 rounded-2xl" data-analytics="tasks">
-      <span class="mb-4 text-4xl">✅</span>
-      Задачи
-      <span class="mt-2 text-base font-normal text-gray-600">Еженедельная активность по задачам</span>
-    </button>
-    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition shadow-xl bg-lime-100 hover:bg-lime-200 rounded-2xl" data-analytics="habits">
-      <span class="mb-4 text-4xl">🌱</span>
-      Привычки
-      <span class="mt-2 text-base font-normal text-gray-600">Ваш прогресс по привычкам</span>
-    </button>
-    <button class="flex flex-col items-center p-8 text-2xl font-bold text-center transition bg-pink-100 shadow-xl hover:bg-pink-200 rounded-2xl" data-analytics="mood">
-      <span class="mb-4 text-4xl">😊</span>
-      Настроение
-      <span class="mt-2 text-base font-normal text-gray-600">Статистика настроения</span>
-    </button>
-    
-  </div>
-  <div id="analytics-details" class="mt-10"></div>
-</section>
 
-<section id="settings-section" class="hidden w-full max-w-xl p-8 mt-8 bg-white shadow-2xl app-section rounded-2xl">
-  <h2 class="mb-4 text-2xl font-bold text-center text-gray-900">Настройки</h2>
-  <div class="mt-8 space-y-8">
-    <!-- === Экспорт данных === -->
-    <div>
-      <h3 class="mb-4 text-xl font-semibold">Экспорт данных</h3>
-      <button id="open-export-dialog" class="px-4 py-2 text-gray-800 transition bg-gray-200 rounded-lg shadow hover:bg-gray-300">
-        Экспортировать данные
-      </button>
-      <!-- Модальное окно экспорта -->
-      <div id="export-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden w-full h-full bg-black bg-opacity-30">
-        <div class="bg-white rounded-2xl shadow-xl p-8 min-w-[300px] flex flex-col gap-4 relative">
-          <h4 class="mb-2 text-lg font-bold">Экспортировать:</h4>
-          <label class="block">
-            <span class="font-semibold">Период:</span>
-            <select id="export-period" class="block w-full px-2 py-1 mt-1 border rounded">
-              <option value="day">День</option>
-              <option value="week" selected>Неделя</option>
-              <option value="month">Месяц</option>
-            </select>
-          </label>
-          <label class="block">
-            <span class="font-semibold">Категории:</span>
-            <select id="export-category" class="block w-full px-2 py-1 mt-1 border rounded">
-              <option value="all" selected>Все разделы</option>
-              <option value="tasks">Только задачи</option>
-              <option value="habits">Только привычки</option>
-              <option value="mood">Только настроение</option>
-            </select>
-          </label>
-          <label class="block">
-            <span class="font-semibold">Формат:</span>
-            <select id="export-format" class="block w-full px-2 py-1 mt-1 border rounded">
-              <option value="md" selected>Markdown</option>
-              <option value="csv">CSV</option>
-              <option value="pdf">PDF</option>
-            </select>
-          </label>
-          <div class="flex justify-end gap-2 mt-4">
-            <button id="close-export-modal" type="button" class="px-4 py-1 bg-gray-200 rounded hover:bg-gray-300">Отмена</button>
-            <button id="confirm-export" type="button" class="px-4 py-1 text-white bg-blue-600 rounded hover:bg-blue-700">Экспорт</button>
-          </div>
+    <!-- ====== Модальное окно экспорта ====== -->
+    <div id="export-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="export-title">
+      <div class="modal__panel">
+        <h2 id="export-title" class="modal__title">Экспорт данных</h2>
+        <div class="field">
+          <label class="field__label" for="export-period">Период</label>
+          <select id="export-period" class="input">
+            <option value="day">День</option>
+            <option value="week" selected>Неделя</option>
+            <option value="month">Месяц</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="export-category">Разделы</label>
+          <select id="export-category" class="input">
+            <option value="all" selected>Все разделы</option>
+            <option value="tasks">Только задачи</option>
+            <option value="habits">Только привычки</option>
+            <option value="mood">Только настроение</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="export-format">Формат</label>
+          <select id="export-format" class="input">
+            <option value="md" selected>Markdown</option>
+            <option value="csv">CSV</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </div>
+        <div class="modal__actions">
+          <button id="close-export-modal" type="button" class="btn btn--ghost">Отмена</button>
+          <button id="confirm-export" type="button" class="btn btn--primary">Экспортировать</button>
         </div>
       </div>
     </div>
-    <!-- Здесь будут другие настройки по мере роста проекта -->
-  </div>
-</section>
 
-    </main>
-    <!-- Подключение скрипта -->
+    <!-- ====== Окно «Новая задача» ====== -->
+    <div id="task-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+      <form id="task-modal-form" class="modal__panel modal__panel--wide">
+        <h2 id="task-modal-title" class="modal__title">Новая задача</h2>
+        <div class="field">
+          <label class="field__label" for="tm-text">Название</label>
+          <input id="tm-text" class="input" maxlength="100" required placeholder="Что нужно сделать?" />
+        </div>
+        <div class="details__grid">
+          <div class="field"><label class="field__label" for="tm-date">Дата</label><input id="tm-date" type="date" class="input" /></div>
+          <div class="field"><label class="field__label" for="tm-time">Время</label><input id="tm-time" type="time" class="input" /></div>
+          <div class="field"><label class="field__label" for="tm-category">Категория</label><input id="tm-category" class="input" maxlength="30" placeholder="Учёба, Личное…" /></div>
+        </div>
+        <div class="field">
+          <span class="field__label">Приоритет</span>
+          <div class="segmented" role="radiogroup" aria-label="Приоритет">
+            <label class="segmented__opt"><input type="radio" name="tm-priority" value="low" /><span class="segmented__btn">Низкий</span></label>
+            <label class="segmented__opt"><input type="radio" name="tm-priority" value="normal" checked /><span class="segmented__btn">Обычный</span></label>
+            <label class="segmented__opt"><input type="radio" name="tm-priority" value="high" /><span class="segmented__btn">Высокий</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="tm-notes">Заметка</label>
+          <textarea id="tm-notes" class="input" rows="3" placeholder="Подробности, ссылки, что нужно не забыть…"></textarea>
+        </div>
+        <div class="modal__actions">
+          <button id="task-modal-cancel" type="button" class="btn btn--ghost">Отмена</button>
+          <button id="task-modal-submit" type="submit" class="btn btn--primary">Добавить</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ====== Окно «Изменить привычку» ====== -->
+    <div id="habit-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="habit-modal-title">
+      <form id="habit-modal-form" class="modal__panel">
+        <h2 id="habit-modal-title" class="modal__title">Изменить привычку</h2>
+        <div class="field">
+          <label class="field__label" for="hm-name">Название</label>
+          <input id="hm-name" class="input" maxlength="30" required />
+        </div>
+        <div class="field">
+          <span class="field__label">Дни недели</span>
+          <div id="hm-days" class="weekdays" role="group" aria-label="Дни недели"></div>
+          <p class="hint">Ничего не выбрано — привычка на каждый день. Дни не по графику не прерывают серию.</p>
+        </div>
+        <div class="modal__actions modal__actions--split">
+          <div class="modal__side-actions">
+            <button id="hm-archive" type="button" class="btn btn--ghost btn--sm">В архив</button>
+            <button id="hm-delete" type="button" class="btn btn--ghost btn--sm btn--danger-text">Удалить</button>
+          </div>
+          <div class="modal__side-actions">
+            <button id="hm-cancel" type="button" class="btn btn--ghost">Отмена</button>
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- ====== Календарь отметок привычки ====== -->
+    <div id="habit-history" class="modal" role="dialog" aria-modal="true" aria-labelledby="hh-title">
+      <div class="modal__panel">
+        <h2 id="hh-title" class="modal__title"></h2>
+        <div class="cal__head">
+          <button id="hh-prev" type="button" class="icon-btn icon-btn--sm" aria-label="Предыдущий месяц"><i data-icon="chevron-left" data-size="16"></i></button>
+          <span id="hh-month" class="cal__month"></span>
+          <button id="hh-next" type="button" class="icon-btn icon-btn--sm" aria-label="Следующий месяц"><i data-icon="chevron-right" data-size="16"></i></button>
+        </div>
+        <p id="hh-stat" class="hint"></p>
+        <div id="hh-grid" class="hcal"></div>
+        <p class="hint">Нажмите на день, чтобы отметить или снять отметку.</p>
+        <div class="modal__actions"><button id="hh-close" type="button" class="btn btn--primary">Готово</button></div>
+      </div>
+    </div>
+
+    <!-- ====== Окно «Восстановить из копии» ====== -->
+    <div id="import-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div class="modal__panel modal__panel--wide">
+        <h2 id="import-title" class="modal__title">Восстановить из копии</h2>
+        <p id="import-summary" class="import-summary"></p>
+        <p class="hint"><b>Объединить</b> — добавить то, чего ещё нет, текущие данные не меняются (у общих привычек отметки складываются). <b>Заменить всё</b> — удалить текущие данные и записать копию.</p>
+        <div><button id="import-download" type="button" class="btn btn--ghost btn--sm">Сначала скачать текущие данные</button></div>
+        <div class="modal__actions">
+          <button id="import-cancel" type="button" class="btn btn--ghost">Отмена</button>
+          <button id="import-replace" type="button" class="btn btn--ghost btn--danger-text">Заменить всё</button>
+          <button id="import-merge" type="button" class="btn btn--primary">Объединить</button>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

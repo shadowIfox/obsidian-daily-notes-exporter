@@ -1,0 +1,102 @@
+/* tokens.css — вся палитра, шрифт, радиусы и отступы в одном месте.
+   Хочешь поменять внешний вид приложения — начинай отсюда. */
+
+:root {
+  color-scheme: light;
+
+  --font: 'Manrope Variable', 'Manrope', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+
+  /* Поверхности */
+  --bg: #f5eedc;            /* фон страницы (кремовый) */
+  --surface: #faf6ea;       /* внутри рамки приложения */
+  --card: #fffdf6;          /* обычные карточки */
+  --card-alt: #efe8d6;      /* строки списков, поля ввода, вложенные блоки */
+  --border: rgba(20, 19, 15, 0.12);
+  --frame-border: #14130f;
+
+  /* Текст */
+  --text: #14130f;
+  --muted: #6f6a5c;
+
+  /* «Чернильные» элементы: главные кнопки, ползунки (в тёмной теме инвертируются) */
+  --ink: #14130f;
+  --ink-text: #f6f1e4;
+
+  /* Сайдбар */
+  --sidebar-bg: #14130f;
+  --sidebar-text: #f6f1e4;
+  --sidebar-muted: #9b978a;
+
+  /* Акцент и состояния */
+  --accent: #f3a5cd;
+  --accent-ct: #14130f;
+  --ring: rgba(243, 165, 205, 0.7);
+  --danger: #d9463f;
+  --danger-ct: #ffffff;
+  --danger-soft: #f6cbc7;
+  --danger-soft-text: #7d211b;
+
+  /* Пастельные карточки: текст на них всегда тёмный */
+  --c-yellow: #f5d94a;
+  --c-pink: #f4aed4;
+  --c-green: #a7b56b;
+  --c-blue: #aabcec;
+  --on-pastel: #14130f;
+
+  /* Палитра графика настроения (оценки 1–5) */
+  --mood-1: #fca5a5;
+  --mood-2: #fdba74;
+  --mood-3: #fde68a;
+  --mood-4: #86efac;
+  --mood-5: #a78bfa;
+
+  /* Радиусы и отступы */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0a0a0d;
+  --surface: #111116;
+  --card: #1a1a21;
+  --card-alt: #23232c;
+  --border: rgba(255, 255, 255, 0.09);
+  --frame-border: #34343f;
+
+  --text: #f0eee8;
+  --muted: #a09da8;
+
+  --ink: #f0eee8;
+  --ink-text: #14130f;
+
+  --sidebar-bg: #050507;
+  --sidebar-text: #eae7df;
+  --sidebar-muted: #8b8894;
+
+  --accent: #e79ac4;
+  --ring: rgba(231, 154, 196, 0.6);
+  --danger-soft: #4a2321;
+  --danger-soft-text: #ffb9b3;
+
+  --c-yellow: #d9c04a;
+  --c-pink: #d896bd;
+  --c-green: #93a35c;
+  --c-blue: #8fa0d8;
+
+  --mood-1: #ef9a9a;
+  --mood-2: #f2b27a;
+  --mood-3: #e8d47a;
+  --mood-4: #98d7b8;
+  --mood-5: #9aa7ff;
+}

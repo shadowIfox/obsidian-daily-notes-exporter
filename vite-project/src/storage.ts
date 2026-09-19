@@ -1,73 +1,45 @@
-// storage.js
-// Логика хранения задач, заметок, привычек, состояния
+// storage.ts — «где физически лежат данные». Интерфейс асинхронный: в Tauri база SQLite отвечает через IPC.
+// Остальной код про хранилище ничего не знает: он работает через store.ts.
 
-export const noteText = document.getElementById('note-text') as HTMLTextAreaElement | null;
-export const dateInput = document.getElementById('note-date') as HTMLInputElement | null;
-export const taskList = document.getElementById('task-list') as HTMLUListElement | null;
+/**
+ * Ключи данных. Совпадают с ключами localStorage, поэтому уже сохранённые данные подхватываются.
+ * schemaVersion — версия схемы данных (см. migrations.ts); migrationBackup — копия данных перед последней миграцией.
+ */
+export type StoreKey = 'tasks' | 'habits' | 'moodData' | 'userSettings' | 'schemaVersion' | 'migrationBackup';
 
-export function setToday(): void {
-    if (!dateInput) return;
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
+export interface StorageBackend {
+    /** Сохранённое значение (уже разобранный JSON) или undefined, если ничего нет или запись повреждена. */
+    read(key: StoreKey): Promise<unknown>;
+    /** Записывает значение целиком; при ошибке промис отклоняется. */
+    write(key: StoreKey, value: unknown): Promise<void>;
 }
 
-export function saveToLocalStorage(): void {
-    if (!taskList || !noteText || !dateInput) return;
-    const tasks: { text: string; checked: boolean }[] = [];
-    taskList.querySelectorAll('li').forEach(li => {
-        const input = li.querySelector('input[type="text"]') as HTMLInputElement | null;
-        const checkbox = li.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
-        tasks.push({ text: input?.value ?? '', checked: checkbox?.checked ?? false });
-    });
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    localStorage.setItem('note', noteText.value);
-    localStorage.setItem('date', dateInput.value);
-}
+/** Данные в localStorage браузера (текущий вариант хранения). */
+export const localStorageBackend: StorageBackend = {
+    async read(key) {
+        const text = localStorage.getItem(key);
+        if (text === null) return undefined;
+        try {
+            return JSON.parse(text);
+        } catch {
+            return undefined;
+        }
+    },
+    async write(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    },
+};
 
-export function restoreFromStorage(): void {
-    if (!taskList || !noteText || !dateInput) return;
-
-    // Загрузка задач
-    const savedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-    taskList.innerHTML = '';
-    savedTasks.forEach((task: { text: string; checked: boolean }) => createTaskItem(task.text, task.checked));
-
-    // Загрузка заметки и даты
-    noteText.value = localStorage.getItem('note') || '';
-    dateInput.value = localStorage.getItem('date') || new Date().toISOString().split('T')[0];
-
-    // Подписка на изменения
-    noteText.addEventListener('input', saveToLocalStorage);
-    dateInput.addEventListener('input', saveToLocalStorage);
-}
-
-export function createTaskItem(value = '', checked = false): void {
-    if (!taskList) return;
-    const li = document.createElement('li');
-    li.classList.add('task-item');
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = checked;
-    checkbox.addEventListener('change', saveToLocalStorage);
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = value;
-    input.placeholder = 'Введите задачу...';
-    input.addEventListener('input', saveToLocalStorage);
-
-    const removeBtn = document.createElement('button');
-    removeBtn.textContent = 'Удалить';
-    removeBtn.onclick = () => {
-        li.remove();
-        saveToLocalStorage();
+/** Данные только в памяти — для тестов и для проверки, что store не зависит от localStorage. */
+export function createMemoryBackend(initial: Partial<Record<StoreKey, unknown>> = {}): StorageBackend & { data: Map<StoreKey, unknown> } {
+    const data = new Map<StoreKey, unknown>(Object.entries(initial) as [StoreKey, unknown][]);
+    return {
+        data,
+        async read(key) {
+            return data.has(key) ? structuredClone(data.get(key)) : undefined;
+        },
+        async write(key, value) {
+            data.set(key, structuredClone(value));
+        },
     };
-
-    li.appendChild(checkbox);
-    li.appendChild(input);
-    li.appendChild(removeBtn);
-    li.dataset.done = checked ? 'true' : 'false';
-
-    taskList.appendChild(li);
 }

@@ -1,250 +1,382 @@
-import Chart from 'chart.js/auto';
+// analytics.ts — страница «Аналитика»: одна страница с выбором периода.
+// Разметка лежит в index.html (#analytics-section), здесь — данные и отрисовка графиков (viz.ts).
+
+import { addDays, formatDateShort, todayStr, weekdayIndex } from './dates';
+import {
+    aggregateWeeks,
+    categoryBreakdown,
+    getStreak,
+    habitPeriodStats,
+    moodPeriodStats,
+    moodVsHabits,
+    onTimeStats,
+    pickBestWorst,
+    taskPeriodStats,
+    taskStreak,
+    weekdayTotals,
+    type Period,
+} from './stats';
+import { loadActiveHabits, loadMood, loadTasks } from './store';
 import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
+import {
+    mountResponsive,
+    renderColumns,
+    renderDonut,
+    renderHBars,
+    renderHeatmap,
+    renderMoodArea,
+    unmountResponsive,
+    type ColumnItem,
+} from './viz';
 
-// --- Достаем реальные данные из localStorage ---
+const PERIOD_LABELS: Record<Period, string> = { 7: '7 дней', 30: '30 дней', 91: '3 месяца' };
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const WEEKDAYS_DATIVE = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
+const MOOD_LABELS = ['Отлично', 'Хорошо', 'Нормально', 'Плохо', 'Ужасно'];
+const MOOD_WORDS = ['отличное', 'хорошее', 'нормальное', 'плохое', 'ужасное'];
 
-function getTasks(): { text: string; done: boolean; date: string; }[] {
-    try {
-        return JSON.parse(localStorage.getItem('tasks') || '[]');
-    } catch {
-        return [];
+let period: Period = 30;
+let menuBound = false;
+
+const $ = <T extends HTMLElement = HTMLElement>(selector: string): T | null => document.querySelector<T>(selector);
+
+function setText(selector: string, value: string | number): void {
+    const el = $(selector);
+    if (el) el.textContent = String(value);
+}
+
+function setEmpty(selector: string, message: string): void {
+    const el = $(selector);
+    if (el) el.innerHTML = `<p class="viz__empty">${message}</p>`;
+}
+
+const sign = (n: number): string => (n > 0 ? '+' : n < 0 ? '−' : '');
+
+/** «↑ +3 к предыдущему периоду» / «как в предыдущем периоде». */
+function deltaNote(diff: number, unit = ''): string {
+    if (diff === 0) return 'как в предыдущем периоде';
+    return `${diff > 0 ? '↑' : '↓'} ${sign(diff)}${Math.abs(Math.round(diff * 10) / 10)}${unit} к предыдущему периоду`;
+}
+
+// ===== Итоговые карточки =====
+
+function renderKpis(days: number, today: string): void {
+    const tasks = loadTasks();
+    const habits = loadActiveHabits();
+    const stats = taskPeriodStats(tasks, today, days);
+    const onTime = onTimeStats(tasks, today, days);
+    const habitStats = habitPeriodStats(habits, today, days);
+    const mood = moodPeriodStats(loadMood(), today, days);
+
+    setText('[data-kpi="tasks"]', stats.total);
+    setText('[data-kpi-note="tasks"]', deltaNote(stats.total - stats.prevTotal));
+
+    if (onTime.withDeadline > 0) {
+        setText('[data-kpi="ontime"]', `${Math.round((onTime.onTime / onTime.withDeadline) * 100)}%`);
+        setText('[data-kpi-note="ontime"]', `${onTime.onTime} из ${onTime.withDeadline} задач с дедлайном`);
+    } else {
+        setText('[data-kpi="ontime"]', '—');
+        setText('[data-kpi-note="ontime"]', 'нет выполненных задач с дедлайном');
+    }
+
+    if (habitStats.rate !== null) {
+        setText('[data-kpi="habits"]', `${habitStats.rate}%`);
+        setText(
+            '[data-kpi-note="habits"]',
+            habitStats.prevRate === null ? 'дней с отметкой' : deltaNote(habitStats.rate - habitStats.prevRate, ' п.п.'),
+        );
+    } else {
+        setText('[data-kpi="habits"]', '—');
+        setText('[data-kpi-note="habits"]', 'привычек пока нет');
+    }
+
+    if (mood.avg !== null) {
+        setText('[data-kpi="mood"]', mood.avg);
+        setText(
+            '[data-kpi-note="mood"]',
+            mood.prevAvg === null ? `${mood.entries.length} оценок за период` : deltaNote(mood.avg - mood.prevAvg),
+        );
+    } else {
+        setText('[data-kpi="mood"]', '—');
+        setText('[data-kpi-note="mood"]', 'оценок за период нет');
     }
 }
 
-function getHabits(): { text: string; dates: string[] }[] {
-    try {
-        return JSON.parse(localStorage.getItem('habits') || '[]');
-    } catch {
-        return [];
+// ===== Задачи =====
+
+function renderTaskCharts(days: number, today: string): void {
+    const tasks = loadTasks();
+    const stats = taskPeriodStats(tasks, today, days);
+
+    // Столбцы по дням; за 3 месяца — по неделям
+    const weekly = days > 30;
+    const source = weekly ? aggregateWeeks(stats.byDay) : stats.byDay;
+    const top = Math.max(0, ...source.map((d) => d.count));
+    const firstMax = source.findIndex((d) => d.count === top);
+    const items: ColumnItem[] = source.map((d, i) => ({
+        label: days <= 7 ? WEEKDAYS[weekdayIndex(d.date)] : formatDateShort(d.date),
+        value: d.count,
+        tip: weekly ? `Неделя с ${formatDateShort(d.date)}: ${d.count}` : `${formatDateShort(d.date)}: ${d.count}`,
+        accent: top > 0 && i === firstMax,
+    }));
+    const every = days <= 7 ? 1 : weekly ? 2 : 5;
+
+    setText(
+        '#an-tasks-meta',
+        `всего ${stats.total} · в среднем ${(Math.round(stats.perDay * 10) / 10).toString().replace('.', ',')} в день`,
+    );
+    const box = $('#an-tasks-days');
+    if (box) {
+        box.innerHTML =
+            stats.total === 0
+                ? '<p class="viz__empty">За этот период выполненных задач нет.</p>'
+                : renderColumns(items, {
+                      height: 190,
+                      showValues: items.length <= 14,
+                      labelAt: (i) => (items.length - 1 - i) % every === 0,
+                  });
+    }
+
+    // По дням недели
+    const totals = weekdayTotals(stats.byDay);
+    const bw = pickBestWorst(totals);
+    setText('#an-weekdays-meta', bw ? `лучший день — ${WEEKDAYS[bw.best]}` : '');
+    const weekdayBox = $('#an-weekdays');
+    if (weekdayBox) {
+        weekdayBox.innerHTML =
+            stats.total === 0
+                ? '<p class="viz__empty">Пока нет данных.</p>'
+                : renderColumns(
+                      totals.map((v, i) => ({
+                          label: WEEKDAYS[i],
+                          value: v,
+                          tip: `${WEEKDAYS[i]}: ${v}`,
+                          accent: bw !== null && i === bw.best,
+                      })),
+                      { height: 130, showValues: true },
+                  );
+    }
+
+    // По категориям
+    const cats = categoryBreakdown(tasks, today, days);
+    const catBox = $('#an-categories');
+    if (catBox) {
+        catBox.innerHTML =
+            cats.length === 0
+                ? '<p class="viz__empty">Пока нет данных.</p>'
+                : renderHBars(
+                      cats.map((c) => ({ label: c.name, value: c.count, valueText: String(c.count), tip: `${c.name}: ${c.count}` })),
+                  );
     }
 }
 
-function getMood(): { date: string; rating: number; note?: string }[] {
-    try {
-        return JSON.parse(localStorage.getItem('moodData') || '[]');
-    } catch {
-        return [];
+// ===== Привычки =====
+
+function renderHabitChart(days: number, today: string): void {
+    const habits = loadActiveHabits();
+    const box = $('#an-habits');
+    if (!box) return;
+
+    if (habits.length === 0) {
+        setText('#an-habits-meta', '');
+        setEmpty('#an-habits', 'Привычек пока нет — добавьте первую в разделе «Привычки».');
+        return;
     }
-}
 
-// --- Функции для подсчета статистики ---
+    const stats = habitPeriodStats(habits, today, days);
+    setText('#an-habits-meta', `${stats.rate ?? 0}% дней с отметкой`);
 
-function getTasksStatsByDay() {
-    // Вернет массив: [Пн, Вт, Ср, Чт, Пт, Сб, Вс]
-    //const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-    const stats = Array(7).fill(0);
-    const tasks = getTasks();
-    tasks.forEach(t => {
-        if (t.done && t.date) {
-            // t.date — должен быть в формате YYYY-MM-DD
-            const d = new Date(t.date);
-            const idx = (d.getDay() + 6) % 7; // Пн=0, ... Вс=6
-            stats[idx]++;
+    // За 3 месяца — ячейка на неделю (интенсивность = доля отмеченных дней)
+    const weekly = days > 30;
+    const rows = stats.rows.map((r) => {
+        if (!weekly) {
+            return {
+                label: r.text,
+                cells: r.marks.map((m) => (m ? 1 : 0)),
+                off: r.marks.map((m, i) => !m && !r.due[i]), // не по графику и не отмечено — «выходной»
+                tips: r.marks.map(
+                    (m, i) => `${formatDateShort(stats.dates[i])} — ${r.text}: ${m ? 'отмечено' : r.due[i] ? 'нет' : 'не по графику'}`,
+                ),
+                value: `${r.percent}%`,
+            };
         }
-    });
-    return stats;
-}
-
-function getHabitStreaks() {
-    // Вернет массив — сколько дней отмечено по каждой привычке за последнюю неделю
-    const habits = getHabits();
-    const weekDates = getLastNDates(7); // последние 7 дат (строки)
-    return habits.map(h => h.dates.filter(date => weekDates.includes(date)).length);
-}
-
-function getMoodStats() {
-    // Вернет массив по 5 категориям: [Отлично, Хорошо, Нормально, Плохо, Ужасно]
-    const data = [0, 0, 0, 0, 0];
-    getMood().forEach(m => {
-        if (m.rating >= 1 && m.rating <= 5) data[5 - m.rating]++;
-    });
-    return data;
-}
-
-// Вспомогательные функции
-function getLastNDates(n: number): string[] {
-    const arr = [];
-    let d = new Date();
-    for (let i = 0; i < n; i++) {
-        arr.unshift(d.toISOString().slice(0, 10));
-        d.setDate(d.getDate() - 1);
-    }
-    return arr;
-}
-
-// --- Главный рендер аналитики ---
-export function renderAnalyticsPage() {
-    const container = document.getElementById('analytics-section');
-    if (!container) return;
-
-    const analyticsMenu = container.querySelector('#analytics-menu') as HTMLElement;
-    analyticsMenu?.classList.remove('hidden');
-    const detailsDiv = container.querySelector('#analytics-details') as HTMLDivElement;
-    if (detailsDiv) detailsDiv.innerHTML = '';
-
-    analyticsMenu.querySelectorAll('[data-analytics]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const section = btn.getAttribute('data-analytics');
-            analyticsMenu.classList.add('hidden');
-            showAnalyticsDetails(section || 'tasks', container);
-        });
-    });
-}
-
-// --- Детальный просмотр раздела ---
-function showAnalyticsDetails(section: string, container: HTMLElement) {
-    const detailsDiv = container.querySelector('#analytics-details') as HTMLDivElement;
-
-    let title = '';
-    let chartData: number[] = [];
-    let chartType = '';
-    let labels: string[] = [];
-    let avg = 0;
-    let best = '';
-    let worst = '';
-    let summary = '';
-    let chartBg: any = '';
-    let adviceBlock = '';
-
-    if (section === 'tasks') {
-        title = 'Задачи';
-        labels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-        chartData = getTasksStatsByDay();
-        chartType = 'bar';
-        chartBg = '#60A5FA';
-        avg = chartData.length ? Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10 : 0;
-        let max = Math.max(...chartData), min = Math.min(...chartData);
-        let bestIdx = chartData.indexOf(max), worstIdx = chartData.indexOf(min);
-        best = labels[bestIdx] || '';
-        worst = labels[worstIdx] || '';
-        summary = `Ваше среднее выполнение задач за неделю — <b>${avg}</b>.<br>Лучший день — <b>${best}</b>, спокойный — <b>${worst}</b>.`;
-        adviceBlock = `
-      <div class="flex flex-col items-center mt-4">
-        <div id="advice-blur" class="backdrop-blur-md bg-blue-100/60 text-gray-800 rounded-xl px-5 py-4 mt-2 text-base font-medium shadow transition hover:backdrop-blur-0 hover:bg-blue-100/90 cursor-pointer select-none max-w-lg text-center">
-          Совет по задачам — наведите мышку!
-          <span id="advice-text" class="block opacity-0 transition-opacity duration-300"></span>
-        </div>
-        <button id="refresh-advice" class="mt-3 opacity-60 hover:opacity-100 bg-blue-200 text-blue-800 rounded px-4 py-1 text-sm">Обновить совет</button>
-      </div>
-    `;
-    }
-
-    if (section === 'habits') {
-        title = 'Привычки';
-        labels = getHabits().map(h => h.text);
-        chartData = getHabitStreaks();
-        chartType = 'bar';
-        chartBg = '#34D399';
-        avg = chartData.length ? Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length * 10) / 10 : 0;
-        let max = Math.max(...chartData), min = Math.min(...chartData);
-        let bestIdx = chartData.indexOf(max), worstIdx = chartData.indexOf(min);
-        best = labels[bestIdx] || '';
-        worst = labels[worstIdx] || '';
-        summary = `Среднее выполнение привычек за неделю — <b>${avg}</b>.<br>Лучшая привычка — <b>${best}</b>, сложная — <b>${worst}</b>.`;
-        adviceBlock = `
-      <div class="flex flex-col items-center mt-4">
-        <div id="advice-blur" class="backdrop-blur-md bg-lime-100/60 text-gray-800 rounded-xl px-5 py-4 mt-2 text-base font-medium shadow transition hover:backdrop-blur-0 hover:bg-lime-100/90 cursor-pointer select-none max-w-lg text-center">
-          Совет по привычкам — наведите мышку!
-          <span id="advice-text" class="block opacity-0 transition-opacity duration-300"></span>
-        </div>
-        <button id="refresh-advice" class="mt-3 opacity-60 hover:opacity-100 bg-lime-200 text-lime-800 rounded px-4 py-1 text-sm">Обновить совет</button>
-      </div>
-    `;
-    }
-
-    if (section === 'mood') {
-        title = 'Настроение';
-        labels = ['Отлично', 'Хорошо', 'Нормально', 'Плохо', 'Ужасно'];
-        chartData = getMoodStats();
-        chartType = 'doughnut';
-        chartBg = ['#F472B6', '#FB7185', '#FBCFE8', '#C026D3', '#A21CAF'];
-        let sum = chartData.reduce((a, b) => a + b, 0);
-        avg = sum
-            ? Math.round((chartData[0] * 5 + chartData[1] * 4 + chartData[2] * 3 + chartData[3] * 2 + chartData[4]) / sum * 10) / 10
-            : 0;
-        let moods = ['отличное', 'хорошее', 'нормальное', 'плохое', 'ужасное'];
-        let bestIdx = chartData.indexOf(Math.max(...chartData));
-        let worstIdx = chartData.indexOf(Math.min(...chartData));
-        best = moods[bestIdx] || '';
-        worst = moods[worstIdx] || '';
-        summary = `Средняя оценка настроения — <b>${avg}</b>.<br>Чаще всего вы выбирали <b>${best}</b>, реже всего — <b>${worst}</b>.`;
-        adviceBlock = `
-      <div class="flex flex-col items-center mt-4">
-        <div id="advice-blur" class="backdrop-blur-md bg-pink-100/60 text-gray-800 rounded-xl px-5 py-4 mt-2 text-base font-medium shadow transition hover:backdrop-blur-0 hover:bg-pink-100/90 cursor-pointer select-none max-w-lg text-center">
-          Совет для настроения — наведите мышку!
-          <span id="advice-text" class="block opacity-0 transition-opacity duration-300"></span>
-        </div>
-        <button id="refresh-advice" class="mt-3 opacity-60 hover:opacity-100 bg-pink-200 text-pink-800 rounded px-4 py-1 text-sm">Обновить совет</button>
-      </div>
-    `;
-    }
-
-    detailsDiv.innerHTML = `
-    <button id="back-to-analytics" class="mb-4 text-blue-700 hover:underline">&larr; Назад к аналитике</button>
-    <h3 class="mb-6 text-2xl font-bold">${title}</h3>
-    <div class="flex flex-col items-center">
-      <canvas id="analytics-detail-chart" class="w-full max-w-xl h-72 mb-6 bg-white rounded-xl shadow"></canvas>
-      <div class="w-full flex flex-wrap gap-4 justify-center mb-4">
-        <span class="text-base text-gray-800"><b>Среднее:</b> <span id="avg-value"></span></span>
-        <span class="text-base text-gray-800"><b>Лучший:</b> <span id="best-day"></span></span>
-        <span class="text-base text-gray-800"><b>Менее активный:</b> <span id="worst-day"></span></span>
-      </div>
-      <div id="analytics-summary" class="w-full mt-2 p-4 bg-gray-100 rounded-lg text-gray-700 text-sm">${summary}</div>
-      ${adviceBlock}
-    </div>
-  `;
-
-    // Назад к меню
-    detailsDiv.querySelector('#back-to-analytics')?.addEventListener('click', () => {
-        const analyticsMenu = container.querySelector('#analytics-menu') as HTMLElement;
-        analyticsMenu.classList.remove('hidden');
-        detailsDiv.innerHTML = '';
+        const cells: number[] = [];
+        const off: boolean[] = [];
+        const tips: string[] = [];
+        for (let end = r.marks.length; end > 0; end -= 7) {
+            const from = Math.max(0, end - 7);
+            const dueN = r.due.slice(from, end).filter(Boolean).length;
+            const done = r.marks.slice(from, end).filter((m, i) => m && r.due[from + i]).length;
+            cells.unshift(dueN === 0 ? 0 : done / dueN);
+            off.unshift(dueN === 0);
+            tips.unshift(
+                `Неделя с ${formatDateShort(stats.dates[from])} — ${r.text}: ${dueN === 0 ? 'нет дней по графику' : `${done} из ${dueN}`}`,
+            );
+        }
+        return { label: r.text, cells, off, tips, value: `${r.percent}%` };
     });
 
-    // Chart
-    const chartCtx = detailsDiv.querySelector('#analytics-detail-chart') as HTMLCanvasElement;
-    if (chartCtx) {
-        new Chart(chartCtx, {
-            type: chartType as any,
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: title,
-                    data: chartData,
-                    backgroundColor: chartBg,
-                    borderColor: chartBg,
-                    fill: section === 'habits',
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: section === 'mood' } },
-                scales: section === 'mood' ? {} : { y: { beginAtZero: true } }
-            }
-        });
+    box.innerHTML = renderHeatmap(rows, formatDateShort(stats.dates[0]), 'сегодня');
+}
+
+// ===== Настроение =====
+
+function renderMoodCharts(days: number, today: string): void {
+    const entries = loadMood();
+    const stats = moodPeriodStats(entries, today, days);
+    const lineBox = $('#an-mood-line');
+    const donutBox = $('#an-mood-donut');
+
+    if (stats.entries.length === 0) {
+        setText('#an-mood-meta', '');
+        setEmpty('#an-mood-line', 'За этот период оценок нет.');
+        setEmpty('#an-mood-donut', 'Пока нет данных.');
+        return;
     }
 
-    // Совет (blur + обновить)
-    const adviceBlur = detailsDiv.querySelector('#advice-blur') as HTMLDivElement | null;
-    const adviceText = detailsDiv.querySelector('#advice-text') as HTMLSpanElement | null;
-    let advice: string = '';
-    function updateAdvice() {
-        if (section === 'tasks') advice = generateTaskAdvice(avg, chartData[0]);
-        else if (section === 'habits') advice = generateHabitAdvice(chartData[0]);
-        else advice = generateMoodAdvice(avg, best);
-        if (adviceText) {
-            adviceText.textContent = advice;
-            adviceText.classList.remove('opacity-0');
+    setText('#an-mood-meta', `${stats.entries.length} ${stats.entries.length === 1 ? 'оценка' : 'оценок'}`);
+
+    const notes = new Map(stats.entries.filter((e) => e.note).map((e) => [e.date, e.note]));
+    if (lineBox) mountResponsive(lineBox, (width) => renderMoodArea(stats.series, { width, height: 230, avg: stats.avg, today, notes }));
+
+    // Кольцо: порядок «Отлично … Ужасно», цвета — из палитры настроения
+    const total = stats.counts.reduce((a, b) => a + b, 0);
+    const colors = ['var(--mood-5)', 'var(--mood-4)', 'var(--mood-3)', 'var(--mood-2)', 'var(--mood-1)'];
+    const segments = stats.counts.map((value, i) => ({ label: MOOD_LABELS[i], value, color: colors[i] }));
+    const legend = segments
+        .map(
+            (s) =>
+                `<div class="legend__row"><span class="legend__dot" style="background:${s.color}"></span><span>${s.label}</span><span class="legend__count">${s.value}</span><span class="legend__pct">${Math.round((s.value / total) * 100)}%</span></div>`,
+        )
+        .join('');
+    if (donutBox)
+        donutBox.innerHTML = `<div class="donut-wrap">${renderDonut(segments, String(stats.avg ?? '—'), 'среднее')}<div class="legend">${legend}</div></div>`;
+}
+
+// ===== Наблюдения и советы =====
+
+function buildInsights(days: number, today: string): string[] {
+    const tasks = loadTasks();
+    const habits = loadActiveHabits();
+    const list: string[] = [];
+
+    const taskStats = taskPeriodStats(tasks, today, days);
+    const totals = weekdayTotals(taskStats.byDay);
+    const bw = pickBestWorst(totals);
+    if (taskStats.total > 0 && bw) {
+        list.push(`Чаще всего вы закрываете задачи по ${WEEKDAYS_DATIVE[bw.best]}: ${totals[bw.best]} из ${taskStats.total}.`);
+    }
+
+    const onTime = onTimeStats(tasks, today, days);
+    if (onTime.withDeadline > 0) {
+        list.push(`В срок закрыто ${onTime.onTime} из ${onTime.withDeadline} задач с дедлайном.`);
+    }
+
+    const overdue = tasks.filter((t) => !t.completed && t.date && t.date < today).length;
+    if (overdue > 0) list.push(`Сейчас просрочено задач: ${overdue}. Разберите их на главной во вкладке «Просрочено».`);
+
+    const habitStats = habitPeriodStats(habits, today, days);
+    if (habitStats.rows.length > 0 && habitStats.rows.some((r) => r.done > 0)) {
+        const byPercent = [...habitStats.rows].sort((a, b) => b.percent - a.percent);
+        list.push(`Самая стабильная привычка — «${byPercent[0].text}»: отмечена в ${byPercent[0].percent}% дней.`);
+        const weakest = byPercent[byPercent.length - 1];
+        if (byPercent.length > 1 && weakest.percent < byPercent[0].percent) {
+            list.push(`Чаще всего пропускается «${weakest.text}» — отметки в ${weakest.percent}% дней.`);
         }
     }
-    if (adviceBlur && adviceText) {
-        adviceBlur.addEventListener('mouseenter', updateAdvice);
-        adviceBlur.addEventListener('mouseleave', () => adviceText.classList.add('opacity-0'));
-        detailsDiv.querySelector('#refresh-advice')?.addEventListener('click', updateAdvice);
+
+    const link = moodVsHabits(habits, loadMood(), today, days);
+    if (link) {
+        list.push(`В дни, когда отмечено не меньше половины привычек, настроение в среднем ${link.high}, в остальные дни — ${link.low}.`);
     }
 
-    // Статы
-    if (detailsDiv.querySelector('#avg-value')) detailsDiv.querySelector('#avg-value')!.textContent = String(avg);
-    if (detailsDiv.querySelector('#best-day')) detailsDiv.querySelector('#best-day')!.textContent = best;
-    if (detailsDiv.querySelector('#worst-day')) detailsDiv.querySelector('#worst-day')!.textContent = worst;
+    if (list.length === 0) list.push('Пока мало данных для выводов — продолжайте отмечать, и здесь появятся наблюдения.');
+    return list;
+}
+
+function renderInsights(days: number, today: string): void {
+    const ul = $('#an-insights');
+    if (!ul) return;
+    ul.replaceChildren();
+    for (const text of buildInsights(days, today)) {
+        const li = document.createElement('li');
+        li.className = 'insight';
+        li.textContent = text;
+        ul.appendChild(li);
+    }
+}
+
+function renderAdvice(days: number, today: string): void {
+    const box = $('#an-advice');
+    if (!box) return;
+    box.replaceChildren();
+
+    const tasks = loadTasks();
+    const habits = loadActiveHabits();
+    const stats = taskPeriodStats(tasks, today, days);
+    const mood = moodPeriodStats(loadMood(), today, days);
+    const bestStreak = Math.max(0, ...habits.map((h) => getStreak(h.dates, today, h.days)));
+
+    // Самая частая оценка словом (для совета по настроению)
+    const top = mood.counts.indexOf(Math.max(...mood.counts));
+    const frequent = mood.entries.length > 0 ? MOOD_WORDS[top] : '';
+
+    const rows: [string, string][] = [
+        [
+            'Задачи',
+            tasks.length > 0
+                ? generateTaskAdvice(stats.perDay, taskStreak(tasks, today))
+                : 'Добавьте первую задачу — и здесь появится совет.',
+        ],
+        ['Привычки', habits.length > 0 ? generateHabitAdvice(bestStreak) : 'Добавьте привычку — и здесь появится совет.'],
+        ['Настроение', mood.avg !== null ? generateMoodAdvice(mood.avg, frequent) : 'Запишите настроение — и здесь появится совет.'],
+    ];
+
+    for (const [tag, text] of rows) {
+        const row = document.createElement('div');
+        row.className = 'advice-row';
+        const label = document.createElement('span');
+        label.className = 'advice-row__tag';
+        label.textContent = tag;
+        const body = document.createElement('span');
+        body.className = 'advice-row__text';
+        body.textContent = text;
+        row.append(label, body);
+        box.appendChild(row);
+    }
+}
+
+// ===== Публичный API =====
+
+/** Перерисовывает страницу целиком; вызывается при каждом переходе на вкладку и при смене периода. */
+export function renderAnalyticsPage(): void {
+    const section = document.getElementById('analytics-section');
+    if (!section) return;
+    unmountResponsive(section);
+
+    const today = todayStr();
+    setText('#analytics-sub', `Статистика за ${PERIOD_LABELS[period]}: ${formatDateShort(addDays(today, -(period - 1)))} — сегодня`);
+
+    document.querySelectorAll<HTMLElement>('#analytics-period [data-days]').forEach((btn) => {
+        const active = Number(btn.dataset.days) === period;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+    });
+
+    renderKpis(period, today);
+    renderTaskCharts(period, today);
+    renderHabitChart(period, today);
+    renderMoodCharts(period, today);
+    renderInsights(period, today);
+    renderAdvice(period, today);
+
+    if (menuBound) return;
+    menuBound = true;
+    $('#analytics-period')?.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-days]');
+        if (!btn) return;
+        period = Number(btn.dataset.days) as Period;
+        renderAnalyticsPage();
+    });
+    $('#an-advice-refresh')?.addEventListener('click', () => renderAdvice(period, todayStr()));
 }

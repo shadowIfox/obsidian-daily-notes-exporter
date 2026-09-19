@@ -1,82 +1,64 @@
-import Chart from 'chart.js/auto';
-
-// --- Тип данных для привычки ---
-type Habit = {
-    text: string;
-    dates: string[]; // Массив дат, когда была отмечена привычка (ISO строки)
-};
+import { daysInMonth, formatDateShort, lastNDates, todayStr, weekdayIndex } from './dates';
+import { WEEKDAY_LABELS, createWeekdayPicker, describeDays, openHabitEditor, openHabitHistory, setupHabitDialogs } from './habitDialogs';
+import { icon } from './icons';
+import { getStreak, isDue } from './stats';
+import { loadHabits, newId, saveHabits, type Habit } from './store';
+import { renderHBars } from './viz';
 
 // --- Переменные ---
-let habits: Habit[] = [];
-let habitChart: Chart | null = null;
+let habits: Habit[] = []; // все привычки, включая архивные (сохраняются вместе)
 
-// --- Получить streak (дни подряд) ---
-function getStreak(dates: string[]): number {
-    if (dates.length === 0) return 0;
-    let streak = 0;
-    let day = new Date();
-    for (; ;) {
-        const dayStr = day.toISOString().slice(0, 10);
-        if (dates.includes(dayStr)) {
-            streak++;
-            day.setDate(day.getDate() - 1);
-        } else {
-            break;
-        }
+const activeHabits = (): Habit[] => habits.filter((h) => !h.archived);
+
+// --- График: текущие серии по привычкам ---
+export function updateHabitChart() {
+    const box = document.getElementById('habit-streaks');
+    if (!box) return;
+    const active = activeHabits();
+    if (active.length === 0) {
+        box.innerHTML = '<p class="viz__empty">Добавьте привычку — здесь появятся её серии.</p>';
+        return;
     }
-    return streak;
+    box.innerHTML = renderHBars(
+        active.map((h) => {
+            const streak = getStreak(h.dates, undefined, h.days);
+            return { label: h.text, value: streak, valueText: `${streak} дн.`, tip: `${h.text}: серия ${streak} дн. подряд` };
+        }),
+    );
 }
 
-// --- Сохранение и загрузка привычек ---
-function saveHabitsToStorage() {
-    localStorage.setItem('habits', JSON.stringify(habits));
-}
-function loadHabitsFromStorage(): Habit[] {
-    const data = localStorage.getItem('habits');
-    if (!data) return [];
-    try {
-        const arr = JSON.parse(data);
-        return arr.map((h: any) => ({
-            text: h.text,
-            dates: Array.isArray(h.dates) ? h.dates : [],
-        }));
-    } catch {
-        return [];
-    }
+/** Ставит или снимает отметку в указанный день. */
+function toggleDate(habit: Habit, date: string): void {
+    habit.dates = habit.dates.includes(date) ? habit.dates.filter((d) => d !== date) : [...habit.dates, date];
+    saveHabits(habits);
+    renderHabits();
 }
 
-// --- Обновление графика привычек (Chart.js) ---
-function updateHabitChart() {
-    const ctx = document.getElementById('habit-progress-chart') as HTMLCanvasElement | null;
-    if (!ctx) return;
+// --- API для главной: отметить/снять привычку на сегодня ---
+export function toggleHabitToday(id: string): void {
+    const habit = habits.find((h) => h.id === id);
+    if (habit) toggleDate(habit, todayStr());
+}
 
-    const streaks = habits.map(h => getStreak(h.dates));
-    const labels = habits.map(h => h.text);
+/** Подсвечивает привычку в списке (переход из поиска). */
+export function revealHabit(id: string): void {
+    const li = document.querySelector<HTMLElement>(`#habit-list [data-id="${CSS.escape(id)}"]`);
+    if (!li) return;
+    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    li.classList.remove('is-flash');
+    void li.offsetWidth; // перезапуск анимации
+    li.classList.add('is-flash');
+}
 
-    if (habitChart) habitChart.destroy();
-    habitChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Серия дней подряд',
-                data: streaks,
-                backgroundColor: 'rgba(132, 204, 22, 0.7)', // lime-500
-                borderRadius: 12,
-                borderSkipped: false,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                title: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } }
-            }
-        }
-    });
+function iconButton(name: string, label: string, onClick: () => void, extraClass = ''): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `icon-btn icon-btn--sm ${extraClass}`.trim();
+    b.setAttribute('aria-label', label);
+    b.title = label;
+    b.innerHTML = icon(name, 16);
+    b.onclick = onClick;
+    return b;
 }
 
 // --- Рендер привычек ---
@@ -84,116 +66,201 @@ function renderHabits() {
     const habitList = document.getElementById('habit-list');
     if (!habitList) return;
     habitList.innerHTML = '';
+    const active = activeHabits();
+    document.getElementById('habit-empty')?.classList.toggle('hidden', active.length > 0);
 
-    habits.forEach((habit, idx) => {
+    const today = todayStr();
+    const month = today.slice(0, 7); // ГГГГ-ММ
+
+    active.forEach((habit) => {
+        const dueToday = isDue(habit, today);
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-4 p-2 mb-3 transition-all duration-300 translate-y-4 bg-gray-100 shadow opacity-0 rounded-xl';
-        setTimeout(() => {
-            li.classList.remove('opacity-0', 'translate-y-4');
-        }, 10);
+        li.className = dueToday ? 'habit' : 'habit habit--rest';
+        li.dataset.id = habit.id;
 
-        // Чекбокс "выполнено"
+        // Чекбокс «выполнено сегодня»
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.className = 'w-5 h-5 accent-lime-500';
-        const today = new Date().toISOString().slice(0, 10);
+        checkbox.className = 'check';
         checkbox.checked = habit.dates.includes(today);
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                if (!habit.dates.includes(today)) habit.dates.push(today);
-            } else {
-                habit.dates = habit.dates.filter(d => d !== today);
-            }
-            saveHabitsToStorage();
-            renderHabits();
-            updateHabitChart();
-        });
+        checkbox.setAttribute('aria-label', 'Отметить на сегодня');
+        checkbox.addEventListener('change', () => toggleDate(habit, today));
 
-        // Текст привычки
-        const spanText = document.createElement('span');
-        spanText.className = 'flex-1 text-gray-800';
-        spanText.textContent = habit.text;
+        // Основная часть: название + статистика
+        const main = document.createElement('div');
 
-        // Streak
-        const streakBadge = document.createElement('span');
-        let streakClass = 'bg-lime-200 text-lime-800';
-        const streakValue = getStreak(habit.dates);
-        if (streakValue > 10) streakClass = 'bg-rose-200 text-rose-800';
-        else if (streakValue > 5) streakClass = 'bg-yellow-200 text-yellow-800';
-        streakBadge.className = `ml-2 px-2 py-0.5 rounded-xl text-xs font-semibold ${streakClass}`;
-        streakBadge.textContent = `Серия: ${streakValue}`;
-
-        // Статистика за месяц
-        const month = new Date().toISOString().slice(0, 7); // ГГГГ-ММ
-        const completedThisMonth = habit.dates.filter(date => date.startsWith(month)).length;
-        const monthStats = document.createElement('span');
-        monthStats.className = 'text-xs text-gray-500';
-        monthStats.textContent = `В этом месяце: ${completedThisMonth} дней`;
-
-        // Прогресс-бар за месяц
-        const progressBar = document.createElement('div');
-        progressBar.className = 'w-24 h-2 overflow-hidden bg-gray-200 rounded-full';
-        const innerBar = document.createElement('div');
-        innerBar.className = 'h-2 transition-all rounded-full bg-lime-400';
-        innerBar.style.width = `${Math.round(completedThisMonth / 30 * 100)}%`;
-        progressBar.appendChild(innerBar);
-
-        // Мини-календарь за 7 дней
-        const calendar = document.createElement('div');
-        calendar.className = 'flex gap-1 ml-2';
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dayStr = date.toISOString().slice(0, 10);
-            const dot = document.createElement('span');
-            dot.className = habit.dates.includes(dayStr)
-                ? 'inline-block w-3 h-3 rounded-full bg-lime-500 border-2 border-lime-300'
-                : 'inline-block w-3 h-3 rounded-full bg-gray-300 border';
-            calendar.appendChild(dot);
+        const name = document.createElement('div');
+        name.className = 'habit__name';
+        name.textContent = habit.text;
+        const schedule = describeDays(habit.days);
+        if (schedule) {
+            const chip = document.createElement('span');
+            chip.className = 'chip chip--mini';
+            chip.textContent = schedule;
+            chip.title = 'Дни по графику';
+            name.append(' ', chip);
         }
 
-        // Кнопка удаления
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'px-2 py-1 ml-2 text-xs text-white transition bg-red-400 rounded hover:bg-red-600';
-        removeBtn.textContent = 'Удалить';
-        removeBtn.onclick = () => {
-            habits.splice(idx, 1);
-            saveHabitsToStorage();
-            renderHabits();
-            updateHabitChart();
-        };
+        const meta = document.createElement('div');
+        meta.className = 'habit__meta';
 
-        // Собираем карточку привычки
-        li.appendChild(checkbox);
-        li.appendChild(spanText);
-        li.appendChild(streakBadge);
-        li.appendChild(monthStats);
-        li.appendChild(progressBar);
-        li.appendChild(calendar);
-        li.appendChild(removeBtn);
+        // Прогресс за месяц: отмеченные дни по графику / все дни по графику в месяце
+        let dueMonth = 0;
+        let doneMonth = 0;
+        for (let day = 1; day <= daysInMonth(); day++) {
+            const date = `${month}-${String(day).padStart(2, '0')}`;
+            if (!isDue(habit, date)) continue;
+            dueMonth++;
+            if (habit.dates.includes(date)) doneMonth++;
+        }
+        const monthText = document.createElement('span');
+        monthText.textContent = `В этом месяце: ${doneMonth} из ${dueMonth}`;
 
+        const progress = document.createElement('div');
+        progress.className = 'progress progress--sm';
+        const bar = document.createElement('div');
+        bar.className = 'progress__bar';
+        bar.style.width = `${dueMonth === 0 ? 0 : Math.min(100, Math.round((doneMonth / dueMonth) * 100))}%`;
+        progress.appendChild(bar);
+
+        // Мини-календарь за 7 дней: по точке можно отметить или снять любой из этих дней
+        const dots = document.createElement('div');
+        dots.className = 'dots';
+        dots.setAttribute('role', 'group');
+        dots.setAttribute('aria-label', 'Последние 7 дней');
+        for (const dayStr of lastNDates(7)) {
+            const on = habit.dates.includes(dayStr);
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = on ? 'dot dot--on' : isDue(habit, dayStr) ? 'dot' : 'dot dot--off';
+            dot.setAttribute('aria-pressed', String(on));
+            dot.dataset.date = dayStr;
+            dot.setAttribute(
+                'data-tip',
+                `${formatDateShort(dayStr)} (${WEEKDAY_LABELS[weekdayIndex(dayStr)]}): ${on ? 'отмечено — нажмите, чтобы снять' : 'нажмите, чтобы отметить'}`,
+            );
+            dot.setAttribute('aria-label', `${formatDateShort(dayStr)}: ${on ? 'отмечено' : 'не отмечено'}`);
+            dot.addEventListener('click', () => toggleDate(habit, dayStr));
+            dots.appendChild(dot);
+        }
+
+        meta.append(monthText, progress, dots);
+        if (!dueToday) {
+            const rest = document.createElement('span');
+            rest.textContent = 'сегодня не по графику';
+            meta.appendChild(rest);
+        }
+        main.append(name, meta);
+
+        // Правая часть: серия и кнопки
+        const side = document.createElement('div');
+        side.className = 'habit__side';
+
+        const streakValue = getStreak(habit.dates, today, habit.days);
+        const streak = document.createElement('span');
+        streak.className = streakValue > 10 ? 'chip chip--accent' : 'chip';
+        streak.title = 'Серия дней подряд';
+        streak.innerHTML = `${icon('flame', 14)}<span>${streakValue}</span>`;
+
+        side.append(
+            streak,
+            iconButton('calendar', 'Календарь отметок', () => openHabitHistory(api, habit.id)),
+            iconButton('pencil', 'Изменить привычку', () => openHabitEditor(api, habit.id)),
+        );
+        li.append(checkbox, main, side);
         habitList.appendChild(li);
     });
+
+    renderArchive();
 
     // Обновляем график после рендера списка!
     updateHabitChart();
 }
 
+// --- Архив: привычки, скрытые из списка (история сохраняется) ---
+function renderArchive() {
+    const card = document.getElementById('habit-archive-card');
+    const list = document.getElementById('habit-archive-list');
+    if (!card || !list) return;
+    const archived = habits.filter((h) => h.archived);
+    card.classList.toggle('hidden', archived.length === 0);
+    list.replaceChildren();
+
+    for (const habit of archived) {
+        const li = document.createElement('li');
+        li.className = 'archive-row';
+        li.dataset.id = habit.id;
+
+        const name = document.createElement('span');
+        name.className = 'archive-row__name';
+        name.textContent = habit.text;
+        const info = document.createElement('span');
+        info.className = 'archive-row__info';
+        info.textContent = `отметок: ${habit.dates.length}`;
+
+        const restore = document.createElement('button');
+        restore.type = 'button';
+        restore.className = 'btn btn--ghost btn--sm';
+        restore.textContent = 'Вернуть';
+        restore.addEventListener('click', () => {
+            habit.archived = undefined;
+            saveHabits(habits);
+            renderHabits();
+        });
+
+        let armed = false;
+        const del = iconButton(
+            'trash-2',
+            'Удалить навсегда',
+            () => {
+                if (!armed) {
+                    armed = true;
+                    del.classList.add('is-armed');
+                    del.title = 'Нажмите ещё раз, чтобы удалить навсегда';
+                    return;
+                }
+                api.remove(habit.id);
+            },
+            'icon-btn--danger',
+        );
+
+        li.append(name, info, restore, del);
+        list.appendChild(li);
+    }
+}
+
+const api = {
+    get: (id: string) => habits.find((h) => h.id === id),
+    commit: () => {
+        saveHabits(habits);
+        renderHabits();
+    },
+    remove: (id: string) => {
+        habits = habits.filter((h) => h.id !== id);
+        saveHabits(habits);
+        renderHabits();
+    },
+};
+
 // --- Инициализация привычек ---
 export function setupHabits() {
     const form = document.getElementById('add-habit-form') as HTMLFormElement | null;
     const input = document.getElementById('habit-text') as HTMLInputElement | null;
-    habits = loadHabitsFromStorage();
+    const daysBox = document.getElementById('habit-days');
+    habits = loadHabits();
+    setupHabitDialogs(api);
     renderHabits();
 
     if (!form || !input) return;
+    const picker = daysBox ? createWeekdayPicker(daysBox) : null;
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
-        habits.push({ text, dates: [] });
-        saveHabitsToStorage();
+        habits.push({ id: newId(), text, dates: [], days: picker?.get() });
+        saveHabits(habits);
         renderHabits();
         form.reset();
+        picker?.set(undefined);
     });
 }

@@ -1,91 +1,277 @@
-import Chart from 'chart.js/auto';
+import { addDays, formatDateShort, todayStr } from './dates';
+import { icon } from './icons';
+import { loadMood, saveMood, type MoodEntry } from './store';
+import { renderColumns } from './viz';
 
-type MoodEntry = {
-    date: string;   // YYYY-MM-DD
-    rating: number;
-    note: string;
-};
-
+/** --- Состояние раздела --- */
 let moodData: MoodEntry[] = [];
+let pinnedDate: string | null = null; // запись из поиска, которую показываем, даже если она вне выбранного периода
+let historyDays: 7 | 30 = 7; // период истории
+let editingDate: string | null = null; // запись, открытая в форме на правку (подсвечивается в истории)
+let prefilledFrom: string | null = null; // дата, из записи которой сейчас заполнена форма
+let deleteArmed = false; // кнопка «Удалить запись» ждёт второго нажатия
+let statusTimer: number | undefined;
 
-function saveMoodData() {
-    localStorage.setItem('moodData', JSON.stringify(moodData));
-}
-function loadMoodData(): MoodEntry[] {
-    const data = localStorage.getItem('moodData');
-    if (!data) return [];
-    try { return JSON.parse(data); } catch { return []; }
+const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
+
+const sortAsc = (a: MoodEntry, b: MoodEntry) => a.date.localeCompare(b.date);
+
+/** Записи за последние days календарных дней (включая сегодня), по возрастанию даты. */
+function entriesSince(days: number): MoodEntry[] {
+    const from = addDays(todayStr(), -(days - 1));
+    return moodData.filter((e) => e.date >= from).sort(sortAsc);
 }
 
-// --- Обновить историю за неделю ---
-function renderMoodHistory() {
-    const history = document.getElementById('mood-history');
+/** Короткое сообщение под кнопками формы. */
+function flashStatus(text: string): void {
+    const s = el('mood-status');
+    if (!s) return;
+    s.textContent = text;
+    window.clearTimeout(statusTimer);
+    statusTimer = window.setTimeout(() => {
+        s.textContent = '';
+    }, 2500);
+}
+
+// ===== Форма =====
+
+/** Обновляет подсказку и кнопку «Удалить запись» под выбранную дату. */
+function updateFormState(date: string): void {
+    const exists = moodData.some((e) => e.date === date);
+    const hint = el('mood-hint');
+    if (hint) hint.textContent = exists ? `Запись за ${formatDateShort(date)} уже есть — сохранение заменит её.` : '';
+    const del = el('mood-delete');
+    if (del) {
+        del.classList.toggle('hidden', !exists);
+        del.textContent = 'Удалить запись';
+    }
+    deleteArmed = false;
+}
+
+/** Заполняет форму записью выбранной даты (оценка и заметка); если записи нет — очищает то, что было подставлено ранее. */
+function fillForm(date: string): void {
+    const form = el<HTMLFormElement>('mood-form');
+    if (!form) return;
+    el<HTMLInputElement>('mood-date')!.value = date;
+    const entry = moodData.find((e) => e.date === date);
+    if (entry) {
+        form.querySelectorAll<HTMLInputElement>('input[name="rating"]').forEach((r) => {
+            r.checked = r.value === String(entry.rating);
+        });
+        el<HTMLTextAreaElement>('mood-note')!.value = entry.note;
+        prefilledFrom = date;
+    } else if (prefilledFrom) {
+        form.querySelectorAll<HTMLInputElement>('input[name="rating"]').forEach((r) => {
+            r.checked = false;
+        });
+        el<HTMLTextAreaElement>('mood-note')!.value = '';
+        prefilledFrom = null;
+    }
+    updateFormState(date);
+}
+
+function resetForm(): void {
+    const today = todayStr();
+    el<HTMLFormElement>('mood-form')?.reset();
+    const dateInput = el<HTMLInputElement>('mood-date');
+    if (dateInput) {
+        dateInput.max = today;
+        dateInput.value = today;
+    }
+    prefilledFrom = null;
+    editingDate = null;
+    updateFormState(today);
+}
+
+/** Открывает запись в форме на правку (клик по записи в истории). */
+function editEntry(date: string): void {
+    editingDate = date;
+    fillForm(date);
+    renderMoodHistory();
+    const form = el('mood-form');
+    form?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el<HTMLTextAreaElement>('mood-note')?.focus();
+}
+
+// ===== История =====
+
+/** --- Секция: Рендер истории ---
+ * Записи за выбранный период (7 или 30 дней), свежие сверху. Текст заметки вставляется как текст, не как HTML.
+ */
+function renderMoodHistory(): void {
+    const history = el('mood-history');
     if (!history) return;
     history.innerHTML = '';
-    // последние 7 дней
-    const last7 = moodData.slice(-7).reverse();
-    for (const entry of last7) {
+    const entries = entriesSince(historyDays).reverse();
+    const pinned = pinnedDate && !entries.some((e) => e.date === pinnedDate) ? moodData.find((e) => e.date === pinnedDate) : undefined;
+    if (pinned) entries.unshift(pinned);
+
+    const empty = el('mood-empty');
+    if (empty) {
+        empty.textContent = `За последние ${historyDays} дней записей нет.`;
+        empty.classList.toggle('hidden', entries.length > 0);
+    }
+    document.querySelectorAll<HTMLElement>('#mood-range [data-days]').forEach((btn) => {
+        const active = Number(btn.dataset.days) === historyDays;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+    });
+
+    for (const entry of entries) {
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-2';
-        li.innerHTML = `<span class="w-8 text-center font-bold">${entry.rating}</span>
-    <span class="text-xs text-gray-500">${entry.date}</span>
-    <span class="flex-1">${entry.note}</span>`;
+        li.className = entry.date === editingDate ? 'mood-item is-editing' : 'mood-item';
+        li.dataset.date = entry.date;
+        li.tabIndex = 0;
+        li.setAttribute('role', 'button');
+        li.setAttribute('aria-label', `Изменить запись за ${formatDateShort(entry.date)}`);
+
+        const rating = document.createElement('span');
+        rating.className = 'mood-item__score';
+        rating.dataset.r = String(entry.rating);
+        rating.textContent = String(entry.rating);
+
+        const date = document.createElement('span');
+        date.className = 'mood-item__date';
+        date.textContent = formatDateShort(entry.date);
+        date.title = entry.date;
+
+        const note = document.createElement('span');
+        note.className = 'mood-item__note';
+        note.textContent = entry.note;
+
+        li.append(rating, date, note);
+        if (entry === pinned) {
+            const tag = document.createElement('span');
+            tag.className = 'chip';
+            tag.textContent = 'из поиска';
+            li.appendChild(tag);
+        }
+        const pencil = document.createElement('span');
+        pencil.className = 'mood-item__edit';
+        pencil.setAttribute('aria-hidden', 'true');
+        pencil.innerHTML = icon('pencil', 14);
+        li.appendChild(pencil);
+
+        li.addEventListener('click', () => editEntry(entry.date));
+        li.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                editEntry(entry.date);
+            }
+        });
         history.appendChild(li);
     }
 }
 
-// --- Рендер Chart.js ---
-function renderMoodChart() {
-    const ctx = document.getElementById('mood-chart') as HTMLCanvasElement | null;
-    if (!ctx) return;
-    const data7 = moodData.slice(-7);
-    const labels = data7.map(e => e.date);
-    const ratings = data7.map(e => e.rating);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any).moodChart) (window as any).moodChart.destroy();
-    // @ts-ignore
-    (window as any).moodChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Настроение',
-                data: ratings,
-                backgroundColor: [
-                    '#f87171', '#fb923c', '#fde047', '#bef264', '#4ade80'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { y: { min: 1, max: 5, ticks: { stepSize: 1 } } }
-        }
-    });
+/** Показывает запись настроения в истории и подсвечивает её (переход из поиска). */
+export function revealMoodEntry(date: string): void {
+    pinnedDate = date;
+    renderMoodHistory();
+    const li = document.querySelector<HTMLElement>(`#mood-history [data-date="${CSS.escape(date)}"]`);
+    if (!li) return;
+    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    li.classList.remove('is-flash');
+    void li.offsetWidth;
+    li.classList.add('is-flash');
 }
 
-// --- Основная функция ---
-export function setupMood() {
-    moodData = loadMoodData();
+// ===== График =====
+
+/** --- Секция: Рендер графика настроения ---
+ * Столбцы по записям за последние 7 дней; цвет столбца — по оценке (палитра из CSS-переменных --mood-1…5).
+ */
+export function renderMoodChart(): void {
+    const box = el('mood-week-chart');
+    if (!box) return;
+    const entries = entriesSince(7);
+    if (entries.length === 0) {
+        box.innerHTML = '<p class="viz__empty">За последние 7 дней записей нет.</p>';
+        return;
+    }
+    box.innerHTML = renderColumns(
+        entries.map((e) => ({
+            label: formatDateShort(e.date),
+            value: e.rating,
+            tip: `${formatDateShort(e.date)}: ${e.rating}${e.note ? ` — ${e.note.length > 60 ? e.note.slice(0, 60) + '…' : e.note}` : ''}`,
+            color: `var(--mood-${e.rating})`,
+        })),
+        { height: 200, max: 5, showValues: true },
+    );
+}
+
+function refresh(): void {
     renderMoodHistory();
     renderMoodChart();
+}
 
-    const form = document.getElementById('mood-form') as HTMLFormElement | null;
+// ===== Инициализация =====
+
+/** --- Секция: Инициализация блока настроения ---
+ * Загружает данные, рендерит историю и график, навешивает обработчики событий.
+ */
+export function setupMood(): void {
+    moodData = loadMood();
+    resetForm();
+    refresh();
+
+    el('mood-range')?.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-days]');
+        if (!btn) return;
+        historyDays = Number(btn.dataset.days) === 30 ? 30 : 7;
+        renderMoodHistory();
+    });
+
+    // Смена даты в форме: подставляем сохранённую запись этого дня (если она есть)
+    el<HTMLInputElement>('mood-date')?.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value || todayStr();
+        editingDate = moodData.some((m) => m.date === value) ? value : null;
+        fillForm(value);
+        renderMoodHistory();
+    });
+
+    // Удаление записи выбранной даты — в два нажатия
+    el('mood-delete')?.addEventListener('click', () => {
+        const date = el<HTMLInputElement>('mood-date')!.value || todayStr();
+        if (!deleteArmed) {
+            deleteArmed = true;
+            el('mood-delete')!.textContent = 'Точно удалить?';
+            return;
+        }
+        moodData = moodData.filter((m) => m.date !== date);
+        saveMood(moodData);
+        pinnedDate = pinnedDate === date ? null : pinnedDate;
+        resetForm();
+        refresh();
+        flashStatus(`Запись за ${formatDateShort(date)} удалена`);
+    });
+
+    /** После отправки формы добавляет запись (или заменяет запись выбранной даты), сохраняет и перерисовывает. */
+    const form = el<HTMLFormElement>('mood-form');
     if (!form) return;
-    form.addEventListener('submit', (e) => {
+
+    form.addEventListener('submit', (e: Event) => {
         e.preventDefault();
-        const ratingInput = form.querySelector('input[name="rating"]:checked') as HTMLInputElement | null;
-        const noteInput = form.querySelector('#mood-note') as HTMLTextAreaElement | null;
+        const ratingInput = form.querySelector<HTMLInputElement>('input[name="rating"]:checked');
+        const noteInput = form.querySelector<HTMLTextAreaElement>('#mood-note');
         if (!ratingInput) return;
+
+        const today = todayStr();
+        const date = el<HTMLInputElement>('mood-date')?.value || today;
+        if (date > today) {
+            const hint = el('mood-hint');
+            if (hint) hint.textContent = 'Нельзя записать настроение за будущую дату.';
+            return;
+        }
+
         const rating = parseInt(ratingInput.value, 10);
         const note = noteInput?.value || '';
-        const date = new Date().toISOString().slice(0, 10);
-        // Перезаписать за сегодня
-        moodData = moodData.filter(entry => entry.date !== date);
+        moodData = moodData.filter((entry) => entry.date !== date);
         moodData.push({ date, rating, note });
-        saveMoodData();
-        renderMoodHistory();
-        renderMoodChart();
-        form.reset();
+        moodData.sort(sortAsc);
+        pinnedDate = null;
+        saveMood(moodData);
+        resetForm();
+        refresh();
+        flashStatus(date === today ? 'Сохранено' : `Сохранено: ${formatDateShort(date)}`);
     });
 }
