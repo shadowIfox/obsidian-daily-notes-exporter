@@ -117,6 +117,7 @@
 .stack { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s-3); margin-bottom: var(--s-4); }
 
+.toolbar__controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
 .chart-box { position: relative; height: 260px; }
 .chart-box--tall { height: 320px; }
 

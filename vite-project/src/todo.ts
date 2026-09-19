@@ -1,5 +1,6 @@
 import { formatDateShort, todayStr } from './dates';
 import { icon } from './icons';
+import { NO_CATEGORY, filterTasks, sortTasks, taskCategories, type TaskSort } from './stats';
 import { loadTasks, newId, saveTasks, type Priority, type Task } from './store';
 
 let currentTasks: Task[] = [];
@@ -10,6 +11,27 @@ export function setEditHandler(handler: (task: Task) => void): void {
     editHandler = handler;
 }
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
+let currentCategory = '';           // '' — все категории, NO_CATEGORY — без категории
+let currentSort: TaskSort = 'added';
+
+// --- Настройки вида списка запоминаются между запусками ---
+const VIEW_KEY = 'taskView';
+const SORTS: TaskSort[] = ['added', 'deadline', 'priority', 'title'];
+
+function loadView(): void {
+    try {
+        const v = JSON.parse(localStorage.getItem(VIEW_KEY) ?? '{}');
+        if (['all', 'active', 'completed'].includes(v.filter)) currentFilter = v.filter;
+        if (SORTS.includes(v.sort)) currentSort = v.sort;
+        if (typeof v.category === 'string') currentCategory = v.category;
+    } catch {}
+}
+
+function saveView(): void {
+    try {
+        localStorage.setItem(VIEW_KEY, JSON.stringify({ filter: currentFilter, category: currentCategory, sort: currentSort }));
+    } catch {}
+}
 
 // --- API для других разделов (главная меняет задачи через него, чтобы не разъезжалось состояние) ---
 export function toggleTask(id: string): void {
@@ -147,26 +169,48 @@ export function createTaskElement(task: Task): HTMLLIElement {
     return li;
 }
 
-// --- Рендер списка задач с учётом фильтра ---
+// --- Выпадающий список категорий: перестраивается вместе с данными ---
+function renderCategoryOptions(): void {
+    const select = document.getElementById('task-category-filter') as HTMLSelectElement | null;
+    if (!select) return;
+    const categories = taskCategories(currentTasks);
+    // выбранная категория могла исчезнуть (задачи удалены или переименованы)
+    if (currentCategory && currentCategory !== NO_CATEGORY && !categories.includes(currentCategory)) currentCategory = '';
+
+    select.replaceChildren();
+    const add = (value: string, label: string) => {
+        const o = document.createElement('option');
+        o.value = value;
+        o.textContent = label;
+        select.appendChild(o);
+    };
+    add('', 'Все категории');
+    if (currentTasks.some((t) => !t.category)) add(NO_CATEGORY, 'Без категории');
+    categories.forEach((c) => add(c, c));
+    select.value = currentCategory;
+}
+
+// --- Рендер списка задач с учётом фильтра, категории и сортировки ---
 function renderTasks() {
     const taskList = document.getElementById('task-list') as HTMLUListElement | null;
     const emptyMsg = document.getElementById('empty-list-msg');
     if (!taskList) return;
     taskList.innerHTML = '';
 
-    let filteredTasks = currentTasks;
-    if (currentFilter === 'active') filteredTasks = currentTasks.filter(t => !t.completed);
-    if (currentFilter === 'completed') filteredTasks = currentTasks.filter(t => t.completed);
+    renderCategoryOptions();
+    const sortSelect = document.getElementById('task-sort') as HTMLSelectElement | null;
+    if (sortSelect) sortSelect.value = currentSort;
+
+    const filteredTasks = sortTasks(filterTasks(currentTasks, { status: currentFilter, category: currentCategory }), currentSort);
 
     filteredTasks.forEach((task) => {
         taskList.appendChild(createTaskElement(task));
     });
 
     // Плейсхолдер если задач нет
-    if (filteredTasks.length === 0) {
-        emptyMsg?.classList.remove('hidden');
-    } else {
-        emptyMsg?.classList.add('hidden');
+    if (emptyMsg) {
+        emptyMsg.textContent = currentTasks.length === 0 ? 'Задач пока нет — добавьте первую выше.' : 'По выбранным условиям задач нет.';
+        emptyMsg.classList.toggle('hidden', filteredTasks.length > 0);
     }
 
     // Прогресс
@@ -197,14 +241,26 @@ function setupFilters() {
         });
     };
 
-    // Сразу подсвечиваем текущий фильтр («Все»)
+    // Сразу подсвечиваем текущий фильтр (по умолчанию «Все»)
     highlight(filterContainer.querySelector(`[data-filter="${currentFilter}"]`));
+
+    document.getElementById('task-category-filter')?.addEventListener('change', (e) => {
+        currentCategory = (e.target as HTMLSelectElement).value;
+        saveView();
+        renderTasks();
+    });
+    document.getElementById('task-sort')?.addEventListener('change', (e) => {
+        currentSort = (e.target as HTMLSelectElement).value as TaskSort;
+        saveView();
+        renderTasks();
+    });
 
     filterContainer.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         const button = target.closest<HTMLElement>('button[data-filter]');
         if (button && button.dataset.filter) {
             currentFilter = button.dataset.filter as 'all' | 'active' | 'completed';
+            saveView();
             renderTasks();
             highlight(button);
         }
@@ -233,6 +289,7 @@ export function setupTodo() {
     const notesInput = document.getElementById('task-notes') as HTMLTextAreaElement | null;
 
     currentTasks = loadTasks();
+    loadView();
     renderTasks();
     setupFilters();
     setupClearCompleted();

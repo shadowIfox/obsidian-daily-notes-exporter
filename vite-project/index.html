@@ -255,7 +255,16 @@
                   <button type="button" class="segmented__btn" data-filter="active">Активные</button>
                   <button type="button" class="segmented__btn" data-filter="completed">Выполненные</button>
                 </div>
-                <button id="clear-completed" type="button" class="btn btn--ghost btn--sm"><i data-icon="trash-2" data-size="16"></i> Очистить выполненные</button>
+                <div class="toolbar__controls">
+                  <select id="task-category-filter" class="input input--sm" aria-label="Категория"></select>
+                  <select id="task-sort" class="input input--sm" aria-label="Сортировка">
+                    <option value="added">По добавлению</option>
+                    <option value="deadline">По дедлайну</option>
+                    <option value="priority">По приоритету</option>
+                    <option value="title">По названию</option>
+                  </select>
+                  <button id="clear-completed" type="button" class="btn btn--ghost btn--sm"><i data-icon="trash-2" data-size="16"></i> Очистить выполненные</button>
+                </div>
               </div>
               <ul id="task-list" class="stack"></ul>
               <p id="empty-list-msg" class="empty hidden">Здесь пока пусто.</p>

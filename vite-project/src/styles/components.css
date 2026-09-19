@@ -84,6 +84,7 @@
 .input:focus { outline: none; border-color: var(--ink); }
 textarea.input { height: auto; min-height: 96px; padding: var(--s-3) var(--s-4); resize: vertical; line-height: 1.5; }
 select.input { padding-right: var(--s-3); }
+.input--sm { width: auto; max-width: 200px; height: 32px; padding: 0 var(--s-3); border-radius: 999px; font-size: 13px; font-weight: 700; }
 
 .input-group { display: flex; gap: var(--s-2); }
 .input-group .input { flex: 1; min-width: 0; }

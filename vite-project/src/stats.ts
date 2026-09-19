@@ -6,6 +6,11 @@ import type { Habit, MoodEntry, Task } from './store';
 export type DayCount = { date: string; count: number };
 export type MoodSeries = { days: number; points: { i: number; date: string; rating: number }[] };
 export type TaskListFilter = 'today' | 'week' | 'overdue';
+export type TaskSort = 'added' | 'deadline' | 'priority' | 'title';
+export type TaskStatus = 'all' | 'active' | 'completed';
+
+/** Значение фильтра «Без категории». */
+export const NO_CATEGORY = '__none__';
 
 /** Серия дней подряд, заканчивающаяся сегодня. */
 export function getStreak(dates: string[], today: string = todayStr()): number {
@@ -270,4 +275,36 @@ export function moodVsHabits(habits: Habit[], mood: MoodEntry[], today: string =
     }
     if (high.length < 3 || low.length < 3) return null;
     return { high: round1(sum(high) / high.length), low: round1(sum(low) / low.length) };
+}
+
+// --- Список на странице «Задачи»: фильтры и сортировка ---
+
+/** Категории задач (без пустой), по алфавиту. */
+export function taskCategories(tasks: Task[]): string[] {
+    return [...new Set(tasks.map((t) => t.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+}
+
+/** Фильтр по статусу и категории; category: '' — любая, NO_CATEGORY — без категории. */
+export function filterTasks(tasks: Task[], opts: { status: TaskStatus; category: string }): Task[] {
+    return tasks.filter((t) => {
+        if (opts.status === 'active' && t.completed) return false;
+        if (opts.status === 'completed' && !t.completed) return false;
+        if (opts.category === NO_CATEGORY) return !t.category;
+        if (opts.category) return t.category === opts.category;
+        return true;
+    });
+}
+
+/** Сортировка (возвращает новый массив; «added» — как добавлены). Задачи без даты идут в конце. */
+export function sortTasks(tasks: Task[], mode: TaskSort): Task[] {
+    const list = [...tasks];
+    const dateKey = (t: Task) => t.date || '9999-99-99';
+    if (mode === 'deadline') {
+        return list.sort((a, b) => dateKey(a).localeCompare(dateKey(b)) || (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
+    }
+    if (mode === 'priority') {
+        return list.sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || dateKey(a).localeCompare(dateKey(b)));
+    }
+    if (mode === 'title') return list.sort((a, b) => a.text.localeCompare(b.text, 'ru'));
+    return list;
 }
