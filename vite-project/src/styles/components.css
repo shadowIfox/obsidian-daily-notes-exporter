@@ -95,6 +95,28 @@ select.input {
 }
 .input--sm { width: auto; max-width: 200px; height: 32px; padding: 0 var(--s-3); border-radius: 999px; font-size: 13px; font-weight: 700; }
 
+/* ===== Выбор даты (datePicker.ts) ===== */
+.datepick__native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.datepick { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); text-align: left; cursor: pointer; }
+.datepick svg { flex: none; color: var(--muted); }
+.datepick__text.is-empty { color: var(--muted); }
+.datepick:focus-visible, .datepick__day:focus-visible, .datepick__link:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.datepick__panel { position: fixed; z-index: 200; width: 288px; padding: var(--s-3); background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35); }
+.datepick__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-2); }
+.datepick__title { font-weight: 800; text-transform: capitalize; }
+.datepick__weekdays, .datepick__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.datepick__weekdays span { padding: 4px 0; text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); }
+.datepick__day { height: 34px; border: 0; border-radius: 999px; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.datepick__day:hover:not(:disabled) { background: var(--card-alt); }
+.datepick__day.is-other { color: var(--muted); font-weight: 500; }
+.datepick__day.is-today { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.datepick__day.is-selected { background: var(--ink); color: var(--ink-text); }
+.datepick__day:disabled { opacity: 0.3; cursor: default; }
+.datepick__foot { display: flex; justify-content: space-between; margin-top: var(--s-2); padding-top: var(--s-2); border-top: 1px solid var(--border); }
+.datepick__link { padding: 6px 10px; border: 0; border-radius: 999px; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; }
+.datepick__link:hover:not(:disabled) { background: var(--card-alt); }
+.datepick__link:disabled { opacity: 0.3; cursor: default; }
+
 .input-group { display: flex; gap: var(--s-2); }
 .input-group .input { flex: 1; min-width: 0; }
 
