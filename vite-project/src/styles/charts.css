@@ -1,0 +1,101 @@
+/* charts.css — графики страниц «Аналитика», «Привычки», «Настроение».
+   Никаких осей и сетки: только данные, лёгкая базовая линия и подсказки. */
+
+/* ===== Подсказка ===== */
+.tooltip {
+  position: fixed;
+  z-index: 100;
+  max-width: 280px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--ink-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.tooltip[hidden] { display: none; }
+
+/* ===== Столбцы ===== */
+.cols { display: flex; align-items: flex-end; gap: 10px; }
+.cols--dense { gap: 3px; }
+.col { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.col__track { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; width: 100%; border-bottom: 1px solid var(--border); }
+.col__bar {
+  width: 100%;
+  max-width: 44px;
+  border-radius: 10px 10px 3px 3px;
+  background: var(--ink);
+  transform-origin: bottom;
+  animation: grow-y 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: opacity 0.15s ease;
+}
+.cols--dense .col__bar { max-width: 14px; border-radius: 4px 4px 2px 2px; }
+.col__bar--accent { background: var(--accent); }
+.col:hover .col__bar { opacity: 0.75; }
+.col__value { font-size: 12px; font-weight: 800; }
+.col__label { height: 16px; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.cols--dense .col__label { overflow: visible; }
+
+@keyframes grow-y { from { transform: scaleY(0); } }
+@keyframes grow-x { from { transform: scaleX(0); } }
+
+/* ===== Горизонтальные полосы ===== */
+.hbars { display: flex; flex-direction: column; gap: var(--s-3); }
+.hbar { display: grid; grid-template-columns: minmax(70px, 30%) minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); }
+.hbar__label { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.hbar__track { height: 14px; overflow: hidden; border-radius: 999px; background: var(--card-alt); }
+.hbar__fill { display: block; height: 100%; border-radius: inherit; background: var(--ink); transform-origin: left; animation: grow-x 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.hbar__value { min-width: 44px; font-size: 13px; font-weight: 800; text-align: right; }
+
+/* ===== Тепловая карта ===== */
+.heat { display: flex; flex-direction: column; gap: 10px; }
+.heat__row, .heat__axis { display: grid; grid-template-columns: minmax(80px, 22%) minmax(0, 1fr) 48px; align-items: center; gap: var(--s-3); }
+.heat__label { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.heat__cells { display: grid; gap: 3px; }
+.heat__cell { height: 24px; border-radius: 6px; background: color-mix(in srgb, var(--ink) calc(var(--v) * 100%), var(--card-alt)); transition: transform 0.1s ease; }
+.heat__cell:hover { transform: scale(1.15); }
+.heat__value { font-size: 13px; font-weight: 800; text-align: right; }
+.heat__axis-labels { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--muted); }
+
+/* ===== Кольцо и легенда ===== */
+.donut-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-5) var(--s-6); }
+.donut { flex: none; width: 180px; height: 180px; color: var(--text); font-family: var(--font); }
+.donut__seg { transition: opacity 0.15s ease; }
+.donut__seg:hover { opacity: 0.75; }
+.legend { display: flex; flex: 1; flex-direction: column; gap: var(--s-2); min-width: 160px; }
+.legend__row { display: flex; align-items: center; gap: var(--s-3); font-size: 14px; font-weight: 600; }
+.legend__dot { flex: none; width: 12px; height: 12px; border-radius: 50%; }
+.legend__count { margin-left: auto; font-weight: 800; }
+.legend__pct { min-width: 40px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); }
+
+/* ===== Линия настроения ===== */
+.area-box { min-height: 220px; }
+.area { display: block; color: var(--text); font-family: var(--font); }
+.area circle { transition: transform 0.12s ease; transform-box: fill-box; transform-origin: center; }
+.area circle:hover { transform: scale(1.25); }
+
+/* ===== Итоговые карточки ===== */
+.kpi { display: flex; flex-direction: column; gap: var(--s-1); min-height: 160px; padding: var(--s-5); overflow: hidden; }
+.kpi > * { position: relative; z-index: 1; }
+.kpi__label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.65; }
+.kpi__value { margin-top: var(--s-2); font-size: 46px; font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; }
+.kpi__note { margin-top: auto; padding-top: var(--s-3); font-size: 13px; font-weight: 600; opacity: 0.75; }
+
+/* ===== Наблюдения и советы ===== */
+.insights { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.insight { display: flex; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--card-alt); line-height: 1.45; }
+.insight::before { content: ''; flex: none; width: 10px; height: 10px; margin-top: 7px; border-radius: 50%; background: var(--accent); }
+
+.advice-list { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
+.advice-row { display: flex; align-items: flex-start; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: rgba(255, 255, 255, 0.45); color: var(--on-pastel); }
+[data-theme='dark'] .advice-row { background: rgba(0, 0, 0, 0.14); }
+.advice-row__tag { flex: none; min-width: 84px; padding-top: 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.65; }
+.advice-row__text { font-weight: 700; line-height: 1.4; }
+
+@media (max-width: 820px) {
+  .heat__row, .heat__axis { grid-template-columns: minmax(60px, 28%) minmax(0, 1fr) 40px; }
+  .kpi__value { font-size: 38px; }
+}

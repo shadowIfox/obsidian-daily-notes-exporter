@@ -10,7 +10,8 @@
   overflow: hidden;
 }
 .stat-card > * { position: relative; z-index: 1; }
-.stat-card::after {
+.stat-card::after,
+.kpi::after {
   content: '';
   position: absolute;
   z-index: 0;
@@ -21,11 +22,16 @@
   background: rgba(255, 255, 255, 0.32);
   pointer-events: none;
 }
-[data-theme='dark'] .stat-card::after { background: rgba(0, 0, 0, 0.14); }
-.stat-card.card--yellow::after { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
-.stat-card.card--pink::after { border-radius: 50%; }
-.stat-card.card--green::after { clip-path: polygon(0 0, 100% 0, 50% 100%); }
-.stat-card.card--blue::after { clip-path: polygon(50.0% 0.0%, 59.3% 15.2%, 75.0% 6.7%, 75.5% 24.5%, 93.3% 25.0%, 84.8% 40.7%, 100.0% 50.0%, 84.8% 59.3%, 93.3% 75.0%, 75.5% 75.5%, 75.0% 93.3%, 59.3% 84.8%, 50.0% 100.0%, 40.7% 84.8%, 25.0% 93.3%, 24.5% 75.5%, 6.7% 75.0%, 15.2% 59.3%, 0.0% 50.0%, 15.2% 40.7%, 6.7% 25.0%, 24.5% 24.5%, 25.0% 6.7%, 40.7% 15.2%); }
+[data-theme='dark'] .stat-card::after,
+.kpi::after { background: rgba(0, 0, 0, 0.14); }
+.stat-card.card--yellow::after,
+.kpi.card--yellow::after { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.stat-card.card--pink::after,
+.kpi.card--pink::after { border-radius: 50%; }
+.stat-card.card--green::after,
+.kpi.card--green::after { clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.stat-card.card--blue::after,
+.kpi.card--blue::after { clip-path: polygon(50.0% 0.0%, 59.3% 15.2%, 75.0% 6.7%, 75.5% 24.5%, 93.3% 25.0%, 84.8% 40.7%, 100.0% 50.0%, 84.8% 59.3%, 93.3% 75.0%, 75.5% 75.5%, 75.0% 93.3%, 59.3% 84.8%, 50.0% 100.0%, 40.7% 84.8%, 25.0% 93.3%, 24.5% 75.5%, 6.7% 75.0%, 15.2% 59.3%, 0.0% 50.0%, 15.2% 40.7%, 6.7% 25.0%, 24.5% 24.5%, 25.0% 6.7%, 40.7% 15.2%); }
 
 .stat-card__head { display: flex; align-items: center; gap: var(--s-3); }
 .stat-card__title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
@@ -107,41 +113,6 @@
 .mood-item__score[data-r='5'] { background: var(--mood-5); }
 .mood-item__date { font-size: 12px; font-weight: 700; color: var(--muted); flex: none; }
 .mood-item__note { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-
-/* ===== Аналитика ===== */
-.tile {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s-2);
-  min-height: 190px;
-  text-align: left;
-  transition: transform 0.15s ease;
-}
-.tile:hover { transform: translateY(-3px); }
-.tile__icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: auto; border-radius: 14px; background: #14130f; color: #f6f1e4; }
-.tile__title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
-.tile__desc { font-size: 14px; opacity: 0.7; }
-
-.analytics-detail { display: flex; flex-direction: column; gap: var(--s-5); }
-.analytics-detail__head { display: flex; align-items: center; gap: var(--s-4); }
-
-.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
-.stat { padding: var(--s-4) var(--s-5); background: var(--card-alt); border-radius: var(--r-md); }
-.stat__label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.stat__value { margin-top: 4px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; }
-
-.summary { line-height: 1.6; }
-
-.advice { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-5); border-radius: var(--r-lg); color: var(--on-pastel); cursor: pointer; }
-.advice--yellow { background: var(--c-yellow); }
-.advice--green { background: var(--c-green); }
-.advice--pink { background: var(--c-pink); }
-.advice__label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
-.advice__hint { opacity: 0.7; }
-.advice__text { display: none; font-size: 18px; font-weight: 700; line-height: 1.4; }
-.advice.is-open .advice__hint { display: none; }
-.advice.is-open .advice__text { display: block; }
 
 /* ===== Настройки ===== */
 .setting-form { display: flex; align-items: flex-end; gap: var(--s-4); }

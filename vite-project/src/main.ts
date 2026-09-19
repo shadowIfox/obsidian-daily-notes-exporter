@@ -11,13 +11,14 @@ import { initRouter } from './router';
 import { setupSettings } from './settings';
 import { initThemeSwitcher } from './theme';
 import { setupTodo } from './todo';
-import { rethemeAllCharts } from './utils/chartTheme';
+import { initTooltips } from './viz';
 
 // Иконки из разметки → inline-SVG (до остальной инициализации, чтобы кнопки уже были с иконками)
 hydrateIcons();
 
-// Тема — раньше графиков, чтобы они сразу создавались в нужных цветах
+// Тема — раньше остальных разделов
 initThemeSwitcher();
+initTooltips();
 
 // Инициализация разделов
 setupTodo();
@@ -38,6 +39,3 @@ document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
 });
 
 initRouter();
-
-// Шрифт подгружается лениво: когда он готов, перерисовываем графики, чтобы подписи стали Manrope
-document.fonts?.ready.then(() => rethemeAllCharts());

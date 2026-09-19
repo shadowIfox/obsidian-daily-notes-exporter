@@ -1,6 +1,5 @@
 // src/theme.ts — единый центр управления темой (system/light/dark)
 import { loadSettings, saveSettings, type ThemeMode } from './store';
-import { rethemeAllCharts } from './utils/chartTheme';
 
 function resolveSystemDark(): boolean {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -22,8 +21,6 @@ export function applyTheme(mode: ThemeMode) {
   setThemeAttr(resolved);
   // событие для компонентов
   window.dispatchEvent(new CustomEvent('themechange', { detail: { mode: resolved } }));
-  // перекрашиваем графики
-  try { rethemeAllCharts(); } catch {}
 }
 
 export function setThemeMode(mode: ThemeMode) {

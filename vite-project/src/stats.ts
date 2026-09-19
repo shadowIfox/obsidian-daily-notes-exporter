@@ -148,3 +148,122 @@ export function tasksForList(tasks: Task[], filter: TaskListFilter, today: strin
 export function nearestDeadline(tasks: Task[], _today: string = todayStr()): Task | null {
     return tasks.filter((t) => !t.completed && t.date).sort(byDeadline)[0] ?? null;
 }
+
+// --- Аналитика за период ---
+
+export type Period = 7 | 30 | 91;
+
+const sum = (a: number[]): number => a.reduce((x, y) => x + y, 0);
+const round1 = (n: number): number => Math.round(n * 10) / 10;
+
+/** Выполненные задачи за окно days дней и за предыдущее окно той же длины (для сравнения). */
+export function taskPeriodStats(tasks: Task[], today: string = todayStr(), days: number = 30) {
+    const byDay = tasksCompletedByDay(tasks, today, days);
+    const total = sum(byDay.map((d) => d.count));
+    const prevTotal = sum(tasksCompletedByDay(tasks, addDays(today, -days), days).map((d) => d.count));
+    return { byDay, total, prevTotal, perDay: total / days };
+}
+
+/** Из выполненных за период задач с дедлайном: сколько закрыто не позже дедлайна. */
+export function onTimeStats(tasks: Task[], today: string = todayStr(), days: number = 30) {
+    const window = new Set(lastNDates(days, today));
+    let withDeadline = 0;
+    let onTime = 0;
+    for (const t of tasks) {
+        if (!t.completed || !t.completedAt || !t.date || !window.has(t.completedAt)) continue;
+        withDeadline++;
+        if (t.completedAt <= t.date) onTime++;
+    }
+    return { withDeadline, onTime };
+}
+
+/** Суммы по дням недели (Пн…Вс) из посуточных значений. */
+export function weekdayTotals(byDay: DayCount[]): number[] {
+    const totals = Array<number>(7).fill(0);
+    for (const d of byDay) totals[weekdayIndex(d.date)] += d.count;
+    return totals;
+}
+
+/** Группировка по неделям: последняя группа заканчивается последним днём; дата группы — её первый день. */
+export function aggregateWeeks(byDay: DayCount[]): DayCount[] {
+    const groups: DayCount[] = [];
+    for (let end = byDay.length; end > 0; end -= 7) {
+        const chunk = byDay.slice(Math.max(0, end - 7), end);
+        groups.unshift({ date: chunk[0].date, count: sum(chunk.map((d) => d.count)) });
+    }
+    return groups;
+}
+
+/** Выполненные за период задачи по категориям: топ-limit, по убыванию. */
+export function categoryBreakdown(tasks: Task[], today: string = todayStr(), days: number = 30, limit = 5) {
+    const window = new Set(lastNDates(days, today));
+    const counts = new Map<string, number>();
+    for (const t of tasks) {
+        const day = completionDay(t);
+        if (!day || !window.has(day)) continue;
+        const name = t.category || 'Без категории';
+        counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+        .slice(0, limit);
+}
+
+/** Процент выполнения привычек за окно: отметки / (привычки × дни); null, если привычек нет. */
+export function habitRate(habits: Habit[], today: string = todayStr(), days: number = 30): number | null {
+    if (habits.length === 0) return null;
+    const window = new Set(lastNDates(days, today));
+    const marks = sum(habits.map((h) => h.dates.filter((d) => window.has(d)).length));
+    return Math.round((marks / (habits.length * days)) * 100);
+}
+
+/** Привычки по дням: для каждой — отметки за окно, процент и текущая серия. */
+export function habitPeriodStats(habits: Habit[], today: string = todayStr(), days: number = 30) {
+    const dates = lastNDates(days, today);
+    const rows = habits.map((h) => {
+        const set = new Set(h.dates);
+        const marks = dates.map((d) => set.has(d));
+        const done = marks.filter(Boolean).length;
+        return { id: h.id, text: h.text, marks, done, percent: Math.round((done / days) * 100), streak: getStreak(h.dates, today) };
+    });
+    return {
+        dates,
+        rows,
+        rate: habitRate(habits, today, days),
+        prevRate: habitRate(habits, addDays(today, -days), days),
+    };
+}
+
+/** Настроение за окно: записи, среднее, распределение [5…1] и среднее за предыдущее окно. */
+export function moodPeriodStats(entries: MoodEntry[], today: string = todayStr(), days: number = 30) {
+    const avgOf = (list: MoodEntry[]) => (list.length ? round1(sum(list.map((e) => e.rating)) / list.length) : null);
+    const inWindow = (end: string) => {
+        const from = addDays(end, -(days - 1));
+        return entries.filter((e) => e.date >= from && e.date <= end);
+    };
+    const current = inWindow(today);
+    return {
+        entries: current,
+        avg: avgOf(current),
+        prevAvg: avgOf(inWindow(addDays(today, -days))),
+        counts: moodCounts(current),
+        series: moodSeries(entries, today, days),
+    };
+}
+
+/** Среднее настроение в дни, когда отмечено не меньше половины привычек, и в остальные дни; null, если данных мало. */
+export function moodVsHabits(habits: Habit[], mood: MoodEntry[], today: string = todayStr(), days: number = 30) {
+    if (habits.length === 0) return null;
+    const rating = new Map(mood.map((m) => [m.date, m.rating]));
+    const high: number[] = [];
+    const low: number[] = [];
+    for (const date of lastNDates(days, today)) {
+        const r = rating.get(date);
+        if (r === undefined) continue;
+        const share = habits.filter((h) => h.dates.includes(date)).length / habits.length;
+        (share >= 0.5 ? high : low).push(r);
+    }
+    if (high.length < 3 || low.length < 3) return null;
+    return { high: round1(sum(high) / high.length), low: round1(sum(low) / low.length) };
+}

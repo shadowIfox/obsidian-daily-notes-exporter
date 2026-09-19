@@ -1,11 +1,9 @@
-import type { Chart as ChartJS } from 'chart.js';
 import { addDays, formatDateShort, todayStr } from './dates';
 import { loadMood, saveMood, type MoodEntry } from './store';
-import { createThemedChart, destroyThemedChart, getMoodColors, rethemeChart } from './utils/chartTheme';
+import { renderColumns } from './viz';
 
 /** --- Глобальный массив с данными настроения --- */
 let moodData: MoodEntry[] = [];
-let moodChart: ChartJS<'bar'> | null = null;
 
 /** Записи за последние 7 календарных дней (включая сегодня), по возрастанию даты. */
 function lastWeekEntries(): MoodEntry[] {
@@ -13,12 +11,6 @@ function lastWeekEntries(): MoodEntry[] {
     return moodData
         .filter((e) => e.date >= from)
         .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-/** Цвет каждого столбца — по оценке записи, а не по позиции столбца. */
-function barColors(entries: MoodEntry[]): string[] {
-    const palette = getMoodColors();
-    return entries.map((e) => palette[e.rating - 1]);
 }
 
 /** --- Секция: Рендер истории за последние 7 дней ---
@@ -55,37 +47,25 @@ function renderMoodHistory(): void {
 }
 
 /** --- Секция: Рендер графика настроения ---
- * Столбчатая диаграмма по записям за последние 7 дней.
- * Старый график уничтожается перед созданием нового (важно для смены темы и обновления данных).
+ * Столбцы по записям за последние 7 дней; цвет столбца — по оценке (палитра из CSS-переменных --mood-1…5).
  */
 export function renderMoodChart(): void {
-    const canvas = document.getElementById('mood-chart') as HTMLCanvasElement | null;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const box = document.getElementById('mood-week-chart');
+    if (!box) return;
     const entries = lastWeekEntries();
-
-    if (moodChart) destroyThemedChart(moodChart);
-    moodChart = createThemedChart(ctx, {
-        type: 'bar',
-        data: {
-            labels: entries.map((e) => formatDateShort(e.date)),
-            datasets: [{
-                label: 'Настроение',
-                data: entries.map((e) => e.rating),
-                backgroundColor: barColors(entries),
-                borderWidth: 0,
-                borderRadius: 10,
-                maxBarThickness: 64,
-            }]
-        },
-        options: {
-            animation: false,
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { y: { min: 1, max: 5, ticks: { stepSize: 1 } } }
-        }
-    });
+    if (entries.length === 0) {
+        box.innerHTML = '<p class="viz__empty">За последние 7 дней записей нет.</p>';
+        return;
+    }
+    box.innerHTML = renderColumns(
+        entries.map((e) => ({
+            label: formatDateShort(e.date),
+            value: e.rating,
+            tip: `${formatDateShort(e.date)}: ${e.rating}${e.note ? ` — ${e.note.length > 60 ? e.note.slice(0, 60) + '…' : e.note}` : ''}`,
+            color: `var(--mood-${e.rating})`,
+        })),
+        { height: 200, max: 5, showValues: true },
+    );
 }
 
 /** --- Секция: Инициализация блока настроения ---
@@ -95,16 +75,6 @@ export function setupMood(): void {
     moodData = loadMood();
     renderMoodHistory();
     renderMoodChart();
-
-    /** Перекрашиваем существующий график при смене темы мгновенно, без анимации. */
-    window.addEventListener('themechange', () => {
-        if (!moodChart) return;
-        try {
-            rethemeChart(moodChart);
-            moodChart.data.datasets[0].backgroundColor = barColors(lastWeekEntries());
-            moodChart.update('none');
-        } catch {}
-    });
 
     /** После отправки формы добавляет запись (или заменяет запись за сегодня), сохраняет и перерисовывает. */
     const form = document.getElementById('mood-form') as HTMLFormElement | null;

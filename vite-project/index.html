@@ -204,7 +204,7 @@
 
             <div class="card">
               <h2 class="card__title">Серии по привычкам</h2>
-              <div class="chart-box"><canvas id="habit-progress-chart"></canvas></div>
+              <div id="habit-streaks"></div>
             </div>
           </section>
 
@@ -245,35 +245,108 @@
 
             <div class="card">
               <h2 class="card__title">График за неделю</h2>
-              <div class="chart-box"><canvas id="mood-chart"></canvas></div>
+              <div id="mood-week-chart"></div>
             </div>
           </section>
 
           <!-- ====== Аналитика ====== -->
-          <section id="analytics-section" class="page hidden">
-            <header class="page-head">
-              <h1 class="page-title">Аналитика</h1>
-              <p class="page-sub">Статистика по разделам и советы.</p>
+          <section id="analytics-section" class="page page--wide hidden">
+            <header class="page-head page-head--row">
+              <div class="page-head__text">
+                <h1 class="page-title">Аналитика</h1>
+                <p id="analytics-sub" class="page-sub"></p>
+              </div>
+              <div id="analytics-period" class="segmented" role="group" aria-label="Период">
+                <button type="button" class="segmented__btn" data-days="7">7 дней</button>
+                <button type="button" class="segmented__btn" data-days="30">30 дней</button>
+                <button type="button" class="segmented__btn" data-days="91">3 месяца</button>
+              </div>
             </header>
 
-            <div id="analytics-menu" class="grid-3">
-              <button type="button" class="card card--yellow tile" data-analytics="tasks">
-                <span class="tile__icon"><i data-icon="list-checks"></i></span>
-                <span class="tile__title">Задачи</span>
-                <span class="tile__desc">Выполненные задачи по дням недели</span>
-              </button>
-              <button type="button" class="card card--green tile" data-analytics="habits">
-                <span class="tile__icon"><i data-icon="repeat"></i></span>
-                <span class="tile__title">Привычки</span>
-                <span class="tile__desc">Прогресс за последние 7 дней</span>
-              </button>
-              <button type="button" class="card card--pink tile" data-analytics="mood">
-                <span class="tile__icon"><i data-icon="smile"></i></span>
-                <span class="tile__title">Настроение</span>
-                <span class="tile__desc">Как распределяются ваши оценки</span>
-              </button>
+            <div class="grid-4">
+              <article class="card card--yellow kpi">
+                <p class="kpi__label">Выполнено задач</p>
+                <p class="kpi__value" data-kpi="tasks">0</p>
+                <p class="kpi__note" data-kpi-note="tasks"></p>
+              </article>
+              <article class="card card--blue kpi">
+                <p class="kpi__label">Закрыто в срок</p>
+                <p class="kpi__value" data-kpi="ontime">—</p>
+                <p class="kpi__note" data-kpi-note="ontime"></p>
+              </article>
+              <article class="card card--green kpi">
+                <p class="kpi__label">Привычки</p>
+                <p class="kpi__value" data-kpi="habits">—</p>
+                <p class="kpi__note" data-kpi-note="habits"></p>
+              </article>
+              <article class="card card--pink kpi">
+                <p class="kpi__label">Настроение</p>
+                <p class="kpi__value" data-kpi="mood">—</p>
+                <p class="kpi__note" data-kpi-note="mood"></p>
+              </article>
             </div>
-            <div id="analytics-details"></div>
+
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Выполненные задачи</h2>
+                <span id="an-tasks-meta" class="card__meta"></span>
+              </div>
+              <div id="an-tasks-days"></div>
+            </section>
+
+            <div class="grid-2">
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">По дням недели</h2>
+                  <span id="an-weekdays-meta" class="card__meta"></span>
+                </div>
+                <div id="an-weekdays"></div>
+              </section>
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">По категориям</h2>
+                  <span class="card__meta">топ-5</span>
+                </div>
+                <div id="an-categories"></div>
+              </section>
+            </div>
+
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Привычки</h2>
+                <span id="an-habits-meta" class="card__meta"></span>
+              </div>
+              <div id="an-habits"></div>
+            </section>
+
+            <div class="grid-2">
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">Настроение</h2>
+                  <span id="an-mood-meta" class="card__meta"></span>
+                </div>
+                <div id="an-mood-line" class="area-box"></div>
+              </section>
+              <section class="card">
+                <div class="card__head">
+                  <h2 class="card__title">Оценки</h2>
+                  <span class="card__meta">распределение</span>
+                </div>
+                <div id="an-mood-donut"></div>
+              </section>
+            </div>
+
+            <div class="grid-2 grid-2--top">
+              <section class="card">
+                <h2 class="card__title">Наблюдения</h2>
+                <ul id="an-insights" class="insights"></ul>
+              </section>
+              <section class="card card--pink">
+                <h2 class="card__title">Советы</h2>
+                <div id="an-advice" class="advice-list"></div>
+                <button id="an-advice-refresh" type="button" class="btn btn--ghost btn--sm">Другие советы</button>
+              </section>
+            </div>
           </section>
 
           <!-- ====== Настройки ====== -->

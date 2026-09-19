@@ -9,6 +9,9 @@
   border-radius: var(--r-lg);
   transition: background 0.25s ease, border-color 0.25s ease;
 }
+.card__head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin-bottom: var(--s-5); }
+.card__head .card__title { margin-bottom: 0; }
+.card__meta { font-size: 13px; font-weight: 600; color: var(--muted); }
 .card__title--flush { margin-bottom: 0 !important; }
 .form-stack { display: flex; flex-direction: column; gap: var(--s-4); }
 .card__title { margin-bottom: var(--s-4); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
@@ -133,7 +136,7 @@ select.input { padding-right: var(--s-3); }
 .badge--upcoming { background: var(--c-blue); color: var(--on-pastel); }
 
 /* ===== Сегментный переключатель ===== */
-.segmented { display: inline-flex; gap: 2px; padding: 4px; background: var(--card-alt); border-radius: 999px; }
+.segmented { display: inline-flex; flex: none; gap: 2px; padding: 4px; background: var(--card-alt); border-radius: 999px; }
 .segmented__opt { display: inline-flex; margin: 0; cursor: pointer; }
 .segmented__opt input { position: absolute; opacity: 0; pointer-events: none; }
 .segmented__btn {
@@ -145,6 +148,7 @@ select.input { padding-right: var(--s-3); }
   font-size: 13px;
   font-weight: 700;
   color: var(--muted);
+  white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .segmented__btn:hover { color: var(--text); }

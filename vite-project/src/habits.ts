@@ -1,45 +1,26 @@
-import type { Chart as ChartJS } from 'chart.js';
 import { daysInMonth, lastNDates, todayStr } from './dates';
 import { icon } from './icons';
 import { getStreak } from './stats';
 import { loadHabits, newId, saveHabits, type Habit } from './store';
-import { createThemedChart, destroyThemedChart } from './utils/chartTheme';
+import { renderHBars } from './viz';
 
 // --- Переменные ---
 let habits: Habit[] = [];
-let habitChart: ChartJS<'bar'> | null = null;
 
-// --- Обновление графика привычек (Chart.js) ---
+// --- График: текущие серии по привычкам ---
 export function updateHabitChart() {
-    const canvas = document.getElementById('habit-progress-chart') as HTMLCanvasElement | null;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const streaks = habits.map(h => getStreak(h.dates));
-    const labels = habits.map(h => h.text);
-
-    if (habitChart) destroyThemedChart(habitChart);
-    habitChart = createThemedChart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Серия дней подряд',
-                data: streaks,
-                // Цвета возьмутся из темы автоматически (accent/grid/text)
-                borderRadius: 12,
-                borderSkipped: false,
-                borderWidth: 0,
-                maxBarThickness: 72,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false }, title: { display: false } },
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-        }
-    });
+    const box = document.getElementById('habit-streaks');
+    if (!box) return;
+    if (habits.length === 0) {
+        box.innerHTML = '<p class="viz__empty">Добавьте привычку — здесь появятся её серии.</p>';
+        return;
+    }
+    box.innerHTML = renderHBars(
+        habits.map((h) => {
+            const streak = getStreak(h.dates);
+            return { label: h.text, value: streak, valueText: `${streak} дн.`, tip: `${h.text}: серия ${streak} дн. подряд` };
+        }),
+    );
 }
 
 // --- API для главной: отметить/снять привычку на сегодня ---
@@ -156,11 +137,6 @@ export function setupHabits() {
     const input = document.getElementById('habit-text') as HTMLInputElement | null;
     habits = loadHabits();
     renderHabits();
-
-    // Перекрашиваем график при смене темы (без кликов)
-    window.addEventListener('themechange', () => {
-        updateHabitChart();
-    });
 
     if (!form || !input) return;
     form.addEventListener('submit', (e) => {
