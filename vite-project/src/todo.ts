@@ -1,6 +1,6 @@
 import { formatDateShort, todayStr } from './dates';
 import { icon } from './icons';
-import { loadTasks, newId, saveTasks, type Task } from './store';
+import { loadTasks, newId, saveTasks, type Priority, type Task } from './store';
 
 let currentTasks: Task[] = [];
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
@@ -13,6 +13,16 @@ export function toggleTask(id: string): void {
     task.completedAt = task.completed ? todayStr() : undefined;
     saveTasks(currentTasks);
     renderTasks();
+}
+
+export type NewTask = { text: string; date: string; time?: string; category: string; priority: Priority; notes?: string };
+
+export function addTask(input: NewTask): Task {
+    const task: Task = { id: newId(), completed: false, notes: '', ...input };
+    currentTasks.push(task);
+    saveTasks(currentTasks);
+    renderTasks();
+    return task;
 }
 
 export function updateTask(id: string, patch: Partial<Omit<Task, 'id'>>): void {

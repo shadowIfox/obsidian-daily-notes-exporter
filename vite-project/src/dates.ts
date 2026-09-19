@@ -50,3 +50,21 @@ export function formatDateShort(dateStr: string): string {
     const d = parseDateStr(dateStr);
     return d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : dateStr;
 }
+
+/** Номер недели по ISO 8601 (неделя начинается в понедельник; первая — та, где четверг первого января). */
+export function isoWeek(dateStr: string): number {
+    const d = parseDateStr(dateStr);
+    if (!d) return 0;
+    const mondayIndex = (d.getDay() + 6) % 7;
+    const thursday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - mondayIndex + 3);
+    const jan4 = new Date(thursday.getFullYear(), 0, 4);
+    const week1Thursday = new Date(thursday.getFullYear(), 0, 4 - ((jan4.getDay() + 6) % 7) + 3);
+    return 1 + Math.round((thursday.getTime() - week1Thursday.getTime()) / (7 * 24 * 3600 * 1000));
+}
+
+/** Сетка месяца для календаря: 6 недель по 7 дней, неделя с понедельника (month: 0–11). */
+export function monthGrid(year: number, month: number): string[][] {
+    const first = new Date(year, month, 1);
+    const start = addDays(toDateStr(first), -((first.getDay() + 6) % 7));
+    return Array.from({ length: 6 }, (_, w) => Array.from({ length: 7 }, (_, d) => addDays(start, w * 7 + d)));
+}

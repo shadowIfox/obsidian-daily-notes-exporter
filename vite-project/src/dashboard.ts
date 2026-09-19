@@ -2,6 +2,7 @@
 // список задач и редактируемые детали выбранной задачи.
 // Статичная разметка лежит в index.html (#dashboard-section), здесь — данные и события.
 
+import { renderSide, selectDate, setupSide } from './calendar';
 import { formatDateShort, todayStr } from './dates';
 import { toggleHabitToday } from './habits';
 import { icon } from './icons';
@@ -18,8 +19,10 @@ import {
     type TaskListFilter,
 } from './stats';
 import { loadHabits, loadMood, loadSettings, loadTasks, type Habit, type Priority, type Task } from './store';
+import { setupTaskModal } from './taskModal';
 import { removeTask, toggleTask, updateTask } from './todo';
-import { renderBars, renderLine } from './viz';
+import { plural } from './utils/plural';
+import { mountResponsive, renderBars, renderLine } from './viz';
 
 // --- Состояние главной ---
 let listFilter: TaskListFilter = 'today';
@@ -27,15 +30,6 @@ let selectedId: string | null = null;
 let savedFlash = false; // показать «Сохранено» после перерисовки деталей
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string): T | null => document.querySelector<T>(selector);
-
-/** Склонение по числу: plural(5, ['задача', 'задачи', 'задач']) → «задач». */
-function plural(n: number, forms: [string, string, string]): string {
-    const mod10 = n % 10;
-    const mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11) return forms[0];
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1];
-    return forms[2];
-}
 
 function greetingFor(hour: number): string {
     if (hour < 5) return 'Доброй ночи';
@@ -373,16 +367,36 @@ export function renderDashboard(): void {
     const tasksViz = $('#viz-tasks');
     if (tasksViz) tasksViz.innerHTML = renderBars(tasksCompletedByDay(tasks, today));
     const moodViz = $('#viz-mood');
-    if (moodViz) moodViz.innerHTML = renderLine(moodSeries(loadMood(), today), today);
+    if (moodViz) {
+        const series = moodSeries(loadMood(), today);
+        mountResponsive(moodViz, (width) => renderLine(series, today, width));
+    }
     renderHabitsViz(habits, today);
     renderDeadlineViz(tasks, today);
 
     renderTaskList(tasks, today);
     renderDetails(tasks, today);
+    renderSide(tasks, today);
 }
 
 /** Один раз навешивает обработчики на статичные элементы главной (фильтр списка). */
 export function setupDashboard(): void {
+    setupSide({
+        onSelectTask: (id) => {
+            selectedId = id;
+            renderDashboard();
+            document.getElementById('dash-details-title')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        },
+        onChange: () => renderDashboard(),
+    });
+
+    // Новая задача из календаря: выбираем её день и сразу показываем детали
+    setupTaskModal((task) => {
+        if (task.date) selectDate(task.date);
+        selectedId = task.id;
+        renderDashboard();
+    });
+
     $('#dash-list-filter')?.addEventListener('click', (e) => {
         const button = (e.target as HTMLElement).closest<HTMLElement>('button[data-filter]');
         if (!button?.dataset.filter) return;

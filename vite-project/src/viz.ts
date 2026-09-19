@@ -29,12 +29,12 @@ const f = (n: number): string => n.toFixed(1);
 const clamp = (n: number, a: number, b: number): number => Math.min(Math.max(n, a), b);
 
 /** Плавная линия оценок настроения с пунктирной отметкой на последней записи. */
-export function renderLine(series: MoodSeries, today: string): string {
+export function renderLine(series: MoodSeries, today: string, width = 400): string {
     if (series.points.length === 0) {
         return `<p class="viz__empty">Оценок за ${series.days} дней пока нет</p>`;
     }
 
-    const W = 400;
+    const W = width;
     const H = 124;
     const padX = 16;
     const top = 28;
@@ -69,7 +69,7 @@ export function renderLine(series: MoodSeries, today: string): string {
     const lastAnchor = last.x > W - 48 ? 'end' : 'middle';
     const showFirstLabel = last.x - padX > 110;
 
-    return `<svg class="line-viz" viewBox="0 0 ${W} ${H}" role="img" aria-label="Настроение за ${series.days} дней">
+    return `<svg class="line-viz" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Настроение за ${series.days} дней">
   <line x1="${padX}" y1="${baseline}" x2="${W - padX}" y2="${baseline}" stroke="currentColor" stroke-opacity=".18" />
   <path d="${d}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
   <line x1="${f(last.x)}" y1="${f(last.y + 8)}" x2="${f(last.x)}" y2="${baseline}" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" stroke-opacity=".7" />
@@ -256,15 +256,17 @@ const observers = new Map<Element, ResizeObserver>();
 export function mountResponsive(el: HTMLElement, render: (width: number) => string): void {
     observers.get(el)?.disconnect();
     let last = 0;
-    const ro = new ResizeObserver(() => {
+    const draw = () => {
         const w = Math.floor(el.clientWidth);
         if (w > 0 && w !== last) {
             last = w;
             el.innerHTML = render(w);
         }
-    });
+    };
+    const ro = new ResizeObserver(draw);
     ro.observe(el);
     observers.set(el, ro);
+    draw(); // сразу, чтобы при перерисовке страницы график не мигал пустым
 }
 
 /** Отключает наблюдатели для графиков внутри root (вызывать перед перерисовкой страницы). */

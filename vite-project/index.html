@@ -60,7 +60,9 @@
 
         <main>
           <!-- ====== Главная ====== -->
-          <section id="dashboard-section" class="page">
+          <section id="dashboard-section" class="page page--wide">
+            <div class="dash">
+            <div class="dash__main">
             <header class="page-head">
               <h1 id="greeting" class="page-title page-title--xl">Добрый день</h1>
               <p id="greeting-sub" class="page-sub"></p>
@@ -138,6 +140,38 @@
                 <h2 id="dash-details-title" class="card__title">Детали задачи</h2>
                 <div id="task-details"></div>
               </section>
+            </div>
+            </div>
+
+            <aside class="dash__side" aria-label="Календарь и расписание">
+              <section class="card cal" aria-label="Календарь">
+                <div class="cal__head">
+                  <button id="cal-prev" type="button" class="icon-btn icon-btn--sm" aria-label="Предыдущий месяц"><i data-icon="chevron-left" data-size="16"></i></button>
+                  <span id="cal-month" class="cal__month"></span>
+                  <button id="cal-next" type="button" class="icon-btn icon-btn--sm" aria-label="Следующий месяц"><i data-icon="chevron-right" data-size="16"></i></button>
+                </div>
+                <div id="cal-grid" class="cal__grid"></div>
+                <div class="cal__actions">
+                  <button id="cal-add" type="button" class="btn btn--primary"><i data-icon="plus" data-size="18"></i> Добавить задачу</button>
+                  <button id="cal-today" type="button" class="icon-btn" aria-label="К сегодняшнему дню" title="К сегодняшнему дню"><i data-icon="calendar-days"></i></button>
+                </div>
+              </section>
+
+              <section class="card" aria-labelledby="tl-title">
+                <div class="tl__head">
+                  <div>
+                    <h2 id="tl-title" class="tl__date"></h2>
+                    <p id="tl-sub" class="hint"></p>
+                  </div>
+                  <div id="tl-filter" class="segmented" role="group" aria-label="Фильтр расписания">
+                    <button type="button" class="segmented__btn" data-filter="all">Все</button>
+                    <button type="button" class="segmented__btn" data-filter="active">Активные</button>
+                  </div>
+                </div>
+                <div id="tl"></div>
+                <a class="btn btn--primary tl__all" href="#/tasks">Открыть все задачи</a>
+              </section>
+            </aside>
             </div>
           </section>
 
@@ -431,6 +465,34 @@
           <button id="confirm-export" type="button" class="btn btn--primary">Экспортировать</button>
         </div>
       </div>
+    </div>
+
+    <!-- ====== Окно «Новая задача» ====== -->
+    <div id="task-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+      <form id="task-modal-form" class="modal__panel modal__panel--wide">
+        <h2 id="task-modal-title" class="modal__title">Новая задача</h2>
+        <div class="field">
+          <label class="field__label" for="tm-text">Название</label>
+          <input id="tm-text" class="input" maxlength="100" required placeholder="Что нужно сделать?" />
+        </div>
+        <div class="details__grid">
+          <div class="field"><label class="field__label" for="tm-date">Дата</label><input id="tm-date" type="date" class="input" /></div>
+          <div class="field"><label class="field__label" for="tm-time">Время</label><input id="tm-time" type="time" class="input" /></div>
+          <div class="field"><label class="field__label" for="tm-category">Категория</label><input id="tm-category" class="input" maxlength="30" placeholder="Учёба, Личное…" /></div>
+        </div>
+        <div class="field">
+          <span class="field__label">Приоритет</span>
+          <div class="segmented" role="radiogroup" aria-label="Приоритет">
+            <label class="segmented__opt"><input type="radio" name="tm-priority" value="low" /><span class="segmented__btn">Низкий</span></label>
+            <label class="segmented__opt"><input type="radio" name="tm-priority" value="normal" checked /><span class="segmented__btn">Обычный</span></label>
+            <label class="segmented__opt"><input type="radio" name="tm-priority" value="high" /><span class="segmented__btn">Высокий</span></label>
+          </div>
+        </div>
+        <div class="modal__actions">
+          <button id="task-modal-cancel" type="button" class="btn btn--ghost">Отмена</button>
+          <button type="submit" class="btn btn--primary">Добавить</button>
+        </div>
+      </form>
     </div>
 
     <script type="module" src="/src/main.ts"></script>
