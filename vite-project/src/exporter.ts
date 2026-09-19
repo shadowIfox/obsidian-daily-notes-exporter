@@ -29,7 +29,7 @@ const NO_DATE = 'Без даты';
 const PRIORITY_LABELS = { low: 'низкий', normal: 'обычный', high: 'высокий' } as const;
 
 /** Строка задачи: «14:30 Название (Категория) — важно». */
-function taskLine(t: Task): string {
+export function taskLine(t: Task): string {
     const parts = [t.time ? `${t.time} ` : '', t.text, t.category ? ` (${t.category})` : ''];
     if (t.priority === 'high') parts.push(' — важно');
     else if (t.priority === 'low') parts.push(' — низкий приоритет');

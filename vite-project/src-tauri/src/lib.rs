@@ -1,4 +1,5 @@
 mod db;
+mod vault;
 
 use db::Db;
 use std::fs;
@@ -14,6 +15,18 @@ fn storage_read(db: State<Db>, key: String) -> Result<Option<String>, String> {
 #[tauri::command]
 fn storage_write(db: State<Db>, key: String, value: String) -> Result<(), String> {
     db.write(&key, &value)
+}
+
+/// Текст заметки за день из vault Obsidian; None — заметки ещё нет.
+#[tauri::command]
+fn vault_read_note(vault: String, date: String) -> Result<Option<String>, String> {
+    vault::read_note(&vault, &date)
+}
+
+/// Записывает заметку за день в <vault>/daily-notes/<дата>.md.
+#[tauri::command]
+fn vault_write_note(vault: String, date: String, content: String) -> Result<(), String> {
+    vault::write_note(&vault, &date, &content)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -33,7 +46,12 @@ pub fn run() {
             app.manage(db);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![storage_read, storage_write])
+        .invoke_handler(tauri::generate_handler![
+            storage_read,
+            storage_write,
+            vault_read_note,
+            vault_write_note
+        ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить приложение");
 }

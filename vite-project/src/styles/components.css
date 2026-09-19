@@ -175,6 +175,7 @@ select.input { padding-right: var(--s-3); }
 .setting:last-child { padding-bottom: 0; }
 .setting__name { font-weight: 700; }
 .setting__desc { font-size: 13px; color: var(--muted); }
+.card[hidden] { display: none; }
 
 /* ===== Модальное окно ===== */
 .modal { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; padding: var(--s-4); background: rgba(20, 19, 15, 0.5); backdrop-filter: blur(4px); }
