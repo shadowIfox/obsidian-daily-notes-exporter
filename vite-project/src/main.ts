@@ -11,12 +11,13 @@ import { readPref, writePref } from './prefs';
 import { initRouter } from './router';
 import { setupSettings } from './settings';
 import { localStorageBackend, type StorageBackend } from './storage';
-import { importFromLocalStorage, isTauri, sqliteBackend } from './storageTauri';
+import { importFromLocalStorage, sqliteBackend } from './storageTauri';
 import { initStore } from './store';
 import { initThemeSwitcher } from './theme';
 import { openTaskModal } from './taskModal';
 import { setEditHandler, setupTodo } from './todo';
 import { setupTopbar } from './topbar';
+import { isTauri } from './utils/platform';
 import { initTooltips } from './viz';
 
 const SIDEBAR_KEY = 'sidebarCollapsed';

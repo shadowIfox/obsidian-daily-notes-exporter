@@ -4,11 +4,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { STORE_KEYS, type StorageBackend, type StoreKey } from './storage';
 
-/** Работает ли страница внутри окна Tauri (а не в обычном браузере). */
-export function isTauri(): boolean {
-    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-}
-
 /** Ключ, под которым тему хранит localStorage: её читает скрипт в index.html до отрисовки страницы. */
 const THEME_MIRROR_KEY = 'userSettings';
 

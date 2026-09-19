@@ -14,7 +14,7 @@ const invoke = vi.fn(async (command: string, args: { key: string; value?: string
 });
 vi.mock('@tauri-apps/api/core', () => ({ invoke: (...a: Parameters<typeof invoke>) => invoke(...a) }));
 
-const { importFromLocalStorage, isTauri, sqliteBackend } = await import('../../src/storageTauri');
+const { importFromLocalStorage, sqliteBackend } = await import('../../src/storageTauri');
 
 beforeEach(() => {
     db.clear();
@@ -52,12 +52,6 @@ describe('sqliteBackend', () => {
         localStorage.setItem('userSettings', '{"themeMode":"dark"}');
         await sqliteBackend.read('userSettings');
         assert.equal(localStorage.getItem('userSettings'), '{"themeMode":"light"}');
-    });
-});
-
-describe('isTauri', () => {
-    it('в обычном браузере — false', () => {
-        assert.equal(isTauri(), false);
     });
 });
 
