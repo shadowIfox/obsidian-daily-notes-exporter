@@ -36,12 +36,20 @@ describe('searchAll', () => {
         mkTask({ id: 't1', text: 'Купить молоко', category: 'Дом', date: '2026-09-25' }),
         mkTask({ id: 't2', text: 'Молоко для кота', category: 'Дом', date: '2026-09-20', completed: true }),
         mkTask({ id: 't3', text: 'Позвонить', category: 'Молоко (кухня)', date: '2026-09-21' }),
-        mkTask({ id: 't4', text: 'Отчёт', notes: 'Не забыть про МОЛОКО в отчёте по закупкам, очень важно уточнить количество у поставщика' }),
+        mkTask({
+            id: 't4',
+            text: 'Отчёт',
+            notes: 'Не забыть про МОЛОКО в отчёте по закупкам, очень важно уточнить количество у поставщика',
+        }),
         mkTask({ id: 't5', text: 'Ничего общего' }),
         mkTask({ id: 't6', text: 'Молоко раньше', date: '2026-09-22' }),
     ];
     const habits = [mkHabit({ id: 'h1', text: 'Пить воду', dates: [T, '2026-09-18'] }), mkHabit({ id: 'h2', text: 'Вода и молоко' })];
-    const mood = [mkMood('2026-09-10', 4, 'Выпила молока, хороший день'), mkMood('2026-09-18', 2, 'молоко закончилось'), mkMood('2026-09-01', 3)];
+    const mood = [
+        mkMood('2026-09-10', 4, 'Выпила молока, хороший день'),
+        mkMood('2026-09-18', 2, 'молоко закончилось'),
+        mkMood('2026-09-01', 3),
+    ];
     const data = { tasks, habits, mood };
     const ids = (hits: S.SearchHit[]) => hits.map((h) => h.id);
 

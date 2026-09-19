@@ -22,26 +22,26 @@ export type Priority = 'low' | 'normal' | 'high';
 export type Task = {
     id: string;
     text: string;
-    date: string;          // дедлайн YYYY-MM-DD, может быть пустым
-    time?: string;         // время HH:MM, необязательно
+    date: string; // дедлайн YYYY-MM-DD, может быть пустым
+    time?: string; // время HH:MM, необязательно
     category: string;
     priority: Priority;
     notes: string;
     completed: boolean;
-    completedAt?: string;  // YYYY-MM-DD, когда отмечена выполненной
+    completedAt?: string; // YYYY-MM-DD, когда отмечена выполненной
 };
 
 export type Habit = {
     id: string;
     text: string;
-    dates: string[];       // дни, когда привычка отмечена (YYYY-MM-DD)
-    days?: number[];       // дни недели по графику (Пн = 0 … Вс = 6); нет — каждый день
-    archived?: boolean;    // в архиве: не показывается и не учитывается, но история сохранена
+    dates: string[]; // дни, когда привычка отмечена (YYYY-MM-DD)
+    days?: number[]; // дни недели по графику (Пн = 0 … Вс = 6); нет — каждый день
+    archived?: boolean; // в архиве: не показывается и не учитывается, но история сохранена
 };
 
 export type MoodEntry = {
-    date: string;          // YYYY-MM-DD
-    rating: number;        // 1–5
+    date: string; // YYYY-MM-DD
+    rating: number; // 1–5
     note: string;
 };
 

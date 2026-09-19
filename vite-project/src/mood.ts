@@ -5,11 +5,11 @@ import { renderColumns } from './viz';
 
 /** --- Состояние раздела --- */
 let moodData: MoodEntry[] = [];
-let pinnedDate: string | null = null;      // запись из поиска, которую показываем, даже если она вне выбранного периода
-let historyDays: 7 | 30 = 7;               // период истории
-let editingDate: string | null = null;     // запись, открытая в форме на правку (подсвечивается в истории)
-let prefilledFrom: string | null = null;   // дата, из записи которой сейчас заполнена форма
-let deleteArmed = false;                   // кнопка «Удалить запись» ждёт второго нажатия
+let pinnedDate: string | null = null; // запись из поиска, которую показываем, даже если она вне выбранного периода
+let historyDays: 7 | 30 = 7; // период истории
+let editingDate: string | null = null; // запись, открытая в форме на правку (подсвечивается в истории)
+let prefilledFrom: string | null = null; // дата, из записи которой сейчас заполнена форма
+let deleteArmed = false; // кнопка «Удалить запись» ждёт второго нажатия
 let statusTimer: number | undefined;
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
@@ -28,7 +28,9 @@ function flashStatus(text: string): void {
     if (!s) return;
     s.textContent = text;
     window.clearTimeout(statusTimer);
-    statusTimer = window.setTimeout(() => { s.textContent = ''; }, 2500);
+    statusTimer = window.setTimeout(() => {
+        s.textContent = '';
+    }, 2500);
 }
 
 // ===== Форма =====
@@ -59,7 +61,9 @@ function fillForm(date: string): void {
         el<HTMLTextAreaElement>('mood-note')!.value = entry.note;
         prefilledFrom = date;
     } else if (prefilledFrom) {
-        form.querySelectorAll<HTMLInputElement>('input[name="rating"]').forEach((r) => { r.checked = false; });
+        form.querySelectorAll<HTMLInputElement>('input[name="rating"]').forEach((r) => {
+            r.checked = false;
+        });
         el<HTMLTextAreaElement>('mood-note')!.value = '';
         prefilledFrom = null;
     }

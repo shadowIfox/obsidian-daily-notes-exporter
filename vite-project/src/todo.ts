@@ -12,7 +12,7 @@ export function setEditHandler(handler: (task: Task) => void): void {
     editHandler = handler;
 }
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
-let currentCategory = '';           // '' — все категории, NO_CATEGORY — без категории
+let currentCategory = ''; // '' — все категории, NO_CATEGORY — без категории
 let currentSort: TaskSort = 'added';
 
 // --- Настройки вида списка запоминаются между запусками ---
@@ -220,12 +220,12 @@ function renderTasks() {
 
 // --- Прогресс-бар и текст ---
 function updateProgress() {
-    const completed = currentTasks.filter(t => t.completed).length;
+    const completed = currentTasks.filter((t) => t.completed).length;
     const total = currentTasks.length;
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
     const bar = document.getElementById('progress-bar');
     const text = document.getElementById('progress-text');
-    if (bar) bar.style.width = percent + "%";
+    if (bar) bar.style.width = percent + '%';
     if (text) text.textContent = `Выполнено: ${completed} из ${total}`;
 }
 
@@ -326,7 +326,7 @@ export function setupTodo() {
 // --- Очистка выполненных ---
 function setupClearCompleted() {
     document.getElementById('clear-completed')?.addEventListener('click', () => {
-        currentTasks = currentTasks.filter(t => !t.completed);
+        currentTasks = currentTasks.filter((t) => !t.completed);
         saveTasks(currentTasks);
         renderTasks();
     });

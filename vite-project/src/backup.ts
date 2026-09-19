@@ -38,18 +38,16 @@ export type Backup = {
 
 export type BackupCounts = { tasks: number; habits: number; mood: number };
 
-export type ParseResult =
-    | { ok: true; backup: Backup; counts: BackupCounts }
-    | { ok: false; error: string };
+export type ParseResult = { ok: true; backup: Backup; counts: BackupCounts } | { ok: false; error: string };
 
 export type ImportMode = 'merge' | 'replace';
 
 export type ImportSummary = {
     mode: ImportMode;
-    tasks: number;        // добавлено (при замене — записано) задач
-    habits: number;       // привычек
-    habitMarks: number;   // новых отметок у уже существующих привычек (только при объединении)
-    mood: number;         // записей настроения
+    tasks: number; // добавлено (при замене — записано) задач
+    habits: number; // привычек
+    habitMarks: number; // новых отметок у уже существующих привычек (только при объединении)
+    mood: number; // записей настроения
 };
 
 /** Собирает копию из текущих данных. */

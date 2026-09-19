@@ -12,7 +12,7 @@ export type Notice = {
     title: string;
     detail: string;
     route: 'dashboard' | 'habits' | 'mood';
-    taskId?: string;   // открыть эту задачу на главной
+    taskId?: string; // открыть эту задачу на главной
 };
 
 /** С какого времени напоминать, что настроение за день не записано. */
@@ -40,9 +40,7 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
         });
     }
 
-    const todays = active
-        .filter((t) => t.date === today)
-        .sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
+    const todays = active.filter((t) => t.date === today).sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
     if (todays.length > 0) {
         const upcoming = todays.find((t) => t.time && t.time >= now);
         const focus = upcoming ?? todays[0];
@@ -58,7 +56,10 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
 
     const pending = habits.filter((h) => isDue(h, today) && !h.dates.includes(today));
     if (pending.length > 0) {
-        const names = pending.slice(0, 2).map((h) => h.text).join(', ');
+        const names = pending
+            .slice(0, 2)
+            .map((h) => h.text)
+            .join(', ');
         notices.push({
             id: 'habits',
             tone: 'habit',
@@ -69,7 +70,13 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
     }
 
     if (now >= MOOD_REMINDER_FROM && !mood.some((m) => m.date === today)) {
-        notices.push({ id: 'mood', tone: 'mood', title: 'Настроение за сегодня не записано', detail: 'Оцените день — это займёт пару секунд', route: 'mood' });
+        notices.push({
+            id: 'mood',
+            tone: 'mood',
+            title: 'Настроение за сегодня не записано',
+            detail: 'Оцените день — это займёт пару секунд',
+            route: 'mood',
+        });
     }
 
     return notices;

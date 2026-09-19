@@ -135,7 +135,10 @@ function renderHabits() {
             dot.className = on ? 'dot dot--on' : isDue(habit, dayStr) ? 'dot' : 'dot dot--off';
             dot.setAttribute('aria-pressed', String(on));
             dot.dataset.date = dayStr;
-            dot.setAttribute('data-tip', `${formatDateShort(dayStr)} (${WEEKDAY_LABELS[weekdayIndex(dayStr)]}): ${on ? 'отмечено — нажмите, чтобы снять' : 'нажмите, чтобы отметить'}`);
+            dot.setAttribute(
+                'data-tip',
+                `${formatDateShort(dayStr)} (${WEEKDAY_LABELS[weekdayIndex(dayStr)]}): ${on ? 'отмечено — нажмите, чтобы снять' : 'нажмите, чтобы отметить'}`,
+            );
             dot.setAttribute('aria-label', `${formatDateShort(dayStr)}: ${on ? 'отмечено' : 'не отмечено'}`);
             dot.addEventListener('click', () => toggleDate(habit, dayStr));
             dots.appendChild(dot);
@@ -206,15 +209,20 @@ function renderArchive() {
         });
 
         let armed = false;
-        const del = iconButton('trash-2', 'Удалить навсегда', () => {
-            if (!armed) {
-                armed = true;
-                del.classList.add('is-armed');
-                del.title = 'Нажмите ещё раз, чтобы удалить навсегда';
-                return;
-            }
-            api.remove(habit.id);
-        }, 'icon-btn--danger');
+        const del = iconButton(
+            'trash-2',
+            'Удалить навсегда',
+            () => {
+                if (!armed) {
+                    armed = true;
+                    del.classList.add('is-armed');
+                    del.title = 'Нажмите ещё раз, чтобы удалить навсегда';
+                    return;
+                }
+                api.remove(habit.id);
+            },
+            'icon-btn--danger',
+        );
 
         li.append(name, info, restore, del);
         list.appendChild(li);

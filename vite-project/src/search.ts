@@ -9,14 +9,14 @@ export type Range = [number, number];
 
 export type SearchHit = {
     kind: 'task' | 'habit' | 'mood';
-    id: string;            // id задачи/привычки; для настроения — дата записи
+    id: string; // id задачи/привычки; для настроения — дата записи
     title: string;
     titleRange: Range | null;
     sub: string;
     subRange: Range | null;
-    meta: string;          // плашка справа: время/дата
-    rating?: number;       // только для настроения
-    done?: boolean;        // выполненная задача
+    meta: string; // плашка справа: время/дата
+    rating?: number; // только для настроения
+    done?: boolean; // выполненная задача
 };
 
 export type SearchResult = {
@@ -91,7 +91,15 @@ function searchHabits(query: string, habits: Habit[]): Scored[] {
         const range = findRange(h.text, query);
         if (!range) continue;
         out.push({
-            hit: { kind: 'habit', id: h.id, title: h.text, titleRange: range, sub: `серия ${getStreak(h.dates, undefined, h.days)} дн.`, subRange: null, meta: '' },
+            hit: {
+                kind: 'habit',
+                id: h.id,
+                title: h.text,
+                titleRange: range,
+                sub: `серия ${getStreak(h.dates, undefined, h.days)} дн.`,
+                subRange: null,
+                meta: '',
+            },
             score: range[0] === 0 ? 0 : 1,
             key: h.text,
         });
@@ -106,7 +114,16 @@ function searchMood(query: string, entries: MoodEntry[]): Scored[] {
         if (!range) continue;
         const s = snippet(e.note, range, 40);
         out.push({
-            hit: { kind: 'mood', id: e.date, title: s.text, titleRange: s.range, sub: formatDateShort(e.date), subRange: null, meta: String(e.rating), rating: e.rating },
+            hit: {
+                kind: 'mood',
+                id: e.date,
+                title: s.text,
+                titleRange: s.range,
+                sub: formatDateShort(e.date),
+                subRange: null,
+                meta: String(e.rating),
+                rating: e.rating,
+            },
             score: 0,
             key: e.date,
         });

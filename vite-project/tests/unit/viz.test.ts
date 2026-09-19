@@ -8,7 +8,11 @@ const T = '2026-09-19';
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
 
 describe('renderBars / renderLine (главная)', () => {
-    const days = tasksCompletedByDay([doneTask(T), doneTask(T), doneTask('2026-09-17'), mkTask({ completed: true, date: '2026-09-18' })], T, 7);
+    const days = tasksCompletedByDay(
+        [doneTask(T), doneTask(T), doneTask('2026-09-17'), mkTask({ completed: true, date: '2026-09-18' })],
+        T,
+        7,
+    );
     const ms = moodSeries([mkMood(T, 5), mkMood('2026-09-06', 2)], T, 14);
 
     it('renderBars: 7 колонок, сегодня выделено', () => {
@@ -29,7 +33,13 @@ describe('renderBars / renderLine (главная)', () => {
 
 describe('графики аналитики', () => {
     it('renderColumns: колонки, высоты, акцент', () => {
-        const cols = renderColumns([{ label: 'Пн', value: 3, tip: 'a', accent: true }, { label: 'Вт', value: 0, tip: 'b' }], { height: 100, showValues: true });
+        const cols = renderColumns(
+            [
+                { label: 'Пн', value: 3, tip: 'a', accent: true },
+                { label: 'Вт', value: 0, tip: 'b' },
+            ],
+            { height: 100, showValues: true },
+        );
         assert.equal(count(cols, /class="col"/g), 2);
         assert.ok(cols.includes('col__bar--accent') && cols.includes('height:100px') && cols.includes('height:0px'));
     });
@@ -40,7 +50,10 @@ describe('графики аналитики', () => {
     });
 
     it('renderHBars: экранирует и считает ширину', () => {
-        const hb = renderHBars([{ label: '<i>Дом</i>', value: 5, valueText: '5' }, { label: 'Ещё', value: 0, valueText: '0' }]);
+        const hb = renderHBars([
+            { label: '<i>Дом</i>', value: 5, valueText: '5' },
+            { label: 'Ещё', value: 0, valueText: '0' },
+        ]);
         assert.ok(!hb.includes('<i>') && hb.includes('&lt;i&gt;') && hb.includes('width:100%') && hb.includes('width:0%'));
     });
 
@@ -51,7 +64,15 @@ describe('графики аналитики', () => {
     });
 
     it('renderDonut: нулевые сегменты пропускаются, NaN нет', () => {
-        const donut = renderDonut([{ label: 'a', value: 3, color: 'red' }, { label: 'b', value: 0, color: 'blue' }, { label: 'c', value: 1, color: 'green' }], '4.5', 'среднее');
+        const donut = renderDonut(
+            [
+                { label: 'a', value: 3, color: 'red' },
+                { label: 'b', value: 0, color: 'blue' },
+                { label: 'c', value: 1, color: 'green' },
+            ],
+            '4.5',
+            'среднее',
+        );
         assert.equal(count(donut, /donut__seg/g), 2);
         assert.ok(!donut.includes('NaN'));
         assert.ok(!renderDonut([{ label: 'a', value: 0, color: 'red' }], '—', 'x').includes('donut__seg'));

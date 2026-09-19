@@ -166,7 +166,8 @@ function renderSearch(): void {
         const title = document.createElement('p');
         title.className = 'search__group';
         const count = found.counts[key];
-        title.textContent = count > hits.length ? `${GROUP_TITLES[key]} · показаны ${hits.length} из ${count}` : `${GROUP_TITLES[key]} · ${count}`;
+        title.textContent =
+            count > hits.length ? `${GROUP_TITLES[key]} · показаны ${hits.length} из ${count}` : `${GROUP_TITLES[key]} · ${count}`;
         results.appendChild(title);
 
         for (const hit of hits) {
@@ -195,7 +196,9 @@ function setupSearch(): void {
     if (kbd) kbd.textContent = /Mac|iPhone|iPad/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
 
     input.addEventListener('focus', openSearch);
-    input.addEventListener('click', () => { if (!isSearchOpen()) openSearch(); });
+    input.addEventListener('click', () => {
+        if (!isSearchOpen()) openSearch();
+    });
     input.addEventListener('input', () => {
         if (!isSearchOpen()) openSearch();
         else renderSearch();

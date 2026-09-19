@@ -1,7 +1,16 @@
 // settings.ts — страница настроек: профиль и экспорт данных.
 // Тема (System / Light / Dark) переключается в theme.ts.
 
-import { applyBackup, backupFilename, buildBackup, parseBackup, serializeBackup, type Backup, type BackupCounts, type ImportSummary } from './backup';
+import {
+    applyBackup,
+    backupFilename,
+    buildBackup,
+    parseBackup,
+    serializeBackup,
+    type Backup,
+    type BackupCounts,
+    type ImportSummary,
+} from './backup';
 import { formatDateShort } from './dates';
 import { exportFullData } from './exporter';
 import { loadSettings, saveSettings } from './store';
@@ -23,7 +32,9 @@ function setupProfile() {
         if (!hint) return;
         hint.textContent = 'Сохранено';
         window.clearTimeout(hideTimer);
-        hideTimer = window.setTimeout(() => { hint.textContent = ''; }, 2000);
+        hideTimer = window.setTimeout(() => {
+            hint.textContent = '';
+        }, 2000);
     });
 }
 
@@ -109,7 +120,9 @@ function setupBackup(): void {
     downloadBtn.addEventListener('click', () => {
         const backup = buildBackup();
         downloadText(serializeBackup(backup), backupFilename(), 'application/json');
-        setBackupStatus(`Копия сохранена: ${countsText({ tasks: backup.tasks.length, habits: backup.habits.length, mood: backup.mood.length })}.`);
+        setBackupStatus(
+            `Копия сохранена: ${countsText({ tasks: backup.tasks.length, habits: backup.habits.length, mood: backup.mood.length })}.`,
+        );
     });
 
     $('backup-choose')?.addEventListener('click', () => fileInput.click());
@@ -133,7 +146,10 @@ function setupBackup(): void {
         pending = result.backup;
         replaceArmed = false;
         const when = result.backup.exportedAt ? new Date(result.backup.exportedAt) : null;
-        const whenText = when && !isNaN(when.getTime()) ? ` от ${formatDateShort(`${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}-${String(when.getDate()).padStart(2, '0')}`)}` : '';
+        const whenText =
+            when && !isNaN(when.getTime())
+                ? ` от ${formatDateShort(`${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}-${String(when.getDate()).padStart(2, '0')}`)}`
+                : '';
         $('import-summary')!.textContent = `В копии${whenText}: ${countsText(result.counts)}.`;
         $('import-replace')!.textContent = 'Заменить всё';
         setBackupStatus('');

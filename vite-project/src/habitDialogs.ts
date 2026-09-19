@@ -121,7 +121,9 @@ function renderHistory(api: HabitApi): void {
     const monthKey = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
 
     el('hh-title')!.textContent = habit.text;
-    el('hh-month')!.textContent = capitalize(new Date(viewYear, viewMonth, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''));
+    el('hh-month')!.textContent = capitalize(
+        new Date(viewYear, viewMonth, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''),
+    );
 
     // Статистика месяца: только прошедшие дни (включая сегодня), и только по графику
     let dueCount = 0;
@@ -133,7 +135,9 @@ function renderHistory(api: HabitApi): void {
         if (marked.has(date)) doneCount++;
     }
     el('hh-stat')!.textContent =
-        dueCount === 0 ? 'В этом месяце дней по графику ещё не было.' : `Отмечено ${doneCount} из ${dueCount} дней по графику · ${Math.round((doneCount / dueCount) * 100)}%`;
+        dueCount === 0
+            ? 'В этом месяце дней по графику ещё не было.'
+            : `Отмечено ${doneCount} из ${dueCount} дней по графику · ${Math.round((doneCount / dueCount) * 100)}%`;
 
     const isCurrentMonth = monthKey === today.slice(0, 7);
     el<HTMLButtonElement>('hh-next')!.disabled = isCurrentMonth;
@@ -211,12 +215,18 @@ export function setupHabitDialogs(api: HabitApi): void {
         });
         el('hh-prev')?.addEventListener('click', () => {
             viewMonth--;
-            if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+            if (viewMonth < 0) {
+                viewMonth = 11;
+                viewYear--;
+            }
             renderHistory(api);
         });
         el('hh-next')?.addEventListener('click', () => {
             viewMonth++;
-            if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+            if (viewMonth > 11) {
+                viewMonth = 0;
+                viewYear++;
+            }
             renderHistory(api);
         });
         el('hh-grid')?.addEventListener('click', (e) => {

@@ -60,7 +60,8 @@ function renderHeader(tasks: Task[], habits: Habit[], today: string): void {
     if (tasks.length > 0 || habits.length > 0) {
         const parts: string[] = [];
         if (dueNow > 0) parts.push(`${dueNow} ${plural(dueNow, ['задача', 'задачи', 'задач'])} на сегодня и просроченных`);
-        if (habitStats.left > 0) parts.push(`${habitStats.left} ${plural(habitStats.left, ['привычка ждёт', 'привычки ждут', 'привычек ждут'])} отметки`);
+        if (habitStats.left > 0)
+            parts.push(`${habitStats.left} ${plural(habitStats.left, ['привычка ждёт', 'привычки ждут', 'привычек ждут'])} отметки`);
         sub = parts.length > 0 ? `${parts.join(', ')}.` : 'На сегодня всё сделано — можно отдыхать.';
     }
     setText('#greeting-sub', sub);
@@ -295,7 +296,10 @@ function renderDetails(tasks: Task[], today: string): void {
         <span class="field__label">Приоритет</span>
         <div class="segmented" role="radiogroup" aria-label="Приоритет">
           ${(['low', 'normal', 'high'] as Priority[])
-              .map((p) => `<label class="segmented__opt"><input type="radio" name="d-priority" value="${p}" /><span class="segmented__btn">${PRIORITY_LABELS[p]}</span></label>`)
+              .map(
+                  (p) =>
+                      `<label class="segmented__opt"><input type="radio" name="d-priority" value="${p}" /><span class="segmented__btn">${PRIORITY_LABELS[p]}</span></label>`,
+              )
               .join('')}
         </div>
       </div>
@@ -328,7 +332,9 @@ function renderDetails(tasks: Task[], today: string): void {
     if (savedFlash) {
         savedFlash = false;
         hint.textContent = 'Сохранено';
-        window.setTimeout(() => { hint.textContent = ''; }, 2000);
+        window.setTimeout(() => {
+            hint.textContent = '';
+        }, 2000);
     }
 
     form.addEventListener('submit', (e) => {

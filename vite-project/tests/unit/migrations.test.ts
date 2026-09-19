@@ -14,13 +14,16 @@ describe('migrate', () => {
     });
 
     it('данные из более новой версии отклоняются с понятной ошибкой', () => {
-        assert.throws(() => migrate(empty, SCHEMA_VERSION + 1), (e: unknown) => {
-            assert.ok(e instanceof SchemaTooNewError);
-            assert.equal(e.found, SCHEMA_VERSION + 1);
-            assert.equal(e.supported, SCHEMA_VERSION);
-            assert.match(e.message, /более новой версией/);
-            return true;
-        });
+        assert.throws(
+            () => migrate(empty, SCHEMA_VERSION + 1),
+            (e: unknown) => {
+                assert.ok(e instanceof SchemaTooNewError);
+                assert.equal(e.found, SCHEMA_VERSION + 1);
+                assert.equal(e.supported, SCHEMA_VERSION);
+                assert.match(e.message, /более новой версией/);
+                return true;
+            },
+        );
     });
 
     it('миграции применяются по цепочке в правильном порядке', () => {
@@ -49,7 +52,11 @@ describe('migrate', () => {
     });
 
     it('в реестре нет пропусков: от 0 до текущей версии есть шаг для каждой версии', () => {
-        for (let v = 0; v < SCHEMA_VERSION; v++) assert.ok(MIGRATIONS.some((m) => m.from === v && m.to === v + 1), `нет шага ${v}→${v + 1}`);
+        for (let v = 0; v < SCHEMA_VERSION; v++)
+            assert.ok(
+                MIGRATIONS.some((m) => m.from === v && m.to === v + 1),
+                `нет шага ${v}→${v + 1}`,
+            );
     });
 });
 
@@ -63,7 +70,10 @@ describe('миграция 0 → 1 (данные до появления вер�
             'мусор',
             null,
         ],
-        habits: [{ text: 'без id', dates: [] }, { id: 'h1', text: 'с id', dates: [] }],
+        habits: [
+            { text: 'без id', dates: [] },
+            { id: 'h1', text: 'с id', dates: [] },
+        ],
         mood: [{ date: '2026-09-19', rating: 4 }],
         settings: { themeMode: 'dark' },
     };
@@ -113,7 +123,10 @@ describe('миграция 0 → 1 (данные до появления вер�
 describe('initStore и версия схемы', () => {
     const legacyBackend = () =>
         createMemoryBackend({
-            tasks: [{ text: 'старая', checked: true }, { id: 'a', text: 'новая' }],
+            tasks: [
+                { text: 'старая', checked: true },
+                { id: 'a', text: 'новая' },
+            ],
             habits: [{ text: 'привычка без id', dates: ['2026-09-19'] }],
             userSettings: { themeMode: 'dark', userName: 'Аня' },
         });
@@ -137,7 +150,10 @@ describe('initStore и версия схемы', () => {
         const saved = backend.data.get('migrationBackup') as { fromVersion: number; savedAt: string; data: RawData };
         assert.equal(saved.fromVersion, 0);
         assert.ok(!Number.isNaN(Date.parse(saved.savedAt)));
-        assert.deepEqual(saved.data.tasks, [{ text: 'старая', checked: true }, { id: 'a', text: 'новая' }]); // как было
+        assert.deepEqual(saved.data.tasks, [
+            { text: 'старая', checked: true },
+            { id: 'a', text: 'новая' },
+        ]); // как было
     });
 
     it('id, выданные при миграции, постоянны: после перезапуска те же', async () => {
@@ -145,7 +161,10 @@ describe('initStore и версия схемы', () => {
         await initStore(backend);
         const firstIds = loadHabits().map((h) => h.id);
         await initStore(backend);
-        assert.deepEqual(loadHabits().map((h) => h.id), firstIds);
+        assert.deepEqual(
+            loadHabits().map((h) => h.id),
+            firstIds,
+        );
     });
 
     it('актуальные данные не мигрируют и ничего не переписывают', async () => {

@@ -81,7 +81,10 @@ function renderKpis(days: number, today: string): void {
 
     if (habitStats.rate !== null) {
         setText('[data-kpi="habits"]', `${habitStats.rate}%`);
-        setText('[data-kpi-note="habits"]', habitStats.prevRate === null ? 'дней с отметкой' : deltaNote(habitStats.rate - habitStats.prevRate, ' п.п.'));
+        setText(
+            '[data-kpi-note="habits"]',
+            habitStats.prevRate === null ? 'дней с отметкой' : deltaNote(habitStats.rate - habitStats.prevRate, ' п.п.'),
+        );
     } else {
         setText('[data-kpi="habits"]', '—');
         setText('[data-kpi-note="habits"]', 'привычек пока нет');
@@ -89,7 +92,10 @@ function renderKpis(days: number, today: string): void {
 
     if (mood.avg !== null) {
         setText('[data-kpi="mood"]', mood.avg);
-        setText('[data-kpi-note="mood"]', mood.prevAvg === null ? `${mood.entries.length} оценок за период` : deltaNote(mood.avg - mood.prevAvg));
+        setText(
+            '[data-kpi-note="mood"]',
+            mood.prevAvg === null ? `${mood.entries.length} оценок за период` : deltaNote(mood.avg - mood.prevAvg),
+        );
     } else {
         setText('[data-kpi="mood"]', '—');
         setText('[data-kpi-note="mood"]', 'оценок за период нет');
@@ -115,7 +121,10 @@ function renderTaskCharts(days: number, today: string): void {
     }));
     const every = days <= 7 ? 1 : weekly ? 2 : 5;
 
-    setText('#an-tasks-meta', `всего ${stats.total} · в среднем ${(Math.round(stats.perDay * 10) / 10).toString().replace('.', ',')} в день`);
+    setText(
+        '#an-tasks-meta',
+        `всего ${stats.total} · в среднем ${(Math.round(stats.perDay * 10) / 10).toString().replace('.', ',')} в день`,
+    );
     const box = $('#an-tasks-days');
     if (box) {
         box.innerHTML =
@@ -138,7 +147,12 @@ function renderTaskCharts(days: number, today: string): void {
             stats.total === 0
                 ? '<p class="viz__empty">Пока нет данных.</p>'
                 : renderColumns(
-                      totals.map((v, i) => ({ label: WEEKDAYS[i], value: v, tip: `${WEEKDAYS[i]}: ${v}`, accent: bw !== null && i === bw.best })),
+                      totals.map((v, i) => ({
+                          label: WEEKDAYS[i],
+                          value: v,
+                          tip: `${WEEKDAYS[i]}: ${v}`,
+                          accent: bw !== null && i === bw.best,
+                      })),
                       { height: 130, showValues: true },
                   );
     }
@@ -150,7 +164,9 @@ function renderTaskCharts(days: number, today: string): void {
         catBox.innerHTML =
             cats.length === 0
                 ? '<p class="viz__empty">Пока нет данных.</p>'
-                : renderHBars(cats.map((c) => ({ label: c.name, value: c.count, valueText: String(c.count), tip: `${c.name}: ${c.count}` })));
+                : renderHBars(
+                      cats.map((c) => ({ label: c.name, value: c.count, valueText: String(c.count), tip: `${c.name}: ${c.count}` })),
+                  );
     }
 }
 
@@ -177,8 +193,10 @@ function renderHabitChart(days: number, today: string): void {
             return {
                 label: r.text,
                 cells: r.marks.map((m) => (m ? 1 : 0)),
-                off: r.marks.map((m, i) => !m && !r.due[i]),   // не по графику и не отмечено — «выходной»
-                tips: r.marks.map((m, i) => `${formatDateShort(stats.dates[i])} — ${r.text}: ${m ? 'отмечено' : r.due[i] ? 'нет' : 'не по графику'}`),
+                off: r.marks.map((m, i) => !m && !r.due[i]), // не по графику и не отмечено — «выходной»
+                tips: r.marks.map(
+                    (m, i) => `${formatDateShort(stats.dates[i])} — ${r.text}: ${m ? 'отмечено' : r.due[i] ? 'нет' : 'не по графику'}`,
+                ),
                 value: `${r.percent}%`,
             };
         }
@@ -191,7 +209,9 @@ function renderHabitChart(days: number, today: string): void {
             const done = r.marks.slice(from, end).filter((m, i) => m && r.due[from + i]).length;
             cells.unshift(dueN === 0 ? 0 : done / dueN);
             off.unshift(dueN === 0);
-            tips.unshift(`Неделя с ${formatDateShort(stats.dates[from])} — ${r.text}: ${dueN === 0 ? 'нет дней по графику' : `${done} из ${dueN}`}`);
+            tips.unshift(
+                `Неделя с ${formatDateShort(stats.dates[from])} — ${r.text}: ${dueN === 0 ? 'нет дней по графику' : `${done} из ${dueN}`}`,
+            );
         }
         return { label: r.text, cells, off, tips, value: `${r.percent}%` };
     });
@@ -229,7 +249,8 @@ function renderMoodCharts(days: number, today: string): void {
                 `<div class="legend__row"><span class="legend__dot" style="background:${s.color}"></span><span>${s.label}</span><span class="legend__count">${s.value}</span><span class="legend__pct">${Math.round((s.value / total) * 100)}%</span></div>`,
         )
         .join('');
-    if (donutBox) donutBox.innerHTML = `<div class="donut-wrap">${renderDonut(segments, String(stats.avg ?? '—'), 'среднее')}<div class="legend">${legend}</div></div>`;
+    if (donutBox)
+        donutBox.innerHTML = `<div class="donut-wrap">${renderDonut(segments, String(stats.avg ?? '—'), 'среднее')}<div class="legend">${legend}</div></div>`;
 }
 
 // ===== Наблюдения и советы =====
@@ -301,7 +322,12 @@ function renderAdvice(days: number, today: string): void {
     const frequent = mood.entries.length > 0 ? MOOD_WORDS[top] : '';
 
     const rows: [string, string][] = [
-        ['Задачи', tasks.length > 0 ? generateTaskAdvice(stats.perDay, taskStreak(tasks, today)) : 'Добавьте первую задачу — и здесь появится совет.'],
+        [
+            'Задачи',
+            tasks.length > 0
+                ? generateTaskAdvice(stats.perDay, taskStreak(tasks, today))
+                : 'Добавьте первую задачу — и здесь появится совет.',
+        ],
         ['Привычки', habits.length > 0 ? generateHabitAdvice(bestStreak) : 'Добавьте привычку — и здесь появится совет.'],
         ['Настроение', mood.avg !== null ? generateMoodAdvice(mood.avg, frequent) : 'Запишите настроение — и здесь появится совет.'],
     ];

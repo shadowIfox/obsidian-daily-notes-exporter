@@ -24,7 +24,8 @@ function showFatal(error: unknown): void {
     console.error(error);
     const box = document.createElement('div');
     box.setAttribute('role', 'alert');
-    box.style.cssText = 'position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#fff8ee;color:#3a2a10;font:16px/1.5 system-ui;text-align:center;z-index:9999';
+    box.style.cssText =
+        'position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#fff8ee;color:#3a2a10;font:16px/1.5 system-ui;text-align:center;z-index:9999';
     box.textContent = `Не удалось открыть данные: ${error instanceof Error ? error.message : String(error)}`;
     document.body.append(box);
 }

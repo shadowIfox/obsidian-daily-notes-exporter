@@ -65,7 +65,10 @@ describe('buildNotices', () => {
     });
 
     it('выполненные и без даты не в счёт', () => {
-        assert.deepEqual(buildNotices([mkTask({ date: '2026-01-01', completed: true }), mkTask({ text: 'без даты' })], [], [], T, '10:00'), []);
+        assert.deepEqual(
+            buildNotices([mkTask({ date: '2026-01-01', completed: true }), mkTask({ text: 'без даты' })], [], [], T, '10:00'),
+            [],
+        );
     });
 
     it('привычка не по графику не попадает в «без отметки»', () => {

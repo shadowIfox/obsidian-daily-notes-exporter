@@ -14,7 +14,10 @@ describe('экспорт: Markdown / CSV / PDF-HTML', () => {
                 { id: 'c', text: 'Без даты', date: '', category: '', completed: false },
             ]);
             await seed.habits([{ id: 'h', text: 'Зарядка', dates: [T, '2026-09-18', '2026-08-01'] }]);
-            await seed.mood([{ date: T, rating: 4, note: 'ок, <b>да</b>' }, { date: '2026-08-01', rating: 2, note: '' }]);
+            await seed.mood([
+                { date: T, rating: 4, note: 'ок, <b>да</b>' },
+                { date: '2026-08-01', rating: 2, note: '' },
+            ]);
         };
 
         it('неделя в Markdown', async () => {
@@ -42,7 +45,10 @@ describe('экспорт: Markdown / CSV / PDF-HTML', () => {
 
         it('привычка без отметок за день всё равно выводится (0/1)', async () => {
             await fill();
-            assert.equal(buildExport({ period: 'day', category: 'habits', format: 'md' }, '2026-01-01').content.includes('Нет данных'), false);
+            assert.equal(
+                buildExport({ period: 'day', category: 'habits', format: 'md' }, '2026-01-01').content.includes('Нет данных'),
+                false,
+            );
         });
     });
 
@@ -59,10 +65,26 @@ describe('экспорт: Markdown / CSV / PDF-HTML', () => {
     });
 
     describe('задачи со временем, приоритетом и заметками', () => {
-        const task = (o: Record<string, unknown>) => ({ text: 'т', date: '', category: '', priority: 'normal', notes: '', completed: false, ...o });
+        const task = (o: Record<string, unknown>) => ({
+            text: 'т',
+            date: '',
+            category: '',
+            priority: 'normal',
+            notes: '',
+            completed: false,
+            ...o,
+        });
         const fill = async () => {
             await seed.tasks([
-                task({ id: 'a', text: 'Звонок', date: T, time: '14:30', category: 'Работа', priority: 'high', notes: 'строка 1\nстрока "2"' }),
+                task({
+                    id: 'a',
+                    text: 'Звонок',
+                    date: T,
+                    time: '14:30',
+                    category: 'Работа',
+                    priority: 'high',
+                    notes: 'строка 1\nстрока "2"',
+                }),
                 task({ id: 'b', text: 'Обычная', date: T }),
                 task({ id: 'c', text: 'Потом', date: T, priority: 'low', completed: true, completedAt: T }),
             ]);

@@ -76,10 +76,11 @@ describe('сводки главной', () => {
     });
 
     it('habitOverview', () => {
-        assert.deepEqual(
-            S.habitOverview([mkHabit({ dates: [T, '2026-09-18'] }), mkHabit({ dates: [] })], T),
-            { doneToday: 1, left: 1, bestStreak: 2 },
-        );
+        assert.deepEqual(S.habitOverview([mkHabit({ dates: [T, '2026-09-18'] }), mkHabit({ dates: [] })], T), {
+            doneToday: 1,
+            left: 1,
+            bestStreak: 2,
+        });
         assert.equal(S.habitOverview([], T).bestStreak, 0);
     });
 
@@ -119,13 +120,19 @@ describe('ряды для графиков', () => {
         assert.equal(days[6].count, 2);
         assert.equal(days.find((d) => d.date === '2026-09-17')!.count, 1);
         assert.equal(days.find((d) => d.date === '2026-09-18')!.count, 1);
-        assert.equal(days.reduce((a, d) => a + d.count, 0), 4);
+        assert.equal(
+            days.reduce((a, d) => a + d.count, 0),
+            4,
+        );
     });
 
     it('moodSeries: окно и пустые данные', () => {
         const ms = S.moodSeries([mkMood(T, 5), mkMood('2026-09-06', 2), mkMood('2026-09-05', 1)], T, 14);
         assert.equal(ms.points.length, 2); // 5 сентября — вне окна (14 дней: 6…19)
-        assert.deepEqual(ms.points.map((p) => p.i), [0, 13]);
+        assert.deepEqual(
+            ms.points.map((p) => p.i),
+            [0, 13],
+        );
         assert.equal(S.moodSeries([], T).points.length, 0);
     });
 });
@@ -223,7 +230,15 @@ describe('фильтры и сортировка раздела «Задачи»
 });
 
 describe('аналитика по периодам', () => {
-    const tasks = [doneTask(T), doneTask(T), doneTask('2026-09-15'), doneTask('2026-09-08'), doneTask('2026-09-05'), doneTask('2026-08-25'), doneTask('2026-08-01')];
+    const tasks = [
+        doneTask(T),
+        doneTask(T),
+        doneTask('2026-09-15'),
+        doneTask('2026-09-08'),
+        doneTask('2026-09-05'),
+        doneTask('2026-08-25'),
+        doneTask('2026-08-01'),
+    ];
 
     it('taskPeriodStats: окно и предыдущее окно', () => {
         let st = S.taskPeriodStats(tasks, T, 7);
@@ -252,12 +267,18 @@ describe('аналитика по периодам', () => {
 
     it('weekdayTotals и aggregateWeeks', () => {
         const byDay = S.taskPeriodStats(tasks, T, 7).byDay;
-        assert.equal(S.weekdayTotals(byDay).reduce((a, b) => a + b, 0), 3);
+        assert.equal(
+            S.weekdayTotals(byDay).reduce((a, b) => a + b, 0),
+            3,
+        );
         assert.equal(S.weekdayTotals(byDay)[5], 2); // суббота 19 сентября
         const weeks = S.aggregateWeeks(S.taskPeriodStats(tasks, T, 91).byDay);
         assert.equal(weeks.length, 13);
         assert.equal(weeks[12].count, 3); // последняя неделя: 13–19 сентября
-        assert.equal(weeks.reduce((a, w) => a + w.count, 0), 7); // все 7 задач попадают в 91 день
+        assert.equal(
+            weeks.reduce((a, w) => a + w.count, 0),
+            7,
+        ); // все 7 задач попадают в 91 день
         const odd = S.aggregateWeeks(S.taskPeriodStats([], T, 30).byDay);
         assert.equal(odd.length, 5); // 30 = 4 полные недели + хвост из 2 дней
         assert.equal(odd[0].date, '2026-08-21');
@@ -265,7 +286,13 @@ describe('аналитика по периодам', () => {
 
     it('categoryBreakdown: по убыванию, при равенстве по алфавиту, с лимитом', () => {
         const cats = S.categoryBreakdown(
-            [doneTask(T, { category: 'Работа' }), doneTask(T, { category: 'Работа' }), doneTask(T, { category: 'Дом' }), doneTask(T), doneTask('2026-01-01', { category: 'Старая' })],
+            [
+                doneTask(T, { category: 'Работа' }),
+                doneTask(T, { category: 'Работа' }),
+                doneTask(T, { category: 'Дом' }),
+                doneTask(T),
+                doneTask('2026-01-01', { category: 'Старая' }),
+            ],
             T,
             30,
             2,
@@ -331,10 +358,25 @@ describe('аналитика по периодам', () => {
         });
 
         it('доля считается по привычкам, назначенным на этот день', () => {
-            assert.ok(S.moodVsHabits(habit, daysBack(6).map((d, i) => mkMood(d, i % 2 === 0 ? 5 : 1)), T, 30));
+            assert.ok(
+                S.moodVsHabits(
+                    habit,
+                    daysBack(6).map((d, i) => mkMood(d, i % 2 === 0 ? 5 : 1)),
+                    T,
+                    30,
+                ),
+            );
             // день, когда ничего не назначено, пропускается
             const mondays = [mkHabit({ days: [0] })];
-            assert.equal(S.moodVsHabits(mondays, daysBack(6).map((d, i) => mkMood(d, i % 2 === 0 ? 5 : 1)), T, 30), null);
+            assert.equal(
+                S.moodVsHabits(
+                    mondays,
+                    daysBack(6).map((d, i) => mkMood(d, i % 2 === 0 ? 5 : 1)),
+                    T,
+                    30,
+                ),
+                null,
+            );
         });
     });
 });

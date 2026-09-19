@@ -7,9 +7,9 @@ import { downloadText } from './utils/download';
 import { escapeHtml } from './utils/html';
 
 export type ExportParams = {
-    period: string;      // 'day' | 'week' | 'month'
-    category: string;    // 'all' | 'tasks' | 'habits' | 'mood'
-    format: string;      // 'md' | 'csv' | 'pdf'
+    period: string; // 'day' | 'week' | 'month'
+    category: string; // 'all' | 'tasks' | 'habits' | 'mood'
+    format: string; // 'md' | 'csv' | 'pdf'
 };
 
 export type ExportFile = { content: string; filename: string; mime: string };
@@ -49,16 +49,14 @@ function collectData({ period, category }: ExportParams, today: string): ExportD
     const withMood = category === 'all' || category === 'mood';
 
     // В период попадают задачи с дедлайном или выполнением в эти дни, а также невыполненные без даты
-    const tasks = withTasks
-        ? loadTasks().filter((t) => inRange(t.date) || inRange(t.completedAt) || (!t.date && !t.completed))
-        : [];
+    const tasks = withTasks ? loadTasks().filter((t) => inRange(t.date) || inRange(t.completedAt) || (!t.date && !t.completed)) : [];
 
     const habits = withHabits
         ? loadActiveHabits().map((h) => {
-            // считаем только дни по графику привычки
-            const due = lastNDates(days, to).filter((d) => isDue(h, d));
-            return { name: h.text, daysDone: due.filter((d) => h.dates.includes(d)).length, totalDays: due.length };
-        })
+              // считаем только дни по графику привычки
+              const due = lastNDates(days, to).filter((d) => isDue(h, d));
+              return { name: h.text, daysDone: due.filter((d) => h.dates.includes(d)).length, totalDays: due.length };
+          })
         : [];
 
     const mood = withMood ? loadMood().filter((m) => inRange(m.date)) : [];
@@ -97,7 +95,12 @@ function toMarkdown(d: ExportData, today: string): string {
             for (const t of list) {
                 out += `- [${t.completed ? 'x' : ' '}] ${taskLine(t)}\n`;
                 // заметка — цитатой под задачей (в Obsidian отображается как блок)
-                if (t.notes) out += t.notes.split('\n').map((l) => `  > ${l}`).join('\n') + '\n';
+                if (t.notes)
+                    out +=
+                        t.notes
+                            .split('\n')
+                            .map((l) => `  > ${l}`)
+                            .join('\n') + '\n';
             }
             out += '\n';
         }
@@ -130,7 +133,15 @@ function toCsv(d: ExportData): string {
     if (d.tasks.length) {
         out += csvRow(['Дата', 'Время', 'Задача', 'Категория', 'Приоритет', 'Статус', 'Заметка']);
         for (const t of d.tasks) {
-            out += csvRow([t.date, t.time ?? '', t.text, t.category, PRIORITY_LABELS[t.priority], t.completed ? 'выполнено' : 'не выполнено', t.notes]);
+            out += csvRow([
+                t.date,
+                t.time ?? '',
+                t.text,
+                t.category,
+                PRIORITY_LABELS[t.priority],
+                t.completed ? 'выполнено' : 'не выполнено',
+                t.notes,
+            ]);
         }
         out += '\n';
     }
@@ -173,8 +184,8 @@ function toHtml(d: ExportData, today: string): string {
         body += '<h2>Привычки</h2><ul>' + d.habits.map((h) => li(`${h.name}: ${h.daysDone}/${h.totalDays} дней`)).join('') + '</ul>';
     }
     if (d.mood.length) {
-        body += '<h2>Настроение</h2><ul>'
-            + d.mood.map((m) => li(`${m.date}: ${m.rating}/5${m.note ? ' — ' + m.note : ''}`)).join('') + '</ul>';
+        body +=
+            '<h2>Настроение</h2><ul>' + d.mood.map((m) => li(`${m.date}: ${m.rating}/5${m.note ? ' — ' + m.note : ''}`)).join('') + '</ul>';
     }
 
     return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Экспорт данных</title>

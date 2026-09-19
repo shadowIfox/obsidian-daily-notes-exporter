@@ -2,10 +2,12 @@
 // и заново открываем store, чтобы он их прочитал — как при запуске приложения.
 import { initStore } from '../../src/store';
 
-const put = (key: string) => async (value: unknown): Promise<void> => {
-    localStorage.setItem(key, JSON.stringify(value));
-    await initStore();
-};
+const put =
+    (key: string) =>
+    async (value: unknown): Promise<void> => {
+        localStorage.setItem(key, JSON.stringify(value));
+        await initStore();
+    };
 
 export const seed = {
     tasks: put('tasks'),

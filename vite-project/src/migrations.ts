@@ -29,7 +29,9 @@ export class SchemaTooNewError extends Error {
     supported: number;
 
     constructor(found: number, supported: number) {
-        super(`Данные сохранены более новой версией приложения (схема ${found}, эта версия понимает до ${supported}). Обновите приложение, иначе данные могут быть повреждены.`);
+        super(
+            `Данные сохранены более новой версией приложения (схема ${found}, эта версия понимает до ${supported}). Обновите приложение, иначе данные могут быть повреждены.`,
+        );
         this.name = 'SchemaTooNewError';
         this.found = found;
         this.supported = supported;

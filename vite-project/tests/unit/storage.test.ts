@@ -2,7 +2,18 @@ import assert from 'node:assert/strict';
 import { describe, it, vi } from 'vitest';
 import { SCHEMA_VERSION } from '../../src/migrations';
 import { createMemoryBackend, localStorageBackend, type StorageBackend } from '../../src/storage';
-import { flushStore, initStore, loadHabits, loadMood, loadSettings, loadTasks, saveHabits, saveMood, saveSettings, saveTasks } from '../../src/store';
+import {
+    flushStore,
+    initStore,
+    loadHabits,
+    loadMood,
+    loadSettings,
+    loadTasks,
+    saveHabits,
+    saveMood,
+    saveSettings,
+    saveTasks,
+} from '../../src/store';
 import { mkHabit, mkMood, mkTask } from './factories';
 
 describe('localStorageBackend', () => {
@@ -23,7 +34,10 @@ describe('память как хранилище', () => {
     it('store работает без localStorage', async () => {
         const memory = createMemoryBackend({ tasks: [{ id: 'm1', text: 'из памяти' }] });
         await initStore(memory);
-        assert.deepEqual(loadTasks().map((t) => t.text), ['из памяти']);
+        assert.deepEqual(
+            loadTasks().map((t) => t.text),
+            ['из памяти'],
+        );
 
         saveMood([mkMood('2026-09-19', 4)]);
         await flushStore();
@@ -75,12 +89,18 @@ describe('кэш и запись', () => {
         saveTasks(tasks);
         tasks[0].text = 'изменена снаружи';
         tasks.push(mkTask({ id: 'b' }));
-        assert.deepEqual(loadTasks().map((t) => t.text), ['исходная']);
+        assert.deepEqual(
+            loadTasks().map((t) => t.text),
+            ['исходная'],
+        );
     });
 
     it('сохранение приводит данные к нормальному виду, как это сделал бы перезапуск', () => {
         saveMood([mkMood('2026-09-19', 3), mkMood('2026-09-01', 5), mkMood('плохая', 2), mkMood('2026-09-02', 99)]);
-        assert.deepEqual(loadMood().map((m) => m.date), ['2026-09-01', '2026-09-19']);
+        assert.deepEqual(
+            loadMood().map((m) => m.date),
+            ['2026-09-01', '2026-09-19'],
+        );
     });
 
     it('save* сообщает событием datachange', () => {

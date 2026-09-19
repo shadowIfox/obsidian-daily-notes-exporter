@@ -101,7 +101,12 @@ describe('monthGrid', () => {
         const feb = monthGrid(2026, 1);
         assert.equal(feb[0][0], '2026-01-26');
         assert.equal(feb.flat().filter((d) => d.startsWith('2026-02')).length, 28);
-        assert.equal(monthGrid(2026, 11).flat().filter((d) => d.startsWith('2026-12')).length, 31);
+        assert.equal(
+            monthGrid(2026, 11)
+                .flat()
+                .filter((d) => d.startsWith('2026-12')).length,
+            31,
+        );
         assert.equal(monthGrid(2027, 0)[0][0], '2026-12-28');
     });
 });

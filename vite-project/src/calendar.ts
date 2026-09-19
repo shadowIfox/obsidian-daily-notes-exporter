@@ -55,7 +55,9 @@ function renderCalendar(tasks: Task[], today: string): void {
     const label = $('#cal-month');
     if (!grid || !label || viewYear === null) return;
 
-    label.textContent = capitalize(new Date(viewYear, viewMonth, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''));
+    label.textContent = capitalize(
+        new Date(viewYear, viewMonth, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''),
+    );
 
     // Сколько задач на каждый день: активных, выполненных, есть ли просроченные
     const byDate = new Map<string, { active: number; done: number }>();
@@ -86,7 +88,9 @@ function renderCalendar(tasks: Task[], today: string): void {
             }
             const human = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
             const aria = `${human}${total ? `, задач: ${total}` : ''}`;
-            cells.push(`<button type="button" class="${classes.join(' ')}" data-date="${date}" aria-pressed="${date === sel}" aria-label="${aria}">${d.getDate()}${dot}</button>`);
+            cells.push(
+                `<button type="button" class="${classes.join(' ')}" data-date="${date}" aria-pressed="${date === sel}" aria-label="${aria}">${d.getDate()}${dot}</button>`,
+            );
         }
     }
     grid.innerHTML = cells.join('');
@@ -232,12 +236,18 @@ export function setupSide(h: SideHandlers): void {
 
     $('#cal-prev')?.addEventListener('click', () => {
         viewMonth--;
-        if (viewMonth < 0) { viewMonth = 11; viewYear = (viewYear ?? new Date().getFullYear()) - 1; }
+        if (viewMonth < 0) {
+            viewMonth = 11;
+            viewYear = (viewYear ?? new Date().getFullYear()) - 1;
+        }
         renderSide(lastTasks, lastToday);
     });
     $('#cal-next')?.addEventListener('click', () => {
         viewMonth++;
-        if (viewMonth > 11) { viewMonth = 0; viewYear = (viewYear ?? new Date().getFullYear()) + 1; }
+        if (viewMonth > 11) {
+            viewMonth = 0;
+            viewYear = (viewYear ?? new Date().getFullYear()) + 1;
+        }
         renderSide(lastTasks, lastToday);
     });
     $('#cal-today')?.addEventListener('click', () => {
@@ -259,4 +269,3 @@ export function setupSide(h: SideHandlers): void {
     });
     $('#cal-add')?.addEventListener('click', () => openTaskModal({ date: getSelectedDate(lastToday) }));
 }
-

@@ -89,8 +89,8 @@ export type ColumnItem = {
     label: string;
     value: number;
     tip: string;
-    color?: string;    // CSS-цвет столбца (например, var(--mood-3)); по умолчанию — «чернильный»
-    accent?: boolean;  // подсветить акцентным цветом (например, максимум)
+    color?: string; // CSS-цвет столбца (например, var(--mood-3)); по умолчанию — «чернильный»
+    accent?: boolean; // подсветить акцентным цветом (например, максимум)
 };
 
 /** Столбчатая диаграмма (HTML/CSS): ширина подстраивается под контейнер сама. */
@@ -132,7 +132,10 @@ export function renderHeatmap(rows: HeatRow[], firstLabel: string, lastLabel: st
     const cols = rows[0]?.cells.length ?? 0;
     const body = rows.map((r) => {
         const cells = r.cells
-            .map((v, i) => `<span class="heat__cell${r.off?.[i] ? ' heat__cell--off' : ''}" style="--v:${v.toFixed(2)}" data-tip="${esc(r.tips[i] ?? '')}"></span>`)
+            .map(
+                (v, i) =>
+                    `<span class="heat__cell${r.off?.[i] ? ' heat__cell--off' : ''}" style="--v:${v.toFixed(2)}" data-tip="${esc(r.tips[i] ?? '')}"></span>`,
+            )
             .join('');
         return `<div class="heat__row"><span class="heat__label">${esc(r.label)}</span><div class="heat__cells" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${cells}</div><span class="heat__value">${esc(r.value)}</span></div>`;
     });
@@ -207,7 +210,10 @@ export function renderMoodArea(
 
     // Подписи оси Y (только цифры, без линий)
     const yLabels = [1, 2, 3, 4, 5]
-        .map((r) => `<text x="${padL - 10}" y="${f(y(r) + 4)}" text-anchor="end" font-size="11" font-weight="700" fill="currentColor" fill-opacity=".45">${r}</text>`)
+        .map(
+            (r) =>
+                `<text x="${padL - 10}" y="${f(y(r) + 4)}" text-anchor="end" font-size="11" font-weight="700" fill="currentColor" fill-opacity=".45">${r}</text>`,
+        )
         .join('');
 
     // Подписи оси X: не чаще, чем раз в ~80 px, последняя — «сегодня»
@@ -313,8 +319,12 @@ export function initTooltips(): void {
     document.addEventListener('mousemove', (e) => {
         if (current && !tip.hidden) move(e);
     });
-    document.addEventListener('scroll', () => {
-        tip.hidden = true;
-        current = null;
-    }, true);
+    document.addEventListener(
+        'scroll',
+        () => {
+            tip.hidden = true;
+            current = null;
+        },
+        true,
+    );
 }
