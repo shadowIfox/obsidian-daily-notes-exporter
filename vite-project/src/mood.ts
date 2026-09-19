@@ -4,6 +4,7 @@ import { renderColumns } from './viz';
 
 /** --- Глобальный массив с данными настроения --- */
 let moodData: MoodEntry[] = [];
+let pinnedDate: string | null = null; // запись из поиска, которую показываем, даже если она старше недели
 
 /** Записи за последние 7 календарных дней (включая сегодня), по возрастанию даты. */
 function lastWeekEntries(): MoodEntry[] {
@@ -21,11 +22,14 @@ function renderMoodHistory(): void {
     if (!history) return;
     history.innerHTML = '';
     const entries = lastWeekEntries().reverse();
+    const pinned = pinnedDate && !entries.some((e) => e.date === pinnedDate) ? moodData.find((e) => e.date === pinnedDate) : undefined;
+    if (pinned) entries.unshift(pinned);
     document.getElementById('mood-empty')?.classList.toggle('hidden', entries.length > 0);
 
     for (const entry of entries) {
         const li = document.createElement('li');
         li.className = 'mood-item';
+        li.dataset.date = entry.date;
 
         const rating = document.createElement('span');
         rating.className = 'mood-item__score';
@@ -42,8 +46,26 @@ function renderMoodHistory(): void {
         note.textContent = entry.note;
 
         li.append(rating, date, note);
+        if (entry === pinned) {
+            const tag = document.createElement('span');
+            tag.className = 'chip';
+            tag.textContent = 'из поиска';
+            li.appendChild(tag);
+        }
         history.appendChild(li);
     }
+}
+
+/** Показывает запись настроения в истории и подсвечивает её (переход из поиска). */
+export function revealMoodEntry(date: string): void {
+    pinnedDate = date;
+    renderMoodHistory();
+    const li = document.querySelector<HTMLElement>(`#mood-history [data-date="${CSS.escape(date)}"]`);
+    if (!li) return;
+    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    li.classList.remove('is-flash');
+    void li.offsetWidth;
+    li.classList.add('is-flash');
 }
 
 /** --- Секция: Рендер графика настроения ---
@@ -90,6 +112,7 @@ export function setupMood(): void {
         const date = todayStr();
         moodData = moodData.filter((entry) => entry.date !== date);
         moodData.push({ date, rating, note });
+        pinnedDate = null;
         saveMood(moodData);
         renderMoodHistory();
         renderMoodChart();

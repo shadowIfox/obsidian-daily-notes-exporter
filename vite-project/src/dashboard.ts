@@ -3,7 +3,7 @@
 // Статичная разметка лежит в index.html (#dashboard-section), здесь — данные и события.
 
 import { renderSide, selectDate, setupSide } from './calendar';
-import { formatDateShort, todayStr } from './dates';
+import { addDays, formatDateShort, todayStr } from './dates';
 import { toggleHabitToday } from './habits';
 import { icon } from './icons';
 import {
@@ -63,7 +63,6 @@ function renderHeader(tasks: Task[], habits: Habit[], today: string): void {
         sub = parts.length > 0 ? `${parts.join(', ')}.` : 'На сегодня всё сделано — можно отдыхать.';
     }
     setText('#greeting-sub', sub);
-    setText('#today-label', new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }));
 }
 
 function renderNumbers(tasks: Task[], habits: Habit[], today: string): void {
@@ -377,6 +376,22 @@ export function renderDashboard(): void {
     renderTaskList(tasks, today);
     renderDetails(tasks, today);
     renderSide(tasks, today);
+}
+
+/** Открывает задачу на главной: выбирает её день в календаре, подходящий фильтр списка и показывает детали. */
+export function focusTask(id: string): void {
+    const task = loadTasks().find((t) => t.id === id);
+    if (!task) return;
+    const today = todayStr();
+    if (task.date) selectDate(task.date);
+    if (!task.completed && task.date) {
+        if (task.date < today) listFilter = 'overdue';
+        else if (task.date === today) listFilter = 'today';
+        else if (task.date <= addDays(today, 7)) listFilter = 'week';
+    }
+    selectedId = id;
+    renderDashboard();
+    requestAnimationFrame(() => document.getElementById('dash-details-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 }
 
 /** Один раз навешивает обработчики на статичные элементы главной (фильтр списка). */

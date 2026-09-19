@@ -62,6 +62,8 @@ function readRecords(key: string): Raw[] {
 
 function write(key: string, value: unknown): void {
     localStorage.setItem(key, JSON.stringify(value));
+    // Сообщаем интерфейсу (например, колокольчику), что данные изменились
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('datachange'));
 }
 
 // --- Задачи ---

@@ -33,6 +33,16 @@ export function toggleHabitToday(id: string): void {
     renderHabits();
 }
 
+/** Подсвечивает привычку в списке (переход из поиска). */
+export function revealHabit(id: string): void {
+    const li = document.querySelector<HTMLElement>(`#habit-list [data-id="${CSS.escape(id)}"]`);
+    if (!li) return;
+    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    li.classList.remove('is-flash');
+    void li.offsetWidth; // перезапуск анимации
+    li.classList.add('is-flash');
+}
+
 // --- Рендер привычек ---
 function renderHabits() {
     const habitList = document.getElementById('habit-list');
@@ -47,6 +57,7 @@ function renderHabits() {
     habits.forEach((habit) => {
         const li = document.createElement('li');
         li.className = 'habit';
+        li.dataset.id = habit.id;
 
         // Чекбокс «выполнено сегодня»
         const checkbox = document.createElement('input');

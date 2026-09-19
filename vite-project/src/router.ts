@@ -13,9 +13,17 @@ const ROUTES = {
     settings: { sectionId: 'settings-section', title: 'Настройки' },
 } as const;
 
-type Route = keyof typeof ROUTES;
+export type Route = keyof typeof ROUTES;
 
 const DEFAULT_ROUTE: Route = 'dashboard';
+
+const listeners: Array<(route: Route) => void> = [];
+let afterShow: (() => void) | null = null;
+
+/** Подписка на смену раздела (например, чтобы закрыть всплывающие панели). */
+export function onRouteChange(cb: (route: Route) => void): void {
+    listeners.push(cb);
+}
 
 function currentRoute(): Route {
     const name = location.hash.replace(/^#\/?/, '');
@@ -37,6 +45,22 @@ function show(route: Route): void {
 
     if (route === 'dashboard') renderDashboard();
     if (route === 'analytics') renderAnalyticsPage();
+
+    listeners.forEach((cb) => cb(route));
+    const pending = afterShow;
+    afterShow = null;
+    pending?.();
+}
+
+/** Переходит в раздел и после отрисовки вызывает after (например, подсветить найденный элемент). */
+export function navigate(route: Route, after?: () => void): void {
+    if (currentRoute() === route) {
+        afterShow = after ?? null;
+        show(route);
+        return;
+    }
+    afterShow = after ?? null;
+    location.hash = `#/${route}`; // дальше сработает hashchange → show()
 }
 
 export function initRouter(): void {

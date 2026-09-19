@@ -11,6 +11,7 @@ import { initRouter } from './router';
 import { setupSettings } from './settings';
 import { initThemeSwitcher } from './theme';
 import { setupTodo } from './todo';
+import { setupTopbar } from './topbar';
 import { initTooltips } from './viz';
 
 // Иконки из разметки → inline-SVG (до остальной инициализации, чтобы кнопки уже были с иконками)
@@ -38,4 +39,5 @@ document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
     try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch {}
 });
 
+setupTopbar();
 initRouter();

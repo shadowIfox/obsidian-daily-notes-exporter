@@ -49,7 +49,37 @@
         <!-- ====== Верхняя панель ====== -->
         <header class="topbar">
           <span class="topbar__date" id="today-label"></span>
+
+          <div id="search" class="search">
+            <div class="search__field">
+              <button id="search-btn" type="button" class="search__btn" aria-label="Искать"><i data-icon="search" data-size="18"></i></button>
+              <input id="search-input" type="text" class="search__input" placeholder="Поиск по задачам, привычкам, настроению" autocomplete="off" spellcheck="false"
+                     role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" aria-label="Поиск" />
+              <kbd id="search-kbd" class="search__kbd">⌘K</kbd>
+            </div>
+            <div id="search-panel" class="search__panel" hidden>
+              <div id="search-scope" class="search__scope" role="group" aria-label="Где искать">
+                <span class="search__scope-label">Искать в:</span>
+                <button type="button" class="chip-btn" data-scope="all">Везде</button>
+                <button type="button" class="chip-btn" data-scope="tasks">Задачи</button>
+                <button type="button" class="chip-btn" data-scope="habits">Привычки</button>
+                <button type="button" class="chip-btn" data-scope="mood">Настроение</button>
+              </div>
+              <div id="search-results" role="listbox" aria-label="Результаты поиска"></div>
+            </div>
+          </div>
+
           <div class="topbar__actions">
+            <div id="notif" class="notif">
+              <button id="notif-btn" class="icon-btn" type="button" aria-label="Уведомления" aria-expanded="false" aria-controls="notif-panel" title="Уведомления">
+                <i data-icon="bell"></i>
+                <span id="notif-badge" class="notif__badge" hidden>0</span>
+              </button>
+              <div id="notif-panel" class="popover" hidden>
+                <p class="popover__title">Уведомления</p>
+                <div id="notif-list"></div>
+              </div>
+            </div>
             <button id="theme-toggle" class="icon-btn" type="button" aria-label="Сменить тему" title="Сменить тему">
               <i data-icon="moon" class="theme-icon-light"></i>
               <i data-icon="sun" class="theme-icon-dark"></i>
