@@ -512,6 +512,73 @@
               </div>
             </div>
 
+            <div class="card hidden" id="notif-card">
+              <h2 class="card__title">Уведомления</h2>
+              <div class="setting">
+                <div>
+                  <label class="setting__name" for="notif-enabled">Системные уведомления</label>
+                  <p class="setting__desc">Напоминания приходят, даже если окно закрыто: приложение остаётся в меню-баре</p>
+                </div>
+                <input id="notif-enabled" type="checkbox" class="check" />
+              </div>
+              <div class="setting">
+                <div>
+                  <label class="setting__name" for="notif-day-start">Начало дня</label>
+                  <p class="setting__desc">С этого времени приходят утренние напоминания</p>
+                </div>
+                <select id="notif-day-start" class="input input--sm"></select>
+              </div>
+              <div class="setting">
+                <div>
+                  <label class="setting__name" for="notif-task-start">Задачи со временем — в начале дня</label>
+                  <p class="setting__desc">По одному уведомлению на каждую задачу</p>
+                </div>
+                <input id="notif-task-start" type="checkbox" class="check" />
+              </div>
+              <div class="setting">
+                <div>
+                  <label class="setting__name" for="notif-task-before">За 2 часа до срока</label>
+                  <p class="setting__desc">Напомнит о задаче, если она к тому времени не выполнена</p>
+                </div>
+                <input id="notif-task-before" type="checkbox" class="check" />
+              </div>
+              <div class="setting">
+                <div>
+                  <label class="setting__name" for="notif-repeat">Повторное напоминание</label>
+                  <p class="setting__desc">Ещё раз напомнит о несделанном на сегодня — в удобное вам время</p>
+                </div>
+                <div class="setting__controls">
+                  <select id="notif-repeat-time" class="input input--sm" aria-label="Время повторного напоминания"></select>
+                  <input id="notif-repeat" type="checkbox" class="check" />
+                </div>
+              </div>
+              <div class="setting">
+                <div>
+                  <label class="setting__name" for="notif-morning">Утренняя сводка</label>
+                  <p class="setting__desc">Что на сегодня: задачи, просроченное и привычки</p>
+                </div>
+                <input id="notif-morning" type="checkbox" class="check" />
+              </div>
+              <div class="setting">
+                <div>
+                  <label class="setting__name" for="notif-evening">Итоги дня</label>
+                  <p class="setting__desc">Что сделано за день и напоминание записать настроение</p>
+                </div>
+                <div class="setting__controls">
+                  <select id="notif-evening-time" class="input input--sm" aria-label="Время итогов дня"></select>
+                  <input id="notif-evening" type="checkbox" class="check" />
+                </div>
+              </div>
+              <div class="setting">
+                <div>
+                  <p class="setting__name">Проверка</p>
+                  <p class="setting__desc">Пришлёт пробное уведомление. Если его нет — разрешите показ в Системных настройках → Уведомления → «Мой день»</p>
+                </div>
+                <button id="notif-test" type="button" class="btn btn--ghost">Пробное уведомление</button>
+              </div>
+              <p id="notif-status" class="hint" role="status"></p>
+            </div>
+
             <div class="card">
               <h2 class="card__title">Резервная копия</h2>
               <div class="setting">

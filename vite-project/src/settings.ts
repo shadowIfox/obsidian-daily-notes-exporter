@@ -13,9 +13,10 @@ import {
 } from './backup';
 import { formatDateShort } from './dates';
 import { exportFullData } from './exporter';
-import { loadSettings, saveSettings } from './store';
+import { loadSettings, saveSettings, type NotificationSettings } from './store';
 import { plural } from './utils/plural';
 import { downloadText } from './utils/download';
+import { isTauri } from './utils/platform';
 
 function setupProfile() {
     const form = document.getElementById('profile-form') as HTMLFormElement | null;
@@ -178,8 +179,100 @@ function setupBackup(): void {
     });
 }
 
+// ===== Системные уведомления (только в приложении) =====
+
+/** Времена «ЧЧ:ММ» с шагом в полчаса от from до to (часы), включительно. */
+function timeOptions(from: number, to: number): string[] {
+    const out: string[] = [];
+    for (let m = from * 60; m <= to * 60; m += 30)
+        out.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
+    return out;
+}
+
+function fillTimeSelect(select: HTMLSelectElement, options: string[], value: string): void {
+    // сохранённое время может не попасть в сетку (импорт копии): добавляем его, чтобы не подменить молча
+    const all = options.includes(value) ? options : [...options, value].sort();
+    select.innerHTML = all.map((t) => `<option value="${t}">${t}</option>`).join('');
+    select.value = value;
+}
+
+function setupNotifications(): void {
+    const card = $('notif-card');
+    if (!card || !isTauri()) return; // системные уведомления есть только в приложении
+    card.classList.remove('hidden');
+
+    const box = (id: string) => $<HTMLInputElement>(id)!;
+    const select = (id: string) => $<HTMLSelectElement>(id)!;
+    const status = $('notif-status')!;
+    const testBtn = $<HTMLButtonElement>('notif-test')!;
+
+    const settings = loadSettings().notifications;
+    fillTimeSelect(select('notif-day-start'), timeOptions(5, 12), settings.dayStart);
+    fillTimeSelect(select('notif-repeat-time'), timeOptions(10, 23), settings.repeatTime);
+    fillTimeSelect(select('notif-evening-time'), timeOptions(17, 23), settings.eveningTime);
+
+    const render = (n: NotificationSettings): void => {
+        box('notif-enabled').checked = n.enabled;
+        box('notif-task-start').checked = n.taskAtDayStart;
+        box('notif-task-before').checked = n.taskBeforeDeadline;
+        box('notif-repeat').checked = n.repeatEnabled;
+        box('notif-morning').checked = n.morningDigest;
+        box('notif-evening').checked = n.eveningEnabled;
+        select('notif-day-start').value = n.dayStart;
+        select('notif-repeat-time').value = n.repeatTime;
+        select('notif-evening-time').value = n.eveningTime;
+        // пока главный переключатель выключен, остальное недоступно
+        card.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('input, select, button').forEach((el) => {
+            if (el.id !== 'notif-enabled') el.disabled = !n.enabled;
+        });
+        select('notif-repeat-time').disabled = !n.enabled || !n.repeatEnabled;
+        select('notif-evening-time').disabled = !n.enabled || !n.eveningEnabled;
+    };
+
+    const read = (): NotificationSettings => ({
+        enabled: box('notif-enabled').checked,
+        dayStart: select('notif-day-start').value,
+        taskAtDayStart: box('notif-task-start').checked,
+        taskBeforeDeadline: box('notif-task-before').checked,
+        repeatEnabled: box('notif-repeat').checked,
+        repeatTime: select('notif-repeat-time').value,
+        morningDigest: box('notif-morning').checked,
+        eveningEnabled: box('notif-evening').checked,
+        eveningTime: select('notif-evening-time').value,
+    });
+
+    const setStatus = (text: string, isError = false): void => {
+        status.textContent = text;
+        status.classList.toggle('hint--error', isError);
+        status.setAttribute('role', isError ? 'alert' : 'status');
+    };
+
+    /** Пробное уведомление: заодно macOS в первый раз спрашивает разрешение на показ. */
+    const sendTest = async (): Promise<void> => {
+        try {
+            const { invoke } = await import('@tauri-apps/api/core');
+            await invoke('send_test_notification');
+            setStatus('Пробное уведомление отправлено. Если его не видно — проверьте Системные настройки → Уведомления → «Мой день».');
+        } catch (error) {
+            setStatus(`Не удалось показать уведомление: ${error instanceof Error ? error.message : String(error)}`, true);
+        }
+    };
+
+    card.addEventListener('change', (e) => {
+        const wasEnabled = loadSettings().notifications.enabled;
+        const next = read();
+        saveSettings({ notifications: next });
+        render(loadSettings().notifications);
+        if (e.target === box('notif-enabled') && next.enabled && !wasEnabled) void sendTest();
+    });
+    testBtn.addEventListener('click', () => void sendTest());
+
+    render(settings);
+}
+
 export function setupSettings() {
     setupProfile();
     setupExportModal();
     setupBackup();
+    setupNotifications();
 }

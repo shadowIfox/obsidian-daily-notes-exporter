@@ -206,6 +206,9 @@ select.input {
 .setting:last-child { padding-bottom: 0; }
 .setting__name { font-weight: 700; }
 .setting__desc { font-size: 13px; color: var(--muted); }
+.setting__controls { display: flex; align-items: center; gap: var(--s-3); }
+.setting__name { display: block; }
+.setting :disabled { opacity: 0.45; cursor: default; }
 
 /* ===== Модальное окно ===== */
 .modal { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; padding: var(--s-4); background: rgba(20, 19, 15, 0.5); backdrop-filter: blur(4px); }

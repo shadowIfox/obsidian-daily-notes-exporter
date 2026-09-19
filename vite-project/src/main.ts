@@ -4,6 +4,7 @@ import '@fontsource-variable/manrope';
 import './style.css';
 
 import { setupDashboard } from './dashboard';
+import { onNewTaskRequested } from './desktopEvents';
 import { enhanceDateInputs } from './datePicker';
 import { setupHabits } from './habits';
 import { hydrateIcons } from './icons';
@@ -78,6 +79,9 @@ async function start(): Promise<void> {
 
     setupTopbar();
     initRouter();
+
+    // «Новая задача» из меню-бара (или горячей клавишей): окно приложения открывается сразу с формой
+    if (isTauri()) void onNewTaskRequested(() => openTaskModal());
 }
 
 start().catch(showFatal);
