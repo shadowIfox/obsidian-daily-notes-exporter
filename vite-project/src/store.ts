@@ -52,11 +52,15 @@ export function newId(): string {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function readRecords(key: string): Raw[] {
+function toRecords(parsed: unknown): Raw[] {
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((x): x is Raw => typeof x === 'object' && x !== null);
+}
+
+/** Читает JSON из localStorage; при ошибке или отсутствии — пустой массив. */
+function readJson(key: string): unknown {
     try {
-        const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
-        if (!Array.isArray(parsed)) return [];
-        return parsed.filter((x): x is Raw => typeof x === 'object' && x !== null);
+        return JSON.parse(localStorage.getItem(key) ?? '[]');
     } catch {
         return [];
     }
@@ -70,8 +74,8 @@ function write(key: string, value: unknown): void {
 
 // --- Задачи ---
 
-export function loadTasks(): Task[] {
-    return readRecords(KEYS.tasks).map((t) => ({
+export function normalizeTasks(raw: unknown): Task[] {
+    return toRecords(raw).map((t) => ({
         id: str(t.id) || newId(),
         text: str(t.text),
         date: str(t.date),
@@ -83,6 +87,10 @@ export function loadTasks(): Task[] {
         completed: Boolean(t.completed ?? t.checked ?? t.done),
         completedAt: str(t.completedAt) || undefined,
     }));
+}
+
+export function loadTasks(): Task[] {
+    return normalizeTasks(readJson(KEYS.tasks));
 }
 
 export function saveTasks(tasks: Task[]): void {
@@ -98,14 +106,18 @@ function sanitizeDays(v: unknown): number[] | undefined {
     return days.length === 0 || days.length === 7 ? undefined : days;
 }
 
-export function loadHabits(): Habit[] {
-    return readRecords(KEYS.habits).map((h) => ({
+export function normalizeHabits(raw: unknown): Habit[] {
+    return toRecords(raw).map((h) => ({
         id: str(h.id) || newId(),
         text: str(h.text),
         dates: Array.isArray(h.dates) ? h.dates.filter((d): d is string => typeof d === 'string') : [],
         days: sanitizeDays(h.days),
         archived: h.archived === true ? true : undefined,
     }));
+}
+
+export function loadHabits(): Habit[] {
+    return normalizeHabits(readJson(KEYS.habits));
 }
 
 /** Привычки, которые не в архиве, — их видят все разделы, кроме самого архива. */
@@ -119,11 +131,15 @@ export function saveHabits(habits: Habit[]): void {
 
 // --- Настроение ---
 
-export function loadMood(): MoodEntry[] {
-    return readRecords(KEYS.mood)
+export function normalizeMood(raw: unknown): MoodEntry[] {
+    return toRecords(raw)
         .map((m) => ({ date: str(m.date), rating: Number(m.rating), note: str(m.note) }))
         .filter((m) => parseDateStr(m.date) !== null && m.rating >= 1 && m.rating <= 5)
         .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function loadMood(): MoodEntry[] {
+    return normalizeMood(readJson(KEYS.mood));
 }
 
 export function saveMood(entries: MoodEntry[]): void {
@@ -134,18 +150,21 @@ export function saveMood(entries: MoodEntry[]): void {
 
 const THEME_MODES: ThemeMode[] = ['system', 'light', 'dark'];
 
-export function loadSettings(): UserSettings {
+export function normalizeSettings(raw: unknown): UserSettings {
     const defaults: UserSettings = { themeMode: 'system', userName: '' };
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return defaults;
+    const r = raw as Raw;
+    return {
+        themeMode: THEME_MODES.includes(r.themeMode as ThemeMode) ? (r.themeMode as ThemeMode) : defaults.themeMode,
+        userName: str(r.userName),
+    };
+}
+
+export function loadSettings(): UserSettings {
     try {
-        const raw: unknown = JSON.parse(localStorage.getItem(KEYS.settings) ?? '{}');
-        if (typeof raw !== 'object' || raw === null) return defaults;
-        const r = raw as Raw;
-        return {
-            themeMode: THEME_MODES.includes(r.themeMode as ThemeMode) ? (r.themeMode as ThemeMode) : defaults.themeMode,
-            userName: str(r.userName),
-        };
+        return normalizeSettings(JSON.parse(localStorage.getItem(KEYS.settings) ?? '{}'));
     } catch {
-        return defaults;
+        return normalizeSettings(null);
     }
 }
 

@@ -165,6 +165,9 @@ select.input { padding-right: var(--s-3); }
 /* ===== Пустое состояние и подсказки ===== */
 .empty { padding: var(--s-6) var(--s-4); text-align: center; color: var(--muted); }
 .hint { font-size: 13px; color: var(--muted); }
+.hint--error { color: var(--danger); font-weight: 700; }
+.backup-status { margin-top: var(--s-3); min-height: 20px; }
+.import-summary { font-size: 16px; font-weight: 700; }
 
 /* ===== Строки настроек ===== */
 .setting { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-4) 0; border-top: 1px solid var(--border); }

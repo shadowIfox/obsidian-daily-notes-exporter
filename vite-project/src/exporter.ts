@@ -3,6 +3,7 @@
 import { addDays, lastNDates, todayStr } from './dates';
 import { isDue } from './stats';
 import { loadActiveHabits, loadMood, loadTasks, type MoodEntry, type Task } from './store';
+import { downloadText } from './utils/download';
 import { escapeHtml } from './utils/html';
 
 export type ExportParams = {
@@ -25,6 +26,15 @@ type ExportData = {
 
 const PERIOD_DAYS: Record<string, number> = { day: 1, week: 7, month: 30 };
 const NO_DATE = 'Без даты';
+const PRIORITY_LABELS = { low: 'низкий', normal: 'обычный', high: 'высокий' } as const;
+
+/** Строка задачи: «14:30 Название (Категория) — важно». */
+function taskLine(t: Task): string {
+    const parts = [t.time ? `${t.time} ` : '', t.text, t.category ? ` (${t.category})` : ''];
+    if (t.priority === 'high') parts.push(' — важно');
+    else if (t.priority === 'low') parts.push(' — низкий приоритет');
+    return parts.join('');
+}
 
 // ===== Сбор данных за период =====
 
@@ -85,7 +95,9 @@ function toMarkdown(d: ExportData, today: string): string {
         for (const [day, list] of groupTasksByDate(d.tasks)) {
             out += `### ${day}\n`;
             for (const t of list) {
-                out += `- [${t.completed ? 'x' : ' '}] ${t.text}${t.category ? ` (${t.category})` : ''}\n`;
+                out += `- [${t.completed ? 'x' : ' '}] ${taskLine(t)}\n`;
+                // заметка — цитатой под задачей (в Obsidian отображается как блок)
+                if (t.notes) out += t.notes.split('\n').map((l) => `  > ${l}`).join('\n') + '\n';
             }
             out += '\n';
         }
@@ -116,9 +128,9 @@ function toCsv(d: ExportData): string {
     let out = '';
 
     if (d.tasks.length) {
-        out += csvRow(['Дата', 'Задача', 'Категория', 'Статус']);
+        out += csvRow(['Дата', 'Время', 'Задача', 'Категория', 'Приоритет', 'Статус', 'Заметка']);
         for (const t of d.tasks) {
-            out += csvRow([t.date, t.text, t.category, t.completed ? 'выполнено' : 'не выполнено']);
+            out += csvRow([t.date, t.time ?? '', t.text, t.category, PRIORITY_LABELS[t.priority], t.completed ? 'выполнено' : 'не выполнено', t.notes]);
         }
         out += '\n';
     }
@@ -152,7 +164,7 @@ function toHtml(d: ExportData, today: string): string {
         for (const [day, list] of groupTasksByDate(d.tasks)) {
             body += `<h3>${escapeHtml(day)}</h3><ul>`;
             for (const t of list) {
-                body += li(`${t.completed ? '☑' : '☐'} ${t.text}${t.category ? ` (${t.category})` : ''}`);
+                body += li(`${t.completed ? '☑' : '☐'} ${taskLine(t)}${t.notes ? ` — ${t.notes}` : ''}`);
             }
             body += '</ul>';
         }
@@ -189,15 +201,7 @@ export function buildExport(params: ExportParams, today: string = todayStr()): E
 // ===== Доставка пользователю =====
 
 function downloadFile({ content, filename, mime }: ExportFile): void {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadText(content, filename, mime);
 }
 
 /** Печатает HTML через скрытый iframe: в диалоге печати macOS выбирается «Сохранить как PDF». */

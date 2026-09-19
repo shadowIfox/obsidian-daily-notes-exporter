@@ -511,6 +511,28 @@
                 <button id="open-export-dialog" type="button" class="btn btn--ghost"><i data-icon="download" data-size="18"></i> Экспортировать</button>
               </div>
             </div>
+
+            <div class="card">
+              <h2 class="card__title">Резервная копия</h2>
+              <div class="setting">
+                <div>
+                  <p class="setting__name">Скачать копию</p>
+                  <p class="setting__desc">Все данные одним файлом: задачи, привычки, настроение и настройки</p>
+                </div>
+                <button id="backup-download" type="button" class="btn btn--ghost"><i data-icon="download" data-size="18"></i> Скачать</button>
+              </div>
+              <div class="setting">
+                <div>
+                  <p class="setting__name">Восстановить из копии</p>
+                  <p class="setting__desc">Объединить с текущими данными или заменить их файлом, скачанным ранее</p>
+                </div>
+                <div>
+                  <input id="backup-file" type="file" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true" />
+                  <button id="backup-choose" type="button" class="btn btn--ghost"><i data-icon="upload" data-size="18"></i> Выбрать файл…</button>
+                </div>
+              </div>
+              <p id="backup-status" class="hint backup-status" role="status"></p>
+            </div>
           </section>
         </main>
       </div>
@@ -623,6 +645,21 @@
         <div id="hh-grid" class="hcal"></div>
         <p class="hint">Нажмите на день, чтобы отметить или снять отметку.</p>
         <div class="modal__actions"><button id="hh-close" type="button" class="btn btn--primary">Готово</button></div>
+      </div>
+    </div>
+
+    <!-- ====== Окно «Восстановить из копии» ====== -->
+    <div id="import-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div class="modal__panel modal__panel--wide">
+        <h2 id="import-title" class="modal__title">Восстановить из копии</h2>
+        <p id="import-summary" class="import-summary"></p>
+        <p class="hint"><b>Объединить</b> — добавить то, чего ещё нет, текущие данные не меняются (у общих привычек отметки складываются). <b>Заменить всё</b> — удалить текущие данные и записать копию.</p>
+        <div><button id="import-download" type="button" class="btn btn--ghost btn--sm">Сначала скачать текущие данные</button></div>
+        <div class="modal__actions">
+          <button id="import-cancel" type="button" class="btn btn--ghost">Отмена</button>
+          <button id="import-replace" type="button" class="btn btn--ghost btn--danger-text">Заменить всё</button>
+          <button id="import-merge" type="button" class="btn btn--primary">Объединить</button>
+        </div>
       </div>
     </div>
 
