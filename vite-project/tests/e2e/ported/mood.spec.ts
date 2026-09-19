@@ -93,7 +93,10 @@ await ev(`${item(D10)}.click()`); await sleep(250);
 await setNote('давно — дописал');
 await submit();
 check('запись 10-дневной давности правится из истории за 30 дней', (await stored()).find(e => e.date === D10).note === 'давно — дописал' && (await stored()).find(e => e.date === D10).rating === 4);
+await ev(`document.querySelector('#mood-range [data-days="7"]').click()`); await sleep(150);
 check('старая запись не попадает в график недели (семь дней, 4 из них с записью)', (await n('#mood-week-chart .col__bar')) === 7 && (await n('#mood-week-chart .col__bar[style*="var(--mood-"]')) === 4);
+await ev(`document.querySelector('#mood-range [data-days="30"]').click()`); await sleep(150);
+check('в графике за 30 дней старая запись есть (30 столбцов, 5 из них с записью)', (await n('#mood-week-chart .col__bar')) === 30 && (await n('#mood-week-chart .col__bar[style*="var(--mood-"]')) === 5);
 
 // ===== Влияние на главную =====
 await ev(`location.hash = '#/dashboard'`); await sleep(400);
