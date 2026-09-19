@@ -1,27 +1,6 @@
 // src/theme.ts — единый центр управления темой (system/light/dark)
+import { loadSettings, saveSettings, type ThemeMode } from './store';
 import { rethemeAllCharts } from './utils/chartTheme';
-
-type ThemeMode = 'system' | 'light' | 'dark';
-const SETTINGS_KEY = 'userSettings';
-
-type UserSettings = {
-  themeMode: ThemeMode;
-};
-
-function loadSettings(): UserSettings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return JSON.parse(raw) as UserSettings;
-  } catch {}
-  return { themeMode: 'system' };
-}
-
-function saveSettings(next: Partial<UserSettings>) {
-  const prev = loadSettings();
-  const merged = { ...prev, ...next } as UserSettings;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
-  return merged;
-}
 
 function resolveSystemDark(): boolean {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -32,8 +11,10 @@ function setThemeAttr(resolved: 'light' | 'dark') {
   el.setAttribute('data-theme', resolved);
   // Tailwind ожидает класс .dark на <html>
   el.classList.toggle('dark', resolved === 'dark');
-  // на body не вешаем — на всякий случай снимаем
-  document.body.classList.remove('dark');
+}
+
+function resolvedTheme(): 'light' | 'dark' {
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 }
 
 export function applyTheme(mode: ThemeMode) {
@@ -48,6 +29,10 @@ export function applyTheme(mode: ThemeMode) {
 export function setThemeMode(mode: ThemeMode) {
   saveSettings({ themeMode: mode });
   applyTheme(mode);
+  // синхронизируем переключатель в настройках
+  document.querySelectorAll<HTMLInputElement>('input[name="themeMode"]').forEach((r) => {
+    r.checked = r.value === mode;
+  });
 }
 
 export function getThemeMode(): ThemeMode {
@@ -63,31 +48,21 @@ export function initThemeSwitcher() {
   const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
   if (mql) {
     mql.addEventListener('change', () => {
-      const { themeMode } = loadSettings();
-      if (themeMode === 'system') applyTheme('system');
+      if (getThemeMode() === 'system') applyTheme('system');
     });
   }
 
-  // 3) подключаем UI, если есть радиокнопки/кнопка
+  // 3) радиокнопки в настройках
   const radios = document.querySelectorAll<HTMLInputElement>('input[name="themeMode"]');
-  if (radios.length) {
-    // выставим текущее значение
-    radios.forEach(r => { r.checked = (r.value === themeMode); });
-    radios.forEach(r => r.addEventListener('change', () => {
-      if (!r.checked) return;
-      const mode = r.value as ThemeMode;
-      setThemeMode(mode);
-    }));
-  }
+  radios.forEach(r => { r.checked = (r.value === themeMode); });
+  radios.forEach(r => r.addEventListener('change', () => {
+    if (r.checked) setThemeMode(r.value as ThemeMode);
+  }));
 
-  const toggleBtn = document.getElementById('theme-toggle');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      const current = getThemeMode();
-      const next: ThemeMode = current === 'dark' ? 'light' : 'dark';
-      setThemeMode(next);
-    });
-  }
+  // 4) кнопка-переключатель в верхней панели: от текущей видимой темы, а не от сохранённого режима
+  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    setThemeMode(resolvedTheme() === 'dark' ? 'light' : 'dark');
+  });
 }
 
 // Для отладки из консоли:

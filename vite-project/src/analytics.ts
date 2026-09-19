@@ -7,6 +7,7 @@ import {
     taskStreak,
     tasksCompletedByWeekday,
 } from './stats';
+import { icon } from './icons';
 import { loadHabits, loadMood, loadTasks } from './store';
 import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
 import { createThemedChart, destroyThemedChart, getMoodColors } from './utils/chartTheme';
@@ -26,8 +27,7 @@ type SectionView = {
     summary: string;      // HTML; пользовательский текст внутри уже экранирован
     advice: () => string;
     adviceLabel: string;
-    adviceBoxClass: string;
-    adviceBtnClass: string;
+    tone: 'yellow' | 'green' | 'pink';   // цвет блока совета (как у карточки на главной)
 };
 
 const NO_VALUE = '—';
@@ -93,8 +93,7 @@ function buildTasksView(): SectionView {
         summary,
         advice: () => generateTaskAdvice(avg, streak),
         adviceLabel: 'Совет по задачам',
-        adviceBoxClass: 'bg-blue-100/60 hover:bg-blue-100/90',
-        adviceBtnClass: 'bg-blue-200 text-blue-800',
+        tone: 'yellow',
     };
 }
 
@@ -125,8 +124,7 @@ function buildHabitsView(): SectionView {
         summary,
         advice: () => generateHabitAdvice(longestStreak),
         adviceLabel: 'Совет по привычкам',
-        adviceBoxClass: 'bg-lime-100/60 hover:bg-lime-100/90',
-        adviceBtnClass: 'bg-lime-200 text-lime-800',
+        tone: 'green',
     };
 }
 
@@ -158,8 +156,7 @@ function buildMoodView(): SectionView {
         summary,
         advice: () => generateMoodAdvice(avg, best),
         adviceLabel: 'Совет для настроения',
-        adviceBoxClass: 'bg-pink-100/60 hover:bg-pink-100/90',
-        adviceBtnClass: 'bg-pink-200 text-pink-800',
+        tone: 'pink',
     };
 }
 
@@ -202,23 +199,26 @@ function showAnalyticsDetails(section: Section, container: HTMLElement) {
     const view = buildView(section);
 
     detailsDiv.innerHTML = `
-    <button id="back-to-analytics" class="mb-4 text-blue-700 hover:underline">&larr; Назад к аналитике</button>
-    <h3 class="mb-6 text-2xl font-bold">${view.title}</h3>
-    <div class="flex flex-col items-center">
-      <canvas id="analytics-detail-chart" class="w-full max-w-xl h-72 mb-6 rounded-xl shadow"></canvas>
-      <div class="w-full flex flex-wrap gap-4 justify-center mb-4">
-        <span class="text-base text-token"><b>Среднее:</b> <span id="avg-value"></span></span>
-        <span class="text-base text-token"><b>Лучший:</b> <span id="best-day"></span></span>
-        <span class="text-base text-token"><b>Менее активный:</b> <span id="worst-day"></span></span>
+    <div class="analytics-detail">
+      <div class="analytics-detail__head">
+        <button id="back-to-analytics" type="button" class="btn btn--ghost btn--sm">${icon('arrow-left', 16)} Назад</button>
+        <h2 class="page-title">${view.title}</h2>
       </div>
-      <div id="analytics-summary" class="w-full mt-2 p-4 app-section rounded-lg text-sm">${view.summary}</div>
-      <div class="flex flex-col items-center mt-4">
-        <div id="advice-blur" class="backdrop-blur-md ${view.adviceBoxClass} text-gray-800 rounded-xl px-5 py-4 mt-2 text-base font-medium shadow transition hover:backdrop-blur-0 cursor-pointer select-none max-w-lg text-center">
-          ${view.adviceLabel} — наведите мышку!
-          <span id="advice-text" class="block opacity-0 transition-opacity duration-300"></span>
-        </div>
-        <button id="refresh-advice" class="mt-3 opacity-60 hover:opacity-100 ${view.adviceBtnClass} rounded px-4 py-1 text-sm">Обновить совет</button>
+      <div class="card">
+        <div class="chart-box ${section === 'mood' ? 'chart-box--tall' : ''}"><canvas id="analytics-detail-chart"></canvas></div>
       </div>
+      <div class="stats">
+        <div class="stat"><div class="stat__label">Среднее</div><div class="stat__value" id="avg-value"></div></div>
+        <div class="stat"><div class="stat__label">Лучший</div><div class="stat__value" id="best-day"></div></div>
+        <div class="stat"><div class="stat__label">Менее активный</div><div class="stat__value" id="worst-day"></div></div>
+      </div>
+      <div id="analytics-summary" class="card card--alt summary">${view.summary}</div>
+      <div id="advice-blur" class="advice advice--${view.tone}" tabindex="0" role="button" aria-label="${view.adviceLabel}">
+        <span class="advice__label">${view.adviceLabel}</span>
+        <span class="advice__hint">Наведите курсор или нажмите, чтобы увидеть совет</span>
+        <span id="advice-text" class="advice__text"></span>
+      </div>
+      <div><button id="refresh-advice" type="button" class="btn btn--ghost btn--sm">Обновить совет</button></div>
     </div>
   `;
 
@@ -251,17 +251,21 @@ function showAnalyticsDetails(section: Section, container: HTMLElement) {
         }
     }
 
-    // Совет (blur + обновить)
-    const adviceBlur = detailsDiv.querySelector<HTMLDivElement>('#advice-blur');
+    // Совет: открывается по наведению, фокусу и клику
+    const adviceBox = detailsDiv.querySelector<HTMLDivElement>('#advice-blur');
     const adviceText = detailsDiv.querySelector<HTMLSpanElement>('#advice-text');
     const showAdvice = () => {
-        if (!adviceText) return;
+        if (!adviceBox || !adviceText) return;
         adviceText.textContent = view.advice();
-        adviceText.classList.remove('opacity-0');
+        adviceBox.classList.add('is-open');
     };
-    if (adviceBlur && adviceText) {
-        adviceBlur.addEventListener('mouseenter', showAdvice);
-        adviceBlur.addEventListener('mouseleave', () => adviceText.classList.add('opacity-0'));
+    const hideAdvice = () => adviceBox?.classList.remove('is-open');
+    if (adviceBox && adviceText) {
+        adviceBox.addEventListener('mouseenter', showAdvice);
+        adviceBox.addEventListener('focus', showAdvice);
+        adviceBox.addEventListener('click', showAdvice);
+        adviceBox.addEventListener('mouseleave', hideAdvice);
+        adviceBox.addEventListener('blur', hideAdvice);
         detailsDiv.querySelector('#refresh-advice')?.addEventListener('click', showAdvice);
     }
 

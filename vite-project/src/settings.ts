@@ -1,53 +1,61 @@
-// settings.ts
+// settings.ts — страница настроек: профиль и экспорт данных.
+// Тема (System / Light / Dark) переключается в theme.ts.
 
 import { exportFullData } from './exporter';
+import { loadSettings, saveSettings } from './store';
 
-// Тема (System / Light / Dark) переключается в theme.ts — здесь только экспорт.
-export function setupSettings() {
-    // ===== Модальное окно экспорта данных =====
+function setupProfile() {
+    const form = document.getElementById('profile-form') as HTMLFormElement | null;
+    const input = document.getElementById('user-name') as HTMLInputElement | null;
+    const hint = document.getElementById('profile-hint');
+    if (!form || !input) return;
 
+    input.value = loadSettings().userName;
+
+    let hideTimer: number | undefined;
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveSettings({ userName: input.value.trim() });
+        if (!hint) return;
+        hint.textContent = 'Сохранено';
+        window.clearTimeout(hideTimer);
+        hideTimer = window.setTimeout(() => { hint.textContent = ''; }, 2000);
+    });
+}
+
+function setupExportModal() {
     const openBtn = document.getElementById('open-export-dialog');
     const modal = document.getElementById('export-modal');
     const closeBtn = document.getElementById('close-export-modal');
     const confirmBtn = document.getElementById('confirm-export');
+    if (!openBtn || !modal || !closeBtn || !confirmBtn) return;
 
-    if (openBtn && modal && closeBtn && confirmBtn) {
+    const open = () => modal.classList.add('is-open');
+    const close = () => modal.classList.remove('is-open');
 
-        // Открытие модального окна
-        openBtn.addEventListener('click', () => {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+    openBtn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+
+    // Клик по фону (не по содержимому) и клавиша Esc
+    modal.addEventListener('mousedown', (e) => {
+        if (e.target === modal) close();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) close();
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        const value = (id: string) => (document.getElementById(id) as HTMLSelectElement | null)?.value ?? '';
+        close();
+        exportFullData({
+            period: value('export-period'),
+            category: value('export-category'),
+            format: value('export-format'),
         });
+    });
+}
 
-        // Закрытие модального окна по кнопке закрытия
-        closeBtn.addEventListener('click', () => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        });
-
-        // Закрытие модального окна по клику на фон (не на контент)
-        modal.addEventListener('mousedown', (e) => {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        });
-
-        // Подтверждение экспорта данных
-        confirmBtn.addEventListener('click', () => {
-            // ===== Выбор периода, категории и формата для экспорта =====
-            const periodSelect = document.getElementById('export-period') as HTMLSelectElement | null;
-            const categorySelect = document.getElementById('export-category') as HTMLSelectElement | null;
-            const formatSelect = document.getElementById('export-format') as HTMLSelectElement | null;
-
-            const period = periodSelect ? periodSelect.value : '';
-            const category = categorySelect ? categorySelect.value : '';
-            const format = formatSelect ? formatSelect.value : '';
-
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-
-            exportFullData({ period, category, format });
-        });
-    }
+export function setupSettings() {
+    setupProfile();
+    setupExportModal();
 }

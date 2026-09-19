@@ -1,25 +1,21 @@
-import { todayStr } from './dates';
+import { formatDateShort, todayStr } from './dates';
+import { icon } from './icons';
 import { loadTasks, newId, saveTasks, type Task } from './store';
 
 let currentTasks: Task[] = [];
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
 
-// --- Создание задачи (с цветовой индикацией дедлайна и анимацией) ---
+// --- Создание строки задачи ---
 export function createTaskElement(task: Task): HTMLLIElement {
     const li = document.createElement('li');
-    li.className =
-        'flex items-center gap-2 p-3 border rounded-2xl bg-white dark:bg-[#282846] shadow-xl opacity-0 translate-y-4 transition-all duration-300';
-
-    setTimeout(() => {
-        li.classList.remove('opacity-0', 'translate-y-4');
-    }, 10);
+    li.className = task.completed ? 'task task--done' : 'task';
 
     // Чекбокс
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.className =
-        'w-5 h-5 border-gray-300 rounded accent-lime-500 focus:ring-2 focus:ring-lime-600';
+    checkbox.className = 'check';
     checkbox.checked = task.completed;
+    checkbox.setAttribute('aria-label', 'Выполнено');
 
     checkbox.addEventListener('change', () => {
         task.completed = checkbox.checked;
@@ -28,19 +24,18 @@ export function createTaskElement(task: Task): HTMLLIElement {
         renderTasks();
     });
 
-    // Текст задачи (редактируемый)
+    // Текст задачи (редактируется по двойному клику)
     const spanText = document.createElement('span');
-    spanText.className = 'flex-1 text-lg cursor-pointer select-none dark:text-gray-100';
+    spanText.className = 'task__text';
+    spanText.title = 'Двойной клик — редактировать';
     spanText.textContent = task.text;
 
-    // Редактирование текста по двойному клику
     spanText.addEventListener('dblclick', () => {
         const input = document.createElement('input');
         input.type = 'text';
         input.value = task.text;
         input.maxLength = 100;
-        input.className =
-            'flex-1 px-2 py-1 text-gray-900 border-none outline-none rounded-xl bg-neutral-200 dark:bg-neutral-700 dark:text-gray-100 focus:ring-2 focus:ring-lime-500';
+        input.className = 'input task__edit';
         input.addEventListener('blur', () => {
             if (input.parentNode !== li) return; // blur мог сработать повторно при замене элемента
             // пустой текст не сохраняем — остаётся прежний
@@ -57,50 +52,42 @@ export function createTaskElement(task: Task): HTMLLIElement {
         input.focus();
     });
 
-    // Дата дедлайна с цветовой индикацией.
-    // Даты в формате YYYY-MM-DD сравниваются как строки — это работает и не зависит от часового пояса.
-    const spanDate = document.createElement('span');
-    spanDate.className = 'text-xs ml-2 px-2 py-0.5 rounded font-semibold';
-    spanDate.textContent = task.date ? `до ${task.date}` : '';
+    // Правая часть: дедлайн, категория, удаление
+    const meta = document.createElement('div');
+    meta.className = 'task__meta';
+
+    // Даты в формате YYYY-MM-DD сравниваются как строки — это не зависит от часового пояса
     if (task.date) {
         const today = todayStr();
-        if (task.date < today) {
-            spanDate.classList.add('bg-red-100', 'text-red-700');
-        } else if (task.date === today) {
-            spanDate.classList.add('bg-yellow-200', 'text-yellow-900');
-        } else {
-            spanDate.classList.add('bg-blue-100', 'text-blue-700');
-        }
+        const badge = document.createElement('span');
+        badge.className = 'badge ' + (task.date < today ? 'badge--overdue' : task.date === today ? 'badge--today' : 'badge--upcoming');
+        badge.textContent = `до ${formatDateShort(task.date)}`;
+        badge.title = task.date;
+        meta.appendChild(badge);
     }
 
-    // Категория
-    const spanCat = document.createElement('span');
-    spanCat.className = 'text-xs bg-lime-100 text-lime-700 px-2 py-0.5 rounded ml-2';
-    spanCat.textContent = task.category;
+    if (task.category) {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = task.category;
+        meta.appendChild(chip);
+    }
 
-    // Кнопка удаления. Удаляем по id: индекс в отфильтрованном списке не совпадает с индексом в полном.
+    // Удаляем по id: индекс в отфильтрованном списке не совпадает с индексом в полном
     const removeBtn = document.createElement('button');
-    removeBtn.className =
-        'px-3 py-1 ml-2 text-white transition bg-red-500 rounded-xl hover:bg-red-700';
-    removeBtn.textContent = 'Удалить';
+    removeBtn.type = 'button';
+    removeBtn.className = 'icon-btn icon-btn--sm icon-btn--danger';
+    removeBtn.setAttribute('aria-label', 'Удалить задачу');
+    removeBtn.title = 'Удалить';
+    removeBtn.innerHTML = icon('trash-2', 16);
     removeBtn.onclick = () => {
         currentTasks = currentTasks.filter((t) => t.id !== task.id);
         saveTasks(currentTasks);
         renderTasks();
     };
+    meta.appendChild(removeBtn);
 
-    // Стилизация выполненных задач
-    if (task.completed) {
-        spanText.classList.add('line-through', 'text-gray-400');
-        li.classList.add('opacity-60');
-    }
-
-    li.appendChild(checkbox);
-    li.appendChild(spanText);
-    if (task.date) li.appendChild(spanDate);
-    if (task.category) li.appendChild(spanCat);
-    li.appendChild(removeBtn);
-
+    li.append(checkbox, spanText, meta);
     return li;
 }
 
@@ -135,16 +122,10 @@ function updateProgress() {
     const completed = currentTasks.filter(t => t.completed).length;
     const total = currentTasks.length;
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const bar = document.getElementById('progress-bar') as HTMLElement;
-    const text = document.getElementById('progress-text') as HTMLElement;
+    const bar = document.getElementById('progress-bar');
+    const text = document.getElementById('progress-text');
     if (bar) bar.style.width = percent + "%";
     if (text) text.textContent = `Выполнено: ${completed} из ${total}`;
-
-    // Если есть отдельный счетчик
-    const counter = document.getElementById('progress-count');
-    if (counter) counter.textContent = String(completed);
-    const label = document.getElementById('progress-label');
-    if (label) label.textContent = `Всего задач: ${total}`;
 }
 
 // --- Фильтры ---
@@ -153,10 +134,11 @@ function setupFilters() {
     if (!filterContainer) return;
 
     const highlight = (active: Element | null) => {
-        Array.from(filterContainer.children).forEach(btn =>
-            btn.classList.remove('bg-lime-500', 'text-black')
-        );
-        active?.classList.add('bg-lime-500', 'text-black');
+        Array.from(filterContainer.children).forEach((btn) => {
+            const isActive = btn === active;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-pressed', String(isActive));
+        });
     };
 
     // Сразу подсвечиваем текущий фильтр («Все»)
@@ -164,10 +146,11 @@ function setupFilters() {
 
     filterContainer.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
-        if (target.tagName === 'BUTTON' && target.dataset.filter) {
-            currentFilter = target.dataset.filter as 'all' | 'active' | 'completed';
+        const button = target.closest<HTMLElement>('button[data-filter]');
+        if (button && button.dataset.filter) {
+            currentFilter = button.dataset.filter as 'all' | 'active' | 'completed';
             renderTasks();
-            highlight(target);
+            highlight(button);
         }
     });
 }

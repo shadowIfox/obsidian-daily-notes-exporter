@@ -25,7 +25,14 @@ export type MoodEntry = {
     note: string;
 };
 
-const KEYS = { tasks: 'tasks', habits: 'habits', mood: 'moodData' } as const;
+export type ThemeMode = 'system' | 'light' | 'dark';
+
+export type UserSettings = {
+    themeMode: ThemeMode;
+    userName: string;
+};
+
+const KEYS = { tasks: 'tasks', habits: 'habits', mood: 'moodData', settings: 'userSettings' } as const;
 
 type Raw = Record<string, unknown>;
 
@@ -93,4 +100,29 @@ export function loadMood(): MoodEntry[] {
 
 export function saveMood(entries: MoodEntry[]): void {
     write(KEYS.mood, entries);
+}
+
+// --- Настройки ---
+
+const THEME_MODES: ThemeMode[] = ['system', 'light', 'dark'];
+
+export function loadSettings(): UserSettings {
+    const defaults: UserSettings = { themeMode: 'system', userName: '' };
+    try {
+        const raw: unknown = JSON.parse(localStorage.getItem(KEYS.settings) ?? '{}');
+        if (typeof raw !== 'object' || raw === null) return defaults;
+        const r = raw as Raw;
+        return {
+            themeMode: THEME_MODES.includes(r.themeMode as ThemeMode) ? (r.themeMode as ThemeMode) : defaults.themeMode,
+            userName: str(r.userName),
+        };
+    } catch {
+        return defaults;
+    }
+}
+
+export function saveSettings(patch: Partial<UserSettings>): UserSettings {
+    const next = { ...loadSettings(), ...patch };
+    write(KEYS.settings, next);
+    return next;
 }

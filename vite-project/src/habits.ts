@@ -1,5 +1,6 @@
 import type { Chart as ChartJS } from 'chart.js';
 import { daysInMonth, lastNDates, todayStr } from './dates';
+import { icon } from './icons';
 import { getStreak } from './stats';
 import { loadHabits, newId, saveHabits, type Habit } from './store';
 import { createThemedChart, destroyThemedChart } from './utils/chartTheme';
@@ -29,6 +30,8 @@ export function updateHabitChart() {
                 // Цвета возьмутся из темы автоматически (accent/grid/text)
                 borderRadius: 12,
                 borderSkipped: false,
+                borderWidth: 0,
+                maxBarThickness: 72,
             }]
         },
         options: {
@@ -44,20 +47,22 @@ function renderHabits() {
     const habitList = document.getElementById('habit-list');
     if (!habitList) return;
     habitList.innerHTML = '';
+    document.getElementById('habit-empty')?.classList.toggle('hidden', habits.length > 0);
+
+    const today = todayStr();
+    const month = today.slice(0, 7); // ГГГГ-ММ
+    const monthDays = daysInMonth();
 
     habits.forEach((habit) => {
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-4 p-2 mb-3 transition-all duration-300 translate-y-4 opacity-0 app-section rounded-xl';
-        setTimeout(() => {
-            li.classList.remove('opacity-0', 'translate-y-4');
-        }, 10);
+        li.className = 'habit';
 
-        // Чекбокс "выполнено"
+        // Чекбокс «выполнено сегодня»
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.className = 'w-5 h-5 accent-current';
-        const today = todayStr();
+        checkbox.className = 'check';
         checkbox.checked = habit.dates.includes(today);
+        checkbox.setAttribute('aria-label', 'Отметить на сегодня');
         checkbox.addEventListener('change', () => {
             if (checkbox.checked) {
                 if (!habit.dates.includes(today)) habit.dates.push(today);
@@ -68,70 +73,66 @@ function renderHabits() {
             renderHabits();
         });
 
-        // Текст привычки
-        const spanText = document.createElement('span');
-        spanText.className = 'flex-1 text-token';
-        spanText.textContent = habit.text;
+        // Основная часть: название + статистика
+        const main = document.createElement('div');
 
-        // Streak
-        const streakBadge = document.createElement('span');
-        const streakValue = getStreak(habit.dates);
-        const baseBadge = 'ml-2 px-2 py-0.5 rounded-xl text-xs font-semibold badge';
-        let streakClass = baseBadge;            // базовый бейдж под тему
-        if (streakValue > 10) {
-          streakClass = `${baseBadge} theme-accent`; // яркий бейдж на высоком стрике
-        }
-        else if (streakValue > 5) {
-          streakClass = `${baseBadge}`; // средний — оставим базовый
-        }
-        streakBadge.className = streakClass;
-        streakBadge.textContent = `Серия: ${streakValue}`;
+        const name = document.createElement('div');
+        name.className = 'habit__name';
+        name.textContent = habit.text;
 
-        // Статистика за месяц
-        const month = todayStr().slice(0, 7); // ГГГГ-ММ
+        const meta = document.createElement('div');
+        meta.className = 'habit__meta';
+
+        // Прогресс за месяц
         const completedThisMonth = habit.dates.filter(date => date.startsWith(month)).length;
-        const monthStats = document.createElement('span');
-        monthStats.className = 'text-xs theme-muted';
-        monthStats.textContent = `В этом месяце: ${completedThisMonth} дней`;
+        const monthText = document.createElement('span');
+        monthText.textContent = `В этом месяце: ${completedThisMonth} из ${monthDays}`;
 
-        // Прогресс-бар за месяц
-        const progressBar = document.createElement('div');
-        progressBar.className = 'w-24 h-2 overflow-hidden border rounded-full border-token';
-        const innerBar = document.createElement('div');
-        innerBar.className = 'h-2 transition-all rounded-full theme-accent';
-        innerBar.style.width = `${Math.min(100, Math.round(completedThisMonth / daysInMonth() * 100))}%`;
-        progressBar.appendChild(innerBar);
+        const progress = document.createElement('div');
+        progress.className = 'progress progress--sm';
+        const bar = document.createElement('div');
+        bar.className = 'progress__bar';
+        bar.style.width = `${Math.min(100, Math.round(completedThisMonth / monthDays * 100))}%`;
+        progress.appendChild(bar);
 
         // Мини-календарь за 7 дней
-        const calendar = document.createElement('div');
-        calendar.className = 'flex gap-1 ml-2';
+        const dots = document.createElement('div');
+        dots.className = 'dots';
+        dots.setAttribute('aria-label', 'Последние 7 дней');
         for (const dayStr of lastNDates(7)) {
             const dot = document.createElement('span');
-            dot.className = habit.dates.includes(dayStr)
-              ? 'inline-block w-3 h-3 rounded-full theme-accent border-2'
-              : 'inline-block w-3 h-3 rounded-full bg-token border border-token';
-            calendar.appendChild(dot);
+            dot.className = habit.dates.includes(dayStr) ? 'dot dot--on' : 'dot';
+            dot.title = dayStr;
+            dots.appendChild(dot);
         }
 
-        // Кнопка удаления
+        meta.append(monthText, progress, dots);
+        main.append(name, meta);
+
+        // Правая часть: серия и удаление
+        const side = document.createElement('div');
+        side.className = 'habit__side';
+
+        const streakValue = getStreak(habit.dates);
+        const streak = document.createElement('span');
+        streak.className = streakValue > 10 ? 'chip chip--accent' : 'chip';
+        streak.title = 'Серия дней подряд';
+        streak.innerHTML = `${icon('flame', 14)}<span>${streakValue}</span>`;
+
         const removeBtn = document.createElement('button');
-        removeBtn.className = 'px-2 py-1 ml-2 text-xs btn btn-danger';
-        removeBtn.textContent = 'Удалить';
+        removeBtn.type = 'button';
+        removeBtn.className = 'icon-btn icon-btn--sm icon-btn--danger';
+        removeBtn.setAttribute('aria-label', 'Удалить привычку');
+        removeBtn.title = 'Удалить';
+        removeBtn.innerHTML = icon('trash-2', 16);
         removeBtn.onclick = () => {
             habits = habits.filter(h => h.id !== habit.id);
             saveHabits(habits);
             renderHabits();
         };
 
-        // Собираем карточку привычки
-        li.appendChild(checkbox);
-        li.appendChild(spanText);
-        li.appendChild(streakBadge);
-        li.appendChild(monthStats);
-        li.appendChild(progressBar);
-        li.appendChild(calendar);
-        li.appendChild(removeBtn);
-
+        side.append(streak, removeBtn);
+        li.append(checkbox, main, side);
         habitList.appendChild(li);
     });
 

@@ -53,3 +53,48 @@ export function pickBestWorst(data: number[]): { best: number; worst: number } |
     if (data.length === 0 || data.every((v) => v === data[0])) return null;
     return { best: data.indexOf(Math.max(...data)), worst: data.indexOf(Math.min(...data)) };
 }
+
+// --- Сводки для главной страницы ---
+
+/** Задачи: выполнено / в работе / просрочено. */
+export function taskOverview(tasks: Task[], today: string = todayStr()) {
+    const active = tasks.filter((t) => !t.completed);
+    return {
+        done: tasks.length - active.length,
+        active: active.length,
+        overdue: active.filter((t) => t.date && t.date < today).length,
+    };
+}
+
+/** Дедлайны невыполненных задач: просрочено / сегодня / в ближайшие 7 дней. */
+export function deadlineOverview(tasks: Task[], today: string = todayStr()) {
+    const weekEnd = addDays(today, 7);
+    const active = tasks.filter((t) => !t.completed && t.date);
+    return {
+        overdue: active.filter((t) => t.date < today).length,
+        today: active.filter((t) => t.date === today).length,
+        week: active.filter((t) => t.date > today && t.date <= weekEnd).length,
+    };
+}
+
+/** Привычки: отмечено сегодня / осталось / лучшая текущая серия. */
+export function habitOverview(habits: Habit[], today: string = todayStr()) {
+    const doneToday = habits.filter((h) => h.dates.includes(today)).length;
+    return {
+        doneToday,
+        left: habits.length - doneToday,
+        bestStreak: Math.max(0, ...habits.map((h) => getStreak(h.dates, today))),
+    };
+}
+
+/** Настроение за последние days дней: среднее / минимум / максимум; null, если записей нет. */
+export function moodOverview(entries: MoodEntry[], today: string = todayStr(), days = 14) {
+    const from = addDays(today, -(days - 1));
+    const ratings = entries.filter((e) => e.date >= from && e.date <= today).map((e) => e.rating);
+    if (ratings.length === 0) return null;
+    return {
+        avg: Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10,
+        min: Math.min(...ratings),
+        max: Math.max(...ratings),
+    };
+}

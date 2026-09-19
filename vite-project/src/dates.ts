@@ -44,3 +44,9 @@ export function weekdayIndex(dateStr: string): number {
     const d = parseDateStr(dateStr);
     return d ? (d.getDay() + 6) % 7 : 0;
 }
+
+/** «19 сент.» — короткая дата для интерфейса. */
+export function formatDateShort(dateStr: string): string {
+    const d = parseDateStr(dateStr);
+    return d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : dateStr;
+}

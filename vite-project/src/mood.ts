@@ -1,5 +1,5 @@
 import type { Chart as ChartJS } from 'chart.js';
-import { addDays, todayStr } from './dates';
+import { addDays, formatDateShort, todayStr } from './dates';
 import { loadMood, saveMood, type MoodEntry } from './store';
 import { createThemedChart, destroyThemedChart, getMoodColors, rethemeChart } from './utils/chartTheme';
 
@@ -28,20 +28,25 @@ function renderMoodHistory(): void {
     const history: HTMLElement | null = document.getElementById('mood-history');
     if (!history) return;
     history.innerHTML = '';
-    for (const entry of lastWeekEntries().reverse()) {
+    const entries = lastWeekEntries().reverse();
+    document.getElementById('mood-empty')?.classList.toggle('hidden', entries.length > 0);
+
+    for (const entry of entries) {
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-2';
+        li.className = 'mood-item';
 
         const rating = document.createElement('span');
-        rating.className = 'w-8 text-center font-bold';
+        rating.className = 'mood-item__score';
+        rating.dataset.r = String(entry.rating);
         rating.textContent = String(entry.rating);
 
         const date = document.createElement('span');
-        date.className = 'text-xs text-gray-500';
-        date.textContent = entry.date;
+        date.className = 'mood-item__date';
+        date.textContent = formatDateShort(entry.date);
+        date.title = entry.date;
 
         const note = document.createElement('span');
-        note.className = 'flex-1';
+        note.className = 'mood-item__note';
         note.textContent = entry.note;
 
         li.append(rating, date, note);
@@ -64,11 +69,14 @@ export function renderMoodChart(): void {
     moodChart = createThemedChart(ctx, {
         type: 'bar',
         data: {
-            labels: entries.map((e) => e.date),
+            labels: entries.map((e) => formatDateShort(e.date)),
             datasets: [{
                 label: 'Настроение',
                 data: entries.map((e) => e.rating),
-                backgroundColor: barColors(entries)
+                backgroundColor: barColors(entries),
+                borderWidth: 0,
+                borderRadius: 10,
+                maxBarThickness: 64,
             }]
         },
         options: {

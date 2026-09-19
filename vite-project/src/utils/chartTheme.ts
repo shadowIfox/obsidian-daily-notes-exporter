@@ -19,6 +19,11 @@ import type { ChartConfiguration, ChartDataset, Chart as ChartJS, ChartType } fr
 import Chart from 'chart.js/auto';
 Chart.register(chartAreaBgPlugin);
 
+// Шрифт приложения и размер по контейнеру (высоту задаёт .chart-box в CSS)
+Chart.defaults.font.family = "'Manrope Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.maintainAspectRatio = false;
+
 /** Цвета темы из CSS-переменных */
 export function getThemeColors() {
     const styles = getComputedStyle(document.documentElement);
@@ -52,27 +57,33 @@ export function getAccentPaint(ctx: CanvasRenderingContext2D) {
 }
 
 /** Ось с цветами темы; всё, что задано в конфиге явно (stepSize, min…), сохраняется, в том числе внутри ticks/grid. */
-function themedAxis(axis: any, text: string, border: string) {
+function themedAxis(axis: any, text: string, border: string, showGrid = true) {
     return {
         ...axis,
-        grid: { color: border, ...axis?.grid },
+        grid: { color: border, display: showGrid, ...axis?.grid },
         ticks: { color: text, ...axis?.ticks },
     };
 }
 
+/** Круговые диаграммы без осей: навязанные x/y рисовали бы на них лишние шкалы. */
+const RADIAL_TYPES: string[] = ['doughnut', 'pie', 'polarArea'];
+
 /** Применяет тему к конфигу осей/легенды */
 function withThemedOptions<T extends ChartType>(config: ChartConfiguration<T>): ChartConfiguration<T> {
     const { text, border } = getThemeColors();
+    const scales = RADIAL_TYPES.includes(config.type as string)
+        ? config.options?.scales
+        : {
+            ...(config.options?.scales as any),
+            x: themedAxis((config.options?.scales as any)?.x, text, border, false),
+            y: themedAxis((config.options?.scales as any)?.y, text, border),
+        };
     return {
         ...config,
         options: {
             responsive: true,
             ...config.options,
-            scales: {
-                ...(config.options?.scales as any),
-                x: themedAxis((config.options?.scales as any)?.x, text, border),
-                y: themedAxis((config.options?.scales as any)?.y, text, border),
-            },
+            scales,
             plugins: {
                 ...config.options?.plugins,
                 legend: {
