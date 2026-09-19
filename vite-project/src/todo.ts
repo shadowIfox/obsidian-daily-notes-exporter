@@ -1,30 +1,11 @@
-// --- Тип данных для задачи ---
-type Task = {
-    text: string;
-    date: string;
-    category: string;
-    completed: boolean;
-};
+import { todayStr } from './dates';
+import { loadTasks, newId, saveTasks, type Task } from './store';
 
 let currentTasks: Task[] = [];
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
 
-// --- Хранилище (LocalStorage) ---
-function saveTasksToStorage(tasks: Task[]) {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-}
-function loadTasksFromStorage(): Task[] {
-    const data = localStorage.getItem('tasks');
-    if (!data) return [];
-    try {
-        return JSON.parse(data);
-    } catch {
-        return [];
-    }
-}
-
 // --- Создание задачи (с цветовой индикацией дедлайна и анимацией) ---
-export function createTaskElement(task: Task, index: number): HTMLLIElement {
+export function createTaskElement(task: Task): HTMLLIElement {
     const li = document.createElement('li');
     li.className =
         'flex items-center gap-2 p-3 border rounded-2xl bg-white dark:bg-[#282846] shadow-xl opacity-0 translate-y-4 transition-all duration-300';
@@ -42,7 +23,8 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
 
     checkbox.addEventListener('change', () => {
         task.completed = checkbox.checked;
-        saveTasksToStorage(currentTasks);
+        task.completedAt = checkbox.checked ? todayStr() : undefined;
+        saveTasks(currentTasks);
         renderTasks();
     });
 
@@ -55,34 +37,36 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
     spanText.addEventListener('dblclick', () => {
         const input = document.createElement('input');
         input.type = 'text';
-        input.value = spanText.textContent || '';
+        input.value = task.text;
+        input.maxLength = 100;
         input.className =
             'flex-1 px-2 py-1 text-gray-900 border-none outline-none rounded-xl bg-neutral-200 dark:bg-neutral-700 dark:text-gray-100 focus:ring-2 focus:ring-lime-500';
         input.addEventListener('blur', () => {
-            spanText.textContent = input.value;
-            task.text = input.value;
+            if (input.parentNode !== li) return; // blur мог сработать повторно при замене элемента
+            // пустой текст не сохраняем — остаётся прежний
+            const text = input.value.trim();
+            if (text) task.text = text;
+            spanText.textContent = task.text;
             li.replaceChild(spanText, input);
-            saveTasksToStorage(currentTasks);
+            saveTasks(currentTasks);
         });
         input.addEventListener('keydown', (e) => {
-            if ((e as KeyboardEvent).key === 'Enter') input.blur();
+            if (e.key === 'Enter') input.blur();
         });
         li.replaceChild(input, spanText);
         input.focus();
     });
 
-    // Дата дедлайна с цветовой индикацией
+    // Дата дедлайна с цветовой индикацией.
+    // Даты в формате YYYY-MM-DD сравниваются как строки — это работает и не зависит от часового пояса.
     const spanDate = document.createElement('span');
     spanDate.className = 'text-xs ml-2 px-2 py-0.5 rounded font-semibold';
     spanDate.textContent = task.date ? `до ${task.date}` : '';
     if (task.date) {
-        const deadline = new Date(task.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (deadline < today) {
+        const today = todayStr();
+        if (task.date < today) {
             spanDate.classList.add('bg-red-100', 'text-red-700');
-        } else if (deadline.getTime() === today.getTime()) {
+        } else if (task.date === today) {
             spanDate.classList.add('bg-yellow-200', 'text-yellow-900');
         } else {
             spanDate.classList.add('bg-blue-100', 'text-blue-700');
@@ -94,14 +78,14 @@ export function createTaskElement(task: Task, index: number): HTMLLIElement {
     spanCat.className = 'text-xs bg-lime-100 text-lime-700 px-2 py-0.5 rounded ml-2';
     spanCat.textContent = task.category;
 
-    // Кнопка удаления
+    // Кнопка удаления. Удаляем по id: индекс в отфильтрованном списке не совпадает с индексом в полном.
     const removeBtn = document.createElement('button');
     removeBtn.className =
         'px-3 py-1 ml-2 text-white transition bg-red-500 rounded-xl hover:bg-red-700';
     removeBtn.textContent = 'Удалить';
     removeBtn.onclick = () => {
-        currentTasks.splice(index, 1);
-        saveTasksToStorage(currentTasks);
+        currentTasks = currentTasks.filter((t) => t.id !== task.id);
+        saveTasks(currentTasks);
         renderTasks();
     };
 
@@ -131,9 +115,8 @@ function renderTasks() {
     if (currentFilter === 'active') filteredTasks = currentTasks.filter(t => !t.completed);
     if (currentFilter === 'completed') filteredTasks = currentTasks.filter(t => t.completed);
 
-    filteredTasks.forEach((task, idx) => {
-        const li = createTaskElement(task, idx);
-        taskList.appendChild(li);
+    filteredTasks.forEach((task) => {
+        taskList.appendChild(createTaskElement(task));
     });
 
     // Плейсхолдер если задач нет
@@ -169,37 +152,33 @@ function setupFilters() {
     const filterContainer = document.getElementById('todo-filters');
     if (!filterContainer) return;
 
+    const highlight = (active: Element | null) => {
+        Array.from(filterContainer.children).forEach(btn =>
+            btn.classList.remove('bg-lime-500', 'text-black')
+        );
+        active?.classList.add('bg-lime-500', 'text-black');
+    };
+
+    // Сразу подсвечиваем текущий фильтр («Все»)
+    highlight(filterContainer.querySelector(`[data-filter="${currentFilter}"]`));
+
     filterContainer.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (target.tagName === 'BUTTON' && target.dataset.filter) {
             currentFilter = target.dataset.filter as 'all' | 'active' | 'completed';
             renderTasks();
-
-            // Подсветка активной кнопки
-            Array.from(filterContainer.children).forEach(btn =>
-                btn.classList.remove('bg-lime-500', 'text-black')
-            );
-            target.classList.add('bg-lime-500', 'text-black');
+            highlight(target);
         }
     });
 }
 
-// --- Очистка выполненных ---
-function setupClearCompleted() {
-    document.getElementById('clear-completed')?.addEventListener('click', () => {
-        currentTasks = currentTasks.filter(t => !t.completed);
-        saveTasksToStorage(currentTasks);
-        renderTasks();
-    });
-}
-
-// --- Кнопка "Сегодня" в дате ---
+// --- Кнопка «Сегодня» в дате ---
 function setupTodayBtn() {
     const btn = document.getElementById('today-btn') as HTMLButtonElement | null;
     const dateInput = document.getElementById('task-date') as HTMLInputElement | null;
     if (btn && dateInput) {
         btn.addEventListener('click', () => {
-            dateInput.value = new Date().toISOString().slice(0, 10);
+            dateInput.value = todayStr();
             dateInput.focus();
         });
     }
@@ -212,7 +191,7 @@ export function setupTodo() {
     const dateInput = document.getElementById('task-date') as HTMLInputElement | null;
     const categoryInput = document.getElementById('task-category') as HTMLInputElement | null;
 
-    currentTasks = loadTasksFromStorage();
+    currentTasks = loadTasks();
     renderTasks();
     setupFilters();
     setupClearCompleted();
@@ -231,15 +210,18 @@ export function setupTodo() {
 
         if (!text) return;
 
-        const newTask: Task = {
-            text,
-            date,
-            category,
-            completed: false
-        };
-        currentTasks.push(newTask);
-        saveTasksToStorage(currentTasks);
+        currentTasks.push({ id: newId(), text, date, category, completed: false });
+        saveTasks(currentTasks);
         renderTasks();
         form.reset();
+    });
+}
+
+// --- Очистка выполненных ---
+function setupClearCompleted() {
+    document.getElementById('clear-completed')?.addEventListener('click', () => {
+        currentTasks = currentTasks.filter(t => !t.completed);
+        saveTasks(currentTasks);
+        renderTasks();
     });
 }

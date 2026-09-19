@@ -51,6 +51,15 @@ export function getAccentPaint(ctx: CanvasRenderingContext2D) {
     return accent || '#8b5cf6';
 }
 
+/** Ось с цветами темы; всё, что задано в конфиге явно (stepSize, min…), сохраняется, в том числе внутри ticks/grid. */
+function themedAxis(axis: any, text: string, border: string) {
+    return {
+        ...axis,
+        grid: { color: border, ...axis?.grid },
+        ticks: { color: text, ...axis?.ticks },
+    };
+}
+
 /** Применяет тему к конфигу осей/легенды */
 function withThemedOptions<T extends ChartType>(config: ChartConfiguration<T>): ChartConfiguration<T> {
     const { text, border } = getThemeColors();
@@ -61,16 +70,8 @@ function withThemedOptions<T extends ChartType>(config: ChartConfiguration<T>): 
             ...config.options,
             scales: {
                 ...(config.options?.scales as any),
-                x: {
-                    grid: { color: border },
-                    ticks: { color: text },
-                    ...(config.options?.scales as any)?.x,
-                },
-                y: {
-                    grid: { color: border },
-                    ticks: { color: text },
-                    ...(config.options?.scales as any)?.y,
-                },
+                x: themedAxis((config.options?.scales as any)?.x, text, border),
+                y: themedAxis((config.options?.scales as any)?.y, text, border),
             },
             plugins: {
                 ...config.options?.plugins,
@@ -101,45 +102,67 @@ function ensureDatasetColors<T extends ChartType>(ctx: CanvasRenderingContext2D,
     });
 }
 
+/** Палитра настроения из CSS-переменных: индекс 0 — оценка 1 (плохо), индекс 4 — оценка 5 (отлично). */
+export function getMoodColors(): string[] {
+    const styles = getComputedStyle(document.documentElement);
+    const v = (name: string, fallback: string) => styles.getPropertyValue(name).trim() || fallback;
+    return [
+        v('--mood-1', '#fca5a5'),
+        v('--mood-2', '#fdba74'),
+        v('--mood-3', '#fde68a'),
+        v('--mood-4', '#86efac'),
+        v('--mood-5', '#a78bfa'),
+    ];
+}
+
+// --- Реестр живых графиков (для перекраски при смене темы) ---
+const _charts = new Set<ChartJS<any>>();
+const _unsubscribe = new WeakMap<object, () => void>();
+
 /** Универсальное создание графика с учётом темы */
 export function createThemedChart<T extends ChartType>(ctx: CanvasRenderingContext2D, config: ChartConfiguration<T>): ChartJS<T> {
     const themed = withThemedOptions(config);
     ensureDatasetColors(ctx, themed);
     try { (ctx.canvas as HTMLCanvasElement).style.backgroundColor = 'transparent'; } catch {}
     const chart = new Chart(ctx, themed);
-    try { _charts.push(chart as any); } catch {}
-    attachThemeListener(chart);
+    _charts.add(chart);
+    _unsubscribe.set(chart, attachThemeListener(chart));
     return chart;
 }
 
-/** Перерисовка существующего графика при смене темы */
+/** Уничтожает график и убирает его из реестра, чтобы смена темы не трогала мёртвый canvas. */
+export function destroyThemedChart<T extends ChartType>(chart: ChartJS<T>) {
+    _unsubscribe.get(chart)?.();
+    _unsubscribe.delete(chart);
+    _charts.delete(chart);
+    chart.destroy();
+}
+
+/**
+ * Перерисовка существующего графика при смене темы.
+ * Правим chart.config.options — обычные объекты. chart.options — это Proxy-резолвер Chart.js:
+ * копирование его частей через {...spread} падает («name.startsWith is not a function»),
+ * а присваивания в нём не переживают update().
+ */
 export function rethemeChart<T extends ChartType>(chart: ChartJS<T>) {
+    if (!chart.canvas) return; // график уже уничтожен
     const { text, border } = getThemeColors();
-    const opts: any = chart.options || {};
-    opts.scales = opts.scales || {};
-    const s: any = opts.scales;
+    const cfg: any = chart.config;
+    const opts: any = (cfg.options ??= {});
+    const scales: any = (opts.scales ??= {});
 
-    if (s.x) { s.x.grid = { ...(s.x.grid || {}), color: border }; s.x.ticks = { ...(s.x.ticks || {}), color: text }; }
-    if (s.y) { s.y.grid = { ...(s.y.grid || {}), color: border }; s.y.ticks = { ...(s.y.ticks || {}), color: text }; }
+    for (const axis of ['x', 'y']) {
+        const s = scales[axis];
+        if (!s) continue;
+        s.grid = { ...s.grid, color: border };
+        s.ticks = { ...s.ticks, color: text };
+    }
 
-    // Безопасно обновляем plugins с учётом возможного отсутствия полей
-    opts.plugins = opts.plugins || {};
+    const plugins: any = (opts.plugins ??= {});
+    plugins.legend = { ...plugins.legend, labels: { ...plugins.legend?.labels, color: text } };
+    plugins.tooltip = { ...plugins.tooltip, titleColor: text, bodyColor: text, footerColor: text };
 
-    // Legend labels color
-    const legend: any = opts.plugins.legend || {};
-    const legendLabels = { ...(legend.labels || {}), color: text };
-    opts.plugins.legend = { ...legend, labels: legendLabels };
-
-    // Tooltip colors
-    const tooltip: any = opts.plugins.tooltip || {};
-    opts.plugins.tooltip = {
-      ...tooltip,
-      titleColor: text,
-      bodyColor: text,
-      footerColor: text,
-    };
-
-    chart.update();
+    chart.update('none'); // без анимации: цвета меняются сразу
 }
 
 /**
@@ -151,7 +174,8 @@ export function attachThemeListener<T extends ChartType>(chart: ChartJS<T>) {
     window.addEventListener('themechange', handler as EventListener);
     return () => window.removeEventListener('themechange', handler as EventListener);
 }
-// --- Глобальный реестр графиков для удобной перетемизации ---
-const _charts: ChartJS<any>[] = [];
-export function registerChart<T extends ChartType>(chart: ChartJS<T>) { _charts.push(chart as any); }
-export function rethemeAllCharts() { _charts.forEach((c) => rethemeChart(c as any)); }
+export function rethemeAllCharts() {
+    _charts.forEach((c) => {
+        try { rethemeChart(c); } catch {} // ошибка одного графика не должна прерывать остальные
+    });
+}

@@ -2,6 +2,7 @@
 
 import { exportFullData } from './exporter';
 
+// Тема (System / Light / Dark) переключается в theme.ts — здесь только экспорт.
 export function setupSettings() {
     // ===== Модальное окно экспорта данных =====
 
@@ -47,36 +48,6 @@ export function setupSettings() {
             modal.classList.remove('flex');
 
             exportFullData({ period, category, format });
-        });
-    }
-
-    // ===== Тема (System / Light / Dark) =====
-
-    const themeRadios = document.querySelectorAll<HTMLInputElement>('input[name="themeMode"]');
-
-    if (themeRadios.length) {
-
-        // Загрузка текущей темы из localStorage и установка активной радиокнопки
-        try {
-            const rawSettings = localStorage.getItem('userSettings');
-            const currentSettings = rawSettings ? JSON.parse(rawSettings) : { themeMode: 'system' };
-
-            themeRadios.forEach(radio => {
-                radio.checked = (radio.value === currentSettings.themeMode);
-            });
-        } catch {
-            // Ошибка при чтении localStorage — пропускаем
-        }
-
-        // Отправка события для main.ts при изменении темы
-        themeRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (!radio.checked) return;
-
-                const mode = radio.value as 'system' | 'light' | 'dark';
-
-                window.dispatchEvent(new CustomEvent('set-theme-mode', { detail: { mode } }));
-            });
         });
     }
 }
