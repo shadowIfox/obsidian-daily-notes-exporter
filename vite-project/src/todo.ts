@@ -1,5 +1,6 @@
 import { formatDateShort, todayStr } from './dates';
 import { icon } from './icons';
+import { readPref, writePref } from './prefs';
 import { NO_CATEGORY, filterTasks, sortTasks, taskCategories, type TaskSort } from './stats';
 import { loadTasks, newId, saveTasks, type Priority, type Task } from './store';
 
@@ -20,7 +21,7 @@ const SORTS: TaskSort[] = ['added', 'deadline', 'priority', 'title'];
 
 function loadView(): void {
     try {
-        const v = JSON.parse(localStorage.getItem(VIEW_KEY) ?? '{}');
+        const v = JSON.parse(readPref(VIEW_KEY) ?? '{}');
         if (['all', 'active', 'completed'].includes(v.filter)) currentFilter = v.filter;
         if (SORTS.includes(v.sort)) currentSort = v.sort;
         if (typeof v.category === 'string') currentCategory = v.category;
@@ -28,9 +29,7 @@ function loadView(): void {
 }
 
 function saveView(): void {
-    try {
-        localStorage.setItem(VIEW_KEY, JSON.stringify({ filter: currentFilter, category: currentCategory, sort: currentSort }));
-    } catch {}
+    writePref(VIEW_KEY, JSON.stringify({ filter: currentFilter, category: currentCategory, sort: currentSort }));
 }
 
 // --- API для других разделов (главная меняет задачи через него, чтобы не разъезжалось состояние) ---

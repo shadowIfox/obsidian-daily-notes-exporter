@@ -5,14 +5,14 @@ import { loadHabits, loadMood, loadSettings, loadTasks } from '../../src/store';
 import { mkTask } from './factories';
 import { seed } from './seed';
 
-const seedCurrent = () => {
-    seed.tasks([mkTask({ id: 't1', text: 'моя' }), mkTask({ id: 't2', text: 'общая (моя версия)' })]);
-    seed.habits([
+const seedCurrent = async () => {
+    await seed.tasks([mkTask({ id: 't1', text: 'моя' }), mkTask({ id: 't2', text: 'общая (моя версия)' })]);
+    await seed.habits([
         { id: 'h1', text: 'Зарядка', dates: ['2026-09-01', '2026-09-02'] },
         { id: 'h2', text: 'Только у меня', dates: ['2026-09-05'] },
     ]);
-    seed.mood([{ date: '2026-09-01', rating: 3, note: 'моя' }, { date: '2026-09-03', rating: 4, note: '' }]);
-    seed.settings({ themeMode: 'dark', userName: 'Я' });
+    await seed.mood([{ date: '2026-09-01', rating: 3, note: 'моя' }, { date: '2026-09-03', rating: 4, note: '' }]);
+    await seed.settings({ themeMode: 'dark', userName: 'Я' });
 };
 
 const incoming = {
@@ -42,7 +42,7 @@ const parseError = (text: string): string => {
 describe('резервная копия: сборка', () => {
     beforeEach(seedCurrent);
 
-    it('собирает все данные с меткой приложения и временем', () => {
+    it('собирает все данные с меткой приложения и временем', async () => {
         const built = buildBackup(new Date('2026-09-19T12:00:00Z'));
         assert.equal(built.app, 'moi-den');
         assert.equal(built.version, 1);
@@ -51,11 +51,11 @@ describe('резервная копия: сборка', () => {
         assert.deepEqual(built.settings, { themeMode: 'dark', userName: 'Я' });
     });
 
-    it('имя файла — по локальной дате, а не по UTC', () => {
+    it('имя файла — по локальной дате, а не по UTC', async () => {
         assert.match(backupFilename(new Date(2026, 8, 19, 23, 59)), /^moi-den-backup-2026-09-19\.json$/);
     });
 
-    it('круг: сборка → текст → разбор возвращает те же данные', () => {
+    it('круг: сборка → текст → разбор возвращает те же данные', async () => {
         const built = buildBackup(new Date('2026-09-19T12:00:00Z'));
         const r = parseBackup(serializeBackup(built));
         assert.ok(r.ok);
@@ -68,25 +68,25 @@ describe('резервная копия: сборка', () => {
 });
 
 describe('резервная копия: разбор и проверка файла', () => {
-    it('отклоняет пустой, не-JSON и не похожий на копию файл', () => {
+    it('отклоняет пустой, не-JSON и не похожий на копию файл', async () => {
         assert.match(parseError(''), /пустой/);
         assert.match(parseError('   \n'), /пустой/);
         assert.match(parseError('{нет'), /не JSON/);
         for (const text of ['[1,2,3]', '"строка"', 'null', '{"foo": 1}']) assert.match(parseError(text), /не похож/);
     });
 
-    it('отклоняет копию из более новой версии и слишком большой файл', () => {
+    it('отклоняет копию из более новой версии и слишком большой файл', async () => {
         assert.match(parseError(JSON.stringify({ app: 'moi-den', version: 99, tasks: [] })), /более новой/);
         assert.match(parseError('x'.repeat(20_000_001)), /слишком большой/);
     });
 
-    it('метка приложения допускается и без данных; без метки достаточно любого массива', () => {
+    it('метка приложения допускается и без данных; без метки достаточно любого массива', async () => {
         assert.ok(parseBackup(JSON.stringify({ app: 'moi-den' })).ok);
         assert.ok(parseBackup(JSON.stringify({ tasks: [] })).ok);
         assert.ok(parseBackup(JSON.stringify({ version: 1, habits: [] })).ok);
     });
 
-    it('мусор отбрасывается, дубли схлопываются (последний побеждает), поля дополняются', () => {
+    it('мусор отбрасывается, дубли схлопываются (последний побеждает), поля дополняются', async () => {
         const backup = parseOk(
             JSON.stringify({
                 tasks: [{ id: 'a', text: 'первая' }, { id: 'a', text: 'вторая' }, 'мусор', null, 5, { text: 'без id' }],
@@ -104,7 +104,7 @@ describe('резервная копия: разбор и проверка фай
         assert.deepEqual(backup.settings, { themeMode: 'system', userName: '' });
     });
 
-    it('лишние поля и «внедрённые» свойства не переносятся', () => {
+    it('лишние поля и «внедрённые» свойства не переносятся', async () => {
         const backup = parseOk('{"tasks":[{"id":"x","text":"y","__proto__":{"polluted":1},"constructor":"z","extra":"q"}]}');
         assert.equal(Object.keys(backup.tasks[0]).includes('extra'), false);
         assert.equal(({} as Record<string, unknown>).polluted, undefined);
@@ -115,8 +115,8 @@ describe('резервная копия: восстановление', () => {
     const backup = () => parseOk(JSON.stringify(incoming));
 
     describe('«Заменить всё»', () => {
-        it('данные и настройки заменяются копией', () => {
-            seedCurrent();
+        it('данные и настройки заменяются копией', async () => {
+            await seedCurrent();
             const sum = applyBackup(backup(), 'replace');
             assert.deepEqual(sum, { mode: 'replace', tasks: 2, habits: 2, habitMarks: 0, mood: 2 });
             assert.deepEqual(loadTasks().map((t) => t.id), ['t2', 't3']);
@@ -132,8 +132,8 @@ describe('резервная копия: восстановление', () => {
     });
 
     describe('«Объединить»', () => {
-        it('добавляет только новое, не перезаписывает существующее', () => {
-            seedCurrent();
+        it('добавляет только новое, не перезаписывает существующее', async () => {
+            await seedCurrent();
             // t3 новая; h3 новая; у h1 добавились 03 и 04 (02 уже было); настроение 09-02
             const sum = applyBackup(backup(), 'merge');
             assert.deepEqual(sum, { mode: 'merge', tasks: 1, habits: 1, habitMarks: 2, mood: 1 });
@@ -146,8 +146,8 @@ describe('резервная копия: восстановление', () => {
             assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Я' }); // настройки не тронуты
         });
 
-        it('повторное объединение ничего не добавляет', () => {
-            seedCurrent();
+        it('повторное объединение ничего не добавляет', async () => {
+            await seedCurrent();
             applyBackup(backup(), 'merge');
             const again = applyBackup(backup(), 'merge');
             assert.deepEqual([again.tasks, again.habits, again.habitMarks, again.mood], [0, 0, 0, 0]);

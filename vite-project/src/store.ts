@@ -1,8 +1,15 @@
 // store.ts — единственное место, где приложение читает и пишет данные.
-// Сейчас бэкенд — localStorage. При переходе на SQLite (Tauri) менять нужно только этот файл.
-// Ключи localStorage не менялись, поэтому уже сохранённые данные подхватятся.
+//
+// Как это устроено:
+//  • физическое хранилище спрятано за асинхронным интерфейсом StorageBackend (storage.ts): сейчас localStorage,
+//    дальше SQLite в Tauri — код приложения при этом не меняется;
+//  • при запуске initStore() один раз читает всё из хранилища в память, дальше load*() отдают данные мгновенно;
+//  • save*() сразу обновляют память и сообщают интерфейсу (событие datachange), а в хранилище пишут следом
+//    по очереди (записи не обгоняют друг друга); сбой записи — событие storeerror, а не тихая потеря;
+//  • load*() отдают копии: изменить данные можно только через save*().
 
 import { parseDateStr } from './dates';
+import { localStorageBackend, type StorageBackend, type StoreKey } from './storage';
 
 export type Priority = 'low' | 'normal' | 'high';
 
@@ -41,7 +48,7 @@ export type UserSettings = {
 
 const PRIORITIES: Priority[] = ['low', 'normal', 'high'];
 
-const KEYS = { tasks: 'tasks', habits: 'habits', mood: 'moodData', settings: 'userSettings' } as const;
+const KEYS = { tasks: 'tasks', habits: 'habits', mood: 'moodData', settings: 'userSettings' } as const satisfies Record<string, StoreKey>;
 
 type Raw = Record<string, unknown>;
 
@@ -57,19 +64,66 @@ function toRecords(parsed: unknown): Raw[] {
     return parsed.filter((x): x is Raw => typeof x === 'object' && x !== null);
 }
 
-/** Читает JSON из localStorage; при ошибке или отсутствии — пустой массив. */
-function readJson(key: string): unknown {
-    try {
-        return JSON.parse(localStorage.getItem(key) ?? '[]');
-    } catch {
-        return [];
-    }
+// --- Кэш в памяти и очередь записи ---
+
+type Snapshot = { tasks: Task[]; habits: Habit[]; mood: MoodEntry[]; settings: UserSettings };
+
+let backend: StorageBackend = localStorageBackend;
+let cache: Snapshot | null = null;
+let pending: Promise<void> = Promise.resolve();
+
+function state(): Snapshot {
+    if (!cache) throw new Error('Хранилище не открыто: сначала нужно вызвать initStore().');
+    return cache;
 }
 
-function write(key: string, value: unknown): void {
-    localStorage.setItem(key, JSON.stringify(value));
-    // Сообщаем интерфейсу (например, колокольчику), что данные изменились
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event('datachange'));
+function emit(name: string, detail?: unknown): void {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
+/** Ставит запись в очередь. Ошибка не пропадает: она уходит в консоль и в событие storeerror. */
+function persist(key: StoreKey, value: unknown): void {
+    const target = backend;
+    pending = pending
+        .then(() => target.write(key, value))
+        .catch((error: unknown) => {
+            console.error(`Не удалось сохранить «${key}»`, error);
+            emit('storeerror', { key, message: error instanceof Error ? error.message : String(error) });
+        });
+}
+
+/** Дожидается, пока все поставленные в очередь записи дойдут до хранилища. */
+export function flushStore(): Promise<void> {
+    return pending;
+}
+
+/**
+ * Открывает хранилище: читает все данные в память. Вызывается один раз до запуска интерфейса
+ * (и повторно в тестах — тогда данные читаются заново). Можно передать другой бэкенд.
+ */
+export async function initStore(next: StorageBackend = backend): Promise<void> {
+    await pending; // дописываем то, что ещё не ушло в прежнее хранилище
+    backend = next;
+    const [tasks, habits, mood, settings] = await Promise.all([
+        next.read(KEYS.tasks),
+        next.read(KEYS.habits),
+        next.read(KEYS.mood),
+        next.read(KEYS.settings),
+    ]);
+    cache = {
+        tasks: normalizeTasks(tasks),
+        habits: normalizeHabits(habits),
+        mood: normalizeMood(mood),
+        settings: normalizeSettings(settings),
+    };
+}
+
+/** Фиксирует изменение: запись в хранилище + сообщение интерфейсу (например, колокольчику). */
+function commit(key: StoreKey): void {
+    const s = state();
+    const value = { tasks: s.tasks, habits: s.habits, moodData: s.mood, userSettings: s.settings }[key];
+    persist(key, value);
+    emit('datachange');
 }
 
 // --- Задачи ---
@@ -90,11 +144,12 @@ export function normalizeTasks(raw: unknown): Task[] {
 }
 
 export function loadTasks(): Task[] {
-    return normalizeTasks(readJson(KEYS.tasks));
+    return structuredClone(state().tasks);
 }
 
 export function saveTasks(tasks: Task[]): void {
-    write(KEYS.tasks, tasks);
+    state().tasks = normalizeTasks(tasks);
+    commit(KEYS.tasks);
 }
 
 // --- Привычки ---
@@ -117,7 +172,7 @@ export function normalizeHabits(raw: unknown): Habit[] {
 }
 
 export function loadHabits(): Habit[] {
-    return normalizeHabits(readJson(KEYS.habits));
+    return structuredClone(state().habits);
 }
 
 /** Привычки, которые не в архиве, — их видят все разделы, кроме самого архива. */
@@ -126,7 +181,8 @@ export function loadActiveHabits(): Habit[] {
 }
 
 export function saveHabits(habits: Habit[]): void {
-    write(KEYS.habits, habits);
+    state().habits = normalizeHabits(habits);
+    commit(KEYS.habits);
 }
 
 // --- Настроение ---
@@ -139,11 +195,12 @@ export function normalizeMood(raw: unknown): MoodEntry[] {
 }
 
 export function loadMood(): MoodEntry[] {
-    return normalizeMood(readJson(KEYS.mood));
+    return structuredClone(state().mood);
 }
 
 export function saveMood(entries: MoodEntry[]): void {
-    write(KEYS.mood, entries);
+    state().mood = normalizeMood(entries);
+    commit(KEYS.mood);
 }
 
 // --- Настройки ---
@@ -161,15 +218,11 @@ export function normalizeSettings(raw: unknown): UserSettings {
 }
 
 export function loadSettings(): UserSettings {
-    try {
-        return normalizeSettings(JSON.parse(localStorage.getItem(KEYS.settings) ?? '{}'));
-    } catch {
-        return normalizeSettings(null);
-    }
+    return { ...state().settings };
 }
 
 export function saveSettings(patch: Partial<UserSettings>): UserSettings {
-    const next = { ...loadSettings(), ...patch };
-    write(KEYS.settings, next);
-    return next;
+    state().settings = normalizeSettings({ ...state().settings, ...patch });
+    commit(KEYS.settings);
+    return loadSettings();
 }
