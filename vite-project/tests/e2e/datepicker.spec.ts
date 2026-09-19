@@ -67,3 +67,35 @@ test.describe('свой календарь и график настроения'
         await expect(page.locator('#task-date + .datepick')).toContainText('Без даты');
     });
 });
+
+test.describe('график настроения и период', () => {
+    test('переключатель «30 дней» меняет и график: запись 20-дневной давности появляется, заголовок обновляется', async ({ page }) => {
+        await page.goto('/');
+        const [today, old] = [await dayStr(page, 0), await dayStr(page, -19)];
+        await page.evaluate(
+            ([t, o]) =>
+                localStorage.setItem(
+                    'moodData',
+                    JSON.stringify([
+                        { date: o, rating: 4, note: '' },
+                        { date: t, rating: 3, note: '' },
+                    ]),
+                ),
+            [today, old],
+        );
+        await page.goto('/#/mood');
+        await page.reload();
+
+        await expect(page.locator('#mood-chart-title')).toHaveText('График за неделю');
+        await expect(page.locator('#mood-week-chart .col')).toHaveCount(7);
+        await expect(page.locator('#mood-week-chart .col__value')).toHaveText(['3']);
+
+        await page.locator('#mood-range [data-days="30"]').click();
+        await expect(page.locator('#mood-chart-title')).toHaveText('График за 30 дней');
+        await expect(page.locator('#mood-week-chart .col')).toHaveCount(30);
+        await expect(page.locator('#mood-week-chart .col__value')).toHaveText(['4', '3']);
+
+        await page.locator('#mood-range [data-days="7"]').click();
+        await expect(page.locator('#mood-week-chart .col')).toHaveCount(7);
+    });
+});
