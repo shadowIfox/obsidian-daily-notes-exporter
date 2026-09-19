@@ -278,18 +278,33 @@
               <p class="page-sub">Отмечайте выполненное — серии считаются по дням подряд.</p>
             </header>
 
-            <form id="add-habit-form" class="card inline-form">
-              <div class="field">
-                <label class="field__label" for="habit-text">Новая привычка</label>
-                <input id="habit-text" name="habit-text" type="text" class="input" placeholder="Например, зарядка" required maxlength="30" />
+            <form id="add-habit-form" class="card habit-form">
+              <div class="inline-form">
+                <div class="field">
+                  <label class="field__label" for="habit-text">Новая привычка</label>
+                  <input id="habit-text" name="habit-text" type="text" class="input" placeholder="Например, зарядка" required maxlength="30" />
+                </div>
+                <button type="submit" class="btn btn--primary"><i data-icon="plus" data-size="18"></i> Добавить</button>
               </div>
-              <button type="submit" class="btn btn--primary"><i data-icon="plus" data-size="18"></i> Добавить</button>
+              <div class="field">
+                <span class="field__label">Дни недели</span>
+                <div id="habit-days" class="weekdays" role="group" aria-label="Дни недели"></div>
+                <p class="hint">Ничего не выбрано — привычка на каждый день.</p>
+              </div>
             </form>
 
             <div class="card">
               <ul id="habit-list" class="stack"></ul>
               <p id="habit-empty" class="empty hidden">Привычек пока нет — добавьте первую выше.</p>
             </div>
+
+            <section id="habit-archive-card" class="card hidden" aria-labelledby="habit-archive-title">
+              <div class="card__head">
+                <h2 id="habit-archive-title" class="card__title">Архив</h2>
+                <span class="card__meta">история сохраняется, в списках и статистике не учитывается</span>
+              </div>
+              <ul id="habit-archive-list" class="stack"></ul>
+            </section>
 
             <div class="card">
               <h2 class="card__title">Серии по привычкам</h2>
@@ -552,6 +567,48 @@
           <button id="task-modal-submit" type="submit" class="btn btn--primary">Добавить</button>
         </div>
       </form>
+    </div>
+
+    <!-- ====== Окно «Изменить привычку» ====== -->
+    <div id="habit-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="habit-modal-title">
+      <form id="habit-modal-form" class="modal__panel">
+        <h2 id="habit-modal-title" class="modal__title">Изменить привычку</h2>
+        <div class="field">
+          <label class="field__label" for="hm-name">Название</label>
+          <input id="hm-name" class="input" maxlength="30" required />
+        </div>
+        <div class="field">
+          <span class="field__label">Дни недели</span>
+          <div id="hm-days" class="weekdays" role="group" aria-label="Дни недели"></div>
+          <p class="hint">Ничего не выбрано — привычка на каждый день. Дни не по графику не прерывают серию.</p>
+        </div>
+        <div class="modal__actions modal__actions--split">
+          <div class="modal__side-actions">
+            <button id="hm-archive" type="button" class="btn btn--ghost btn--sm">В архив</button>
+            <button id="hm-delete" type="button" class="btn btn--ghost btn--sm btn--danger-text">Удалить</button>
+          </div>
+          <div class="modal__side-actions">
+            <button id="hm-cancel" type="button" class="btn btn--ghost">Отмена</button>
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- ====== Календарь отметок привычки ====== -->
+    <div id="habit-history" class="modal" role="dialog" aria-modal="true" aria-labelledby="hh-title">
+      <div class="modal__panel">
+        <h2 id="hh-title" class="modal__title"></h2>
+        <div class="cal__head">
+          <button id="hh-prev" type="button" class="icon-btn icon-btn--sm" aria-label="Предыдущий месяц"><i data-icon="chevron-left" data-size="16"></i></button>
+          <span id="hh-month" class="cal__month"></span>
+          <button id="hh-next" type="button" class="icon-btn icon-btn--sm" aria-label="Следующий месяц"><i data-icon="chevron-right" data-size="16"></i></button>
+        </div>
+        <p id="hh-stat" class="hint"></p>
+        <div id="hh-grid" class="hcal"></div>
+        <p class="hint">Нажмите на день, чтобы отметить или снять отметку.</p>
+        <div class="modal__actions"><button id="hh-close" type="button" class="btn btn--primary">Готово</button></div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

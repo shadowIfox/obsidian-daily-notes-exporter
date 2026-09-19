@@ -1,7 +1,8 @@
 // exporter.ts — экспорт данных в Markdown / CSV / PDF (через печать)
 
-import { addDays, todayStr } from './dates';
-import { loadHabits, loadMood, loadTasks, type MoodEntry, type Task } from './store';
+import { addDays, lastNDates, todayStr } from './dates';
+import { isDue } from './stats';
+import { loadActiveHabits, loadMood, loadTasks, type MoodEntry, type Task } from './store';
 import { escapeHtml } from './utils/html';
 
 export type ExportParams = {
@@ -43,11 +44,11 @@ function collectData({ period, category }: ExportParams, today: string): ExportD
         : [];
 
     const habits = withHabits
-        ? loadHabits().map((h) => ({
-            name: h.text,
-            daysDone: h.dates.filter(inRange).length,
-            totalDays: days,
-        }))
+        ? loadActiveHabits().map((h) => {
+            // считаем только дни по графику привычки
+            const due = lastNDates(days, to).filter((d) => isDue(h, d));
+            return { name: h.text, daysDone: due.filter((d) => h.dates.includes(d)).length, totalDays: due.length };
+        })
         : [];
 
     const mood = withMood ? loadMood().filter((m) => inRange(m.date)) : [];

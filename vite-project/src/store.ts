@@ -22,6 +22,8 @@ export type Habit = {
     id: string;
     text: string;
     dates: string[];       // дни, когда привычка отмечена (YYYY-MM-DD)
+    days?: number[];       // дни недели по графику (Пн = 0 … Вс = 6); нет — каждый день
+    archived?: boolean;    // в архиве: не показывается и не учитывается, но история сохранена
 };
 
 export type MoodEntry = {
@@ -89,12 +91,26 @@ export function saveTasks(tasks: Task[]): void {
 
 // --- Привычки ---
 
+/** Дни недели графика: только целые 0–6 без повторов; пусто или все семь — значит «каждый день» (undefined). */
+function sanitizeDays(v: unknown): number[] | undefined {
+    if (!Array.isArray(v)) return undefined;
+    const days = [...new Set(v.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
+    return days.length === 0 || days.length === 7 ? undefined : days;
+}
+
 export function loadHabits(): Habit[] {
     return readRecords(KEYS.habits).map((h) => ({
         id: str(h.id) || newId(),
         text: str(h.text),
         dates: Array.isArray(h.dates) ? h.dates.filter((d): d is string => typeof d === 'string') : [],
+        days: sanitizeDays(h.days),
+        archived: h.archived === true ? true : undefined,
     }));
+}
+
+/** Привычки, которые не в архиве, — их видят все разделы, кроме самого архива. */
+export function loadActiveHabits(): Habit[] {
+    return loadHabits().filter((h) => !h.archived);
 }
 
 export function saveHabits(habits: Habit[]): void {

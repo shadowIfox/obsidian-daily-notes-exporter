@@ -1,5 +1,6 @@
 // notifications.ts — что стоит показать в колокольчике (чистая логика, без DOM).
 
+import { isDue } from './stats';
 import { plural } from './utils/plural';
 import type { Habit, MoodEntry, Task } from './store';
 
@@ -55,7 +56,7 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
         });
     }
 
-    const pending = habits.filter((h) => !h.dates.includes(today));
+    const pending = habits.filter((h) => isDue(h, today) && !h.dates.includes(today));
     if (pending.length > 0) {
         const names = pending.slice(0, 2).map((h) => h.text).join(', ');
         notices.push({

@@ -10,6 +10,7 @@ import {
     deadlineOverview,
     getStreak,
     habitOverview,
+    isDue,
     moodOverview,
     moodSeries,
     nearestDeadline,
@@ -18,7 +19,7 @@ import {
     tasksForList,
     type TaskListFilter,
 } from './stats';
-import { loadHabits, loadMood, loadSettings, loadTasks, type Habit, type Priority, type Task } from './store';
+import { loadActiveHabits, loadMood, loadSettings, loadTasks, type Habit, type Priority, type Task } from './store';
 import { setupTaskModal } from './taskModal';
 import { removeTask, toggleTask, updateTask } from './todo';
 import { plural } from './utils/plural';
@@ -100,8 +101,13 @@ function renderHabitsViz(habits: Habit[], today: string): void {
         return;
     }
 
-    // Неотмеченные на сегодня — сверху
-    const sorted = [...habits].sort((a, b) => Number(a.dates.includes(today)) - Number(b.dates.includes(today)));
+    // Показываем то, что нужно сегодня по графику, и всё уже отмеченное; неотмеченные — сверху
+    const visible = habits.filter((h) => isDue(h, today) || h.dates.includes(today));
+    if (visible.length === 0) {
+        box.innerHTML = '<p class="viz__empty">На сегодня привычек по графику нет.</p>';
+        return;
+    }
+    const sorted = [...visible].sort((a, b) => Number(a.dates.includes(today)) - Number(b.dates.includes(today)));
     const list = document.createElement('div');
     list.className = 'mini-list';
 
@@ -125,17 +131,17 @@ function renderHabitsViz(habits: Habit[], today: string): void {
         const streak = document.createElement('span');
         streak.className = 'chip';
         streak.title = 'Серия дней подряд';
-        streak.innerHTML = `${icon('flame', 14)}<span>${getStreak(habit.dates, today)}</span>`;
+        streak.innerHTML = `${icon('flame', 14)}<span>${getStreak(habit.dates, today, habit.days)}</span>`;
 
         row.append(check, name, streak);
         list.appendChild(row);
     }
 
-    if (habits.length > 3) {
+    if (visible.length > 3) {
         const more = document.createElement('a');
         more.className = 'mini-more';
         more.href = '#/habits';
-        more.textContent = `Ещё ${habits.length - 3} →`;
+        more.textContent = `Ещё ${visible.length - 3} →`;
         list.appendChild(more);
     }
     box.appendChild(list);
@@ -358,7 +364,7 @@ function renderDetails(tasks: Task[], today: string): void {
 export function renderDashboard(): void {
     const today = todayStr();
     const tasks = loadTasks();
-    const habits = loadHabits();
+    const habits = loadActiveHabits();
 
     renderHeader(tasks, habits, today);
     renderNumbers(tasks, habits, today);

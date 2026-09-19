@@ -9,7 +9,7 @@ import { buildNotices, type Notice } from './notifications';
 import { revealMoodEntry } from './mood';
 import { navigate, onRouteChange } from './router';
 import { searchAll, type Range, type SearchHit, type SearchScope } from './search';
-import { loadHabits, loadMood, loadTasks } from './store';
+import { loadActiveHabits, loadMood, loadTasks } from './store';
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string): T | null => document.querySelector<T>(selector);
 
@@ -157,7 +157,7 @@ function renderSearch(): void {
         return;
     }
 
-    const found = searchAll(query, { tasks: loadTasks(), habits: loadHabits(), mood: loadMood() }, scope);
+    const found = searchAll(query, { tasks: loadTasks(), habits: loadActiveHabits(), mood: loadMood() }, scope);
     let index = 0;
     for (const key of ['tasks', 'habits', 'mood'] as const) {
         const hits = found[key];
@@ -253,7 +253,7 @@ function setupSearch(): void {
 // ===== Колокольчик =====
 
 function currentNotices(): Notice[] {
-    return buildNotices(loadTasks(), loadHabits(), loadMood(), todayStr(), nowTime());
+    return buildNotices(loadTasks(), loadActiveHabits(), loadMood(), todayStr(), nowTime());
 }
 
 function isNotifOpen(): boolean {

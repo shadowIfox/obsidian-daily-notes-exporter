@@ -16,7 +16,7 @@ import {
     weekdayTotals,
     type Period,
 } from './stats';
-import { loadHabits, loadMood, loadTasks } from './store';
+import { loadActiveHabits, loadMood, loadTasks } from './store';
 import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
 import {
     mountResponsive,
@@ -62,7 +62,7 @@ function deltaNote(diff: number, unit = ''): string {
 
 function renderKpis(days: number, today: string): void {
     const tasks = loadTasks();
-    const habits = loadHabits();
+    const habits = loadActiveHabits();
     const stats = taskPeriodStats(tasks, today, days);
     const onTime = onTimeStats(tasks, today, days);
     const habitStats = habitPeriodStats(habits, today, days);
@@ -157,7 +157,7 @@ function renderTaskCharts(days: number, today: string): void {
 // ===== Привычки =====
 
 function renderHabitChart(days: number, today: string): void {
-    const habits = loadHabits();
+    const habits = loadActiveHabits();
     const box = $('#an-habits');
     if (!box) return;
 
@@ -177,20 +177,23 @@ function renderHabitChart(days: number, today: string): void {
             return {
                 label: r.text,
                 cells: r.marks.map((m) => (m ? 1 : 0)),
-                tips: r.marks.map((m, i) => `${formatDateShort(stats.dates[i])} — ${r.text}: ${m ? 'отмечено' : 'нет'}`),
+                off: r.marks.map((m, i) => !m && !r.due[i]),   // не по графику и не отмечено — «выходной»
+                tips: r.marks.map((m, i) => `${formatDateShort(stats.dates[i])} — ${r.text}: ${m ? 'отмечено' : r.due[i] ? 'нет' : 'не по графику'}`),
                 value: `${r.percent}%`,
             };
         }
         const cells: number[] = [];
+        const off: boolean[] = [];
         const tips: string[] = [];
         for (let end = r.marks.length; end > 0; end -= 7) {
             const from = Math.max(0, end - 7);
-            const chunk = r.marks.slice(from, end);
-            const done = chunk.filter(Boolean).length;
-            cells.unshift(done / chunk.length);
-            tips.unshift(`Неделя с ${formatDateShort(stats.dates[from])} — ${r.text}: ${done} из ${chunk.length}`);
+            const dueN = r.due.slice(from, end).filter(Boolean).length;
+            const done = r.marks.slice(from, end).filter((m, i) => m && r.due[from + i]).length;
+            cells.unshift(dueN === 0 ? 0 : done / dueN);
+            off.unshift(dueN === 0);
+            tips.unshift(`Неделя с ${formatDateShort(stats.dates[from])} — ${r.text}: ${dueN === 0 ? 'нет дней по графику' : `${done} из ${dueN}`}`);
         }
-        return { label: r.text, cells, tips, value: `${r.percent}%` };
+        return { label: r.text, cells, off, tips, value: `${r.percent}%` };
     });
 
     box.innerHTML = renderHeatmap(rows, formatDateShort(stats.dates[0]), 'сегодня');
@@ -233,7 +236,7 @@ function renderMoodCharts(days: number, today: string): void {
 
 function buildInsights(days: number, today: string): string[] {
     const tasks = loadTasks();
-    const habits = loadHabits();
+    const habits = loadActiveHabits();
     const list: string[] = [];
 
     const taskStats = taskPeriodStats(tasks, today, days);
@@ -288,10 +291,10 @@ function renderAdvice(days: number, today: string): void {
     box.replaceChildren();
 
     const tasks = loadTasks();
-    const habits = loadHabits();
+    const habits = loadActiveHabits();
     const stats = taskPeriodStats(tasks, today, days);
     const mood = moodPeriodStats(loadMood(), today, days);
-    const bestStreak = Math.max(0, ...habits.map((h) => getStreak(h.dates, today)));
+    const bestStreak = Math.max(0, ...habits.map((h) => getStreak(h.dates, today, h.days)));
 
     // Самая частая оценка словом (для совета по настроению)
     const top = mood.counts.indexOf(Math.max(...mood.counts));

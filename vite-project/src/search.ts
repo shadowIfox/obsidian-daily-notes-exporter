@@ -91,7 +91,7 @@ function searchHabits(query: string, habits: Habit[]): Scored[] {
         const range = findRange(h.text, query);
         if (!range) continue;
         out.push({
-            hit: { kind: 'habit', id: h.id, title: h.text, titleRange: range, sub: `серия ${getStreak(h.dates)} дн.`, subRange: null, meta: '' },
+            hit: { kind: 'habit', id: h.id, title: h.text, titleRange: range, sub: `серия ${getStreak(h.dates, undefined, h.days)} дн.`, subRange: null, meta: '' },
             score: range[0] === 0 ? 0 : 1,
             key: h.text,
         });

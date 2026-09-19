@@ -12,11 +12,24 @@ export type TaskStatus = 'all' | 'active' | 'completed';
 /** Значение фильтра «Без категории». */
 export const NO_CATEGORY = '__none__';
 
-/** Серия дней подряд, заканчивающаяся сегодня. */
-export function getStreak(dates: string[], today: string = todayStr()): number {
+/** Привычка должна быть выполнена в этот день по графику (нет графика — каждый день). */
+export function isDue(habit: { days?: number[] }, date: string): boolean {
+    return !habit.days || habit.days.includes(weekdayIndex(date));
+}
+
+/**
+ * Серия дней подряд, заканчивающаяся сегодня.
+ * Если задан график (days), дни не по графику серию не прерывают и не увеличивают.
+ */
+export function getStreak(dates: string[], today: string = todayStr(), days?: number[]): number {
     const set = new Set(dates);
     let streak = 0;
-    for (let day = today; set.has(day); day = addDays(day, -1)) streak++;
+    let day = today;
+    for (let guard = 0; guard < 4000; guard++, day = addDays(day, -1)) {
+        if (days && !days.includes(weekdayIndex(day))) continue;
+        if (!set.has(day)) break;
+        streak++;
+    }
     return streak;
 }
 
@@ -86,13 +99,12 @@ export function deadlineOverview(tasks: Task[], today: string = todayStr()) {
     };
 }
 
-/** Привычки: отмечено сегодня / осталось / лучшая текущая серия. */
+/** Привычки: отмечено сегодня / осталось по графику / лучшая текущая серия. */
 export function habitOverview(habits: Habit[], today: string = todayStr()) {
-    const doneToday = habits.filter((h) => h.dates.includes(today)).length;
     return {
-        doneToday,
-        left: habits.length - doneToday,
-        bestStreak: Math.max(0, ...habits.map((h) => getStreak(h.dates, today))),
+        doneToday: habits.filter((h) => h.dates.includes(today)).length,
+        left: habits.filter((h) => isDue(h, today) && !h.dates.includes(today)).length,
+        bestStreak: Math.max(0, ...habits.map((h) => getStreak(h.dates, today, h.days))),
     };
 }
 
@@ -219,22 +231,40 @@ export function categoryBreakdown(tasks: Task[], today: string = todayStr(), day
         .slice(0, limit);
 }
 
-/** Процент выполнения привычек за окно: отметки / (привычки × дни); null, если привычек нет. */
+/** Процент выполнения привычек за окно: отмеченные дни по графику / все дни по графику; null, если считать нечего. */
 export function habitRate(habits: Habit[], today: string = todayStr(), days: number = 30): number | null {
-    if (habits.length === 0) return null;
-    const window = new Set(lastNDates(days, today));
-    const marks = sum(habits.map((h) => h.dates.filter((d) => window.has(d)).length));
-    return Math.round((marks / (habits.length * days)) * 100);
+    let done = 0;
+    let possible = 0;
+    const dates = lastNDates(days, today);
+    for (const h of habits) {
+        const set = new Set(h.dates);
+        for (const d of dates) {
+            if (!isDue(h, d)) continue;
+            possible++;
+            if (set.has(d)) done++;
+        }
+    }
+    return possible === 0 ? null : Math.round((done / possible) * 100);
 }
 
-/** Привычки по дням: для каждой — отметки за окно, процент и текущая серия. */
+/** Привычки по дням: для каждой — отметки и дни по графику за окно, процент и текущая серия. */
 export function habitPeriodStats(habits: Habit[], today: string = todayStr(), days: number = 30) {
     const dates = lastNDates(days, today);
     const rows = habits.map((h) => {
         const set = new Set(h.dates);
         const marks = dates.map((d) => set.has(d));
-        const done = marks.filter(Boolean).length;
-        return { id: h.id, text: h.text, marks, done, percent: Math.round((done / days) * 100), streak: getStreak(h.dates, today) };
+        const due = dates.map((d) => isDue(h, d));
+        const dueCount = due.filter(Boolean).length;
+        const done = marks.filter((m, i) => m && due[i]).length;
+        return {
+            id: h.id,
+            text: h.text,
+            marks,
+            due,
+            done,
+            percent: dueCount === 0 ? 0 : Math.round((done / dueCount) * 100),
+            streak: getStreak(h.dates, today, h.days),
+        };
     });
     return {
         dates,
@@ -270,7 +300,9 @@ export function moodVsHabits(habits: Habit[], mood: MoodEntry[], today: string =
     for (const date of lastNDates(days, today)) {
         const r = rating.get(date);
         if (r === undefined) continue;
-        const share = habits.filter((h) => h.dates.includes(date)).length / habits.length;
+        const due = habits.filter((h) => isDue(h, date));
+        if (due.length === 0) continue; // в этот день ничего не запланировано
+        const share = due.filter((h) => h.dates.includes(date)).length / due.length;
         (share >= 0.5 ? high : low).push(r);
     }
     if (high.length < 3 || low.length < 3) return null;

@@ -125,14 +125,14 @@ export function renderHBars(items: HBarItem[], max?: number): string {
     return `<div class="hbars">${rows.join('')}</div>`;
 }
 
-export type HeatRow = { label: string; cells: number[]; tips: string[]; value: string };
+export type HeatRow = { label: string; cells: number[]; tips: string[]; value: string; off?: boolean[] };
 
 /** Тепловая карта: строка на привычку, ячейка на день (или неделю); интенсивность 0…1. */
 export function renderHeatmap(rows: HeatRow[], firstLabel: string, lastLabel: string): string {
     const cols = rows[0]?.cells.length ?? 0;
     const body = rows.map((r) => {
         const cells = r.cells
-            .map((v, i) => `<span class="heat__cell" style="--v:${v.toFixed(2)}" data-tip="${esc(r.tips[i] ?? '')}"></span>`)
+            .map((v, i) => `<span class="heat__cell${r.off?.[i] ? ' heat__cell--off' : ''}" style="--v:${v.toFixed(2)}" data-tip="${esc(r.tips[i] ?? '')}"></span>`)
             .join('');
         return `<div class="heat__row"><span class="heat__label">${esc(r.label)}</span><div class="heat__cells" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${cells}</div><span class="heat__value">${esc(r.value)}</span></div>`;
     });
