@@ -3,6 +3,8 @@ dist
 node_modules
 test-results
 playwright-report
+# Rust-часть: сборка и сгенерированные Tauri файлы; Cargo.toml и .rs форматирует cargo fmt
+src-tauri
 package-lock.json
 # Наборы перенесены из временных скриптов дословно; отформатируем при переписывании на локаторы Playwright
 tests/e2e/ported

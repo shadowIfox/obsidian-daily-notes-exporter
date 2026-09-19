@@ -4,6 +4,10 @@ import { createHarness } from '../harness';
 
 test("календарь и расписание дня", async ({ page }) => {
     const { sleep, ev, send, check, go, finish } = createHarness(page);
+    // Времена в тесте считаются как «сейчас ± N минут»: без этого он падает вечером и рано утром, когда время переходит через полночь
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    await page.clock.setFixedTime(noon);
 
 const fmt = `const p = n => String(n).padStart(2,'0'); const day = k => { const d = new Date(); d.setDate(d.getDate()+k); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }; const hm = m => { const d = new Date(Date.now() + m * 60000); return p(d.getHours())+':'+p(d.getMinutes()); };`;
 const seed = `(() => { ${fmt} localStorage.clear();

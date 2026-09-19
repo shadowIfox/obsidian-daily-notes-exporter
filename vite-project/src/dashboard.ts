@@ -3,6 +3,7 @@
 // Статичная разметка лежит в index.html (#dashboard-section), здесь — данные и события.
 
 import { renderSide, selectDate, setupSide } from './calendar';
+import { enhanceDateInputs } from './datePicker';
 import { addDays, formatDateShort, todayStr } from './dates';
 import { toggleHabitToday } from './habits';
 import { icon } from './icons';
@@ -288,7 +289,7 @@ function renderDetails(tasks: Task[], today: string): void {
         <input id="d-text" class="input" maxlength="100" />
       </div>
       <div class="details__grid">
-        <div class="field"><label class="field__label" for="d-date">Дедлайн</label><input id="d-date" type="date" class="input" /></div>
+        <div class="field"><label class="field__label" for="d-date">Дедлайн</label><input id="d-date" type="date" class="input" data-clearable /></div>
         <div class="field"><label class="field__label" for="d-time">Время</label><input id="d-time" type="time" class="input" /></div>
         <div class="field"><label class="field__label" for="d-category">Категория</label><input id="d-category" class="input" maxlength="30" /></div>
       </div>
@@ -315,6 +316,7 @@ function renderDetails(tasks: Task[], today: string): void {
     </form>`;
 
     const form = box.querySelector<HTMLFormElement>('form')!;
+    enhanceDateInputs(form);
     const field = <T extends HTMLElement>(sel: string) => form.querySelector<T>(sel)!;
 
     field('[data-role="status"]').textContent = statusOf(task, today);

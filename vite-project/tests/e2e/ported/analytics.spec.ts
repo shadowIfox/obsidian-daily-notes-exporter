@@ -108,7 +108,7 @@ check('«Привычки»: серии — полосы с числами (За
 await ev(`document.querySelectorAll('#habit-list .check')[1].click()`); await sleep(300);
 check('«Привычки»: после отметки график обновился (Чтение: сегодня + вчера = 2 дн.)', (await ev(`[...document.querySelectorAll('#habit-streaks .hbar__value')].map(e => e.textContent).join(',')`)) === '4 дн.,2 дн.');
 await ev(`location.hash = '#/mood'`); await sleep(400);
-const moodCols = JSON.parse(await ev(`JSON.stringify([...document.querySelectorAll('#mood-week-chart .col__bar')].map(b => b.style.background || b.getAttribute('style')))`));
+const moodCols = JSON.parse(await ev(`JSON.stringify([...document.querySelectorAll('#mood-week-chart .col__bar')].map(b => b.style.background || b.getAttribute('style')).filter(st => st.includes('var(--mood-')))`));
 check('«Настроение»: 6 столбцов за неделю (0, −1, −2, −3, −5), цвет по оценке', moodCols.length === 5 && moodCols[moodCols.length - 1].includes('var(--mood-5)') && moodCols[0].includes('var(--mood-'), JSON.stringify(moodCols));
 await ev(`(() => { document.querySelector('.rating__opt[data-r="1"] input').click(); document.getElementById('mood-form').requestSubmit(); })()`); await sleep(300);
 check('«Настроение»: сохранение обновляет график (последний столбец — оценка 1)', (await ev(`[...document.querySelectorAll('#mood-week-chart .col__bar')].pop().getAttribute('style')`)).includes('var(--mood-1)'));

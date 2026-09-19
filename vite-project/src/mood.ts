@@ -1,4 +1,4 @@
-import { addDays, formatDateShort, todayStr } from './dates';
+import { addDays, formatDateShort, lastNDates, todayStr } from './dates';
 import { icon } from './icons';
 import { loadMood, saveMood, type MoodEntry } from './store';
 import { renderColumns } from './viz';
@@ -178,24 +178,36 @@ export function revealMoodEntry(date: string): void {
 // ===== График =====
 
 /** --- Секция: Рендер графика настроения ---
- * Столбцы по записям за последние 7 дней; цвет столбца — по оценке (палитра из CSS-переменных --mood-1…5).
+ * Период тот же, что в истории (7 или 30 дней), заканчивая сегодняшним: у каждого дня свой столбец,
+ * у дней без записи он пустой. Так вчера стоит рядом с сегодня, а пропуски видны.
+ * Цвет столбца — по оценке (палитра --mood-1…5).
  */
 export function renderMoodChart(): void {
     const box = el('mood-week-chart');
     if (!box) return;
-    const entries = entriesSince(7);
+    const title = el('mood-chart-title');
+    if (title) title.textContent = historyDays === 7 ? 'График за неделю' : `График за ${historyDays} дней`;
+    const entries = entriesSince(historyDays);
     if (entries.length === 0) {
-        box.innerHTML = '<p class="viz__empty">За последние 7 дней записей нет.</p>';
+        box.innerHTML = `<p class="viz__empty">За последние ${historyDays} дней записей нет.</p>`;
         return;
     }
+    const byDate = new Map(entries.map((e) => [e.date, e]));
+    const dates = lastNDates(historyDays);
     box.innerHTML = renderColumns(
-        entries.map((e) => ({
-            label: formatDateShort(e.date),
-            value: e.rating,
-            tip: `${formatDateShort(e.date)}: ${e.rating}${e.note ? ` — ${e.note.length > 60 ? e.note.slice(0, 60) + '…' : e.note}` : ''}`,
-            color: `var(--mood-${e.rating})`,
-        })),
-        { height: 200, max: 5, showValues: true },
+        dates.map((date) => {
+            const e = byDate.get(date);
+            const label = formatDateShort(date);
+            if (!e) return { label, value: 0, tip: `${label}: записи нет` };
+            return {
+                label,
+                value: e.rating,
+                tip: `${label}: ${e.rating}${e.note ? ` — ${e.note.length > 60 ? e.note.slice(0, 60) + '…' : e.note}` : ''}`,
+                color: `var(--mood-${e.rating})`,
+            };
+        }),
+        // за 30 дней подписи через каждые 5 дней, считая от сегодняшнего, чтобы не слипались
+        { height: 200, max: 5, showValues: true, labelAt: historyDays === 7 ? undefined : (i) => (dates.length - 1 - i) % 5 === 0 },
     );
 }
 
@@ -219,6 +231,7 @@ export function setupMood(): void {
         if (!btn) return;
         historyDays = Number(btn.dataset.days) === 30 ? 30 : 7;
         renderMoodHistory();
+        renderMoodChart();
     });
 
     // Смена даты в форме: подставляем сохранённую запись этого дня (если она есть)

@@ -4,17 +4,21 @@ import '@fontsource-variable/manrope';
 import './style.css';
 
 import { setupDashboard } from './dashboard';
+import { enhanceDateInputs } from './datePicker';
 import { setupHabits } from './habits';
 import { hydrateIcons } from './icons';
 import { setupMood } from './mood';
 import { readPref, writePref } from './prefs';
 import { initRouter } from './router';
 import { setupSettings } from './settings';
+import { localStorageBackend, type StorageBackend } from './storage';
+import { importFromLocalStorage, sqliteBackend } from './storageTauri';
 import { initStore } from './store';
 import { initThemeSwitcher } from './theme';
 import { openTaskModal } from './taskModal';
 import { setEditHandler, setupTodo } from './todo';
 import { setupTopbar } from './topbar';
+import { isTauri } from './utils/platform';
 import { initTooltips } from './viz';
 
 const SIDEBAR_KEY = 'sidebarCollapsed';
@@ -36,12 +40,21 @@ window.addEventListener('storeerror', (e) => {
     window.alert(`Не удалось сохранить данные: ${message}`);
 });
 
+/** В окне Tauri данные лежат в SQLite (при первом запуске подтягиваются из localStorage), в браузере — в localStorage. */
+async function openBackend(): Promise<StorageBackend> {
+    if (!isTauri()) return localStorageBackend;
+    await importFromLocalStorage(sqliteBackend, localStorageBackend);
+    return sqliteBackend;
+}
+
 async function start(): Promise<void> {
     // Иконки из разметки → inline-SVG (до остальной инициализации, чтобы кнопки уже были с иконками)
     hydrateIcons();
+    // Поля даты в разметке заменяются календарём в стиле приложения (до разделов, которые ставят в них значения)
+    enhanceDateInputs();
 
     // Данные читаются один раз, до запуска разделов
-    await initStore();
+    await initStore(await openBackend());
 
     // Тема — раньше остальных разделов
     initThemeSwitcher();

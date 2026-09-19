@@ -18,6 +18,7 @@ import {
 } from './stats';
 import { loadActiveHabits, loadMood, loadTasks } from './store';
 import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
+import { plural } from './utils/plural';
 import {
     mountResponsive,
     renderColumns,
@@ -94,7 +95,9 @@ function renderKpis(days: number, today: string): void {
         setText('[data-kpi="mood"]', mood.avg);
         setText(
             '[data-kpi-note="mood"]',
-            mood.prevAvg === null ? `${mood.entries.length} оценок за период` : deltaNote(mood.avg - mood.prevAvg),
+            mood.prevAvg === null
+                ? `${mood.entries.length} ${plural(mood.entries.length, ['оценка', 'оценки', 'оценок'])} за период`
+                : deltaNote(mood.avg - mood.prevAvg),
         );
     } else {
         setText('[data-kpi="mood"]', '—');
@@ -234,7 +237,7 @@ function renderMoodCharts(days: number, today: string): void {
         return;
     }
 
-    setText('#an-mood-meta', `${stats.entries.length} ${stats.entries.length === 1 ? 'оценка' : 'оценок'}`);
+    setText('#an-mood-meta', `${stats.entries.length} ${plural(stats.entries.length, ['оценка', 'оценки', 'оценок'])}`);
 
     const notes = new Map(stats.entries.filter((e) => e.note).map((e) => [e.date, e.note]));
     if (lineBox) mountResponsive(lineBox, (width) => renderMoodArea(stats.series, { width, height: 230, avg: stats.avg, today, notes }));

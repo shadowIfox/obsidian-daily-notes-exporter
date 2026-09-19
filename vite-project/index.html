@@ -221,7 +221,7 @@
               <div class="field task-form__date">
                 <label class="field__label" for="task-date">Дедлайн</label>
                 <div class="input-group">
-                  <input id="task-date" name="task-date" type="date" class="input" />
+                  <input id="task-date" name="task-date" type="date" class="input" data-clearable />
                   <button id="today-btn" type="button" class="btn btn--ghost">Сегодня</button>
                 </div>
               </div>
@@ -363,7 +363,7 @@
             </div>
 
             <div class="card">
-              <h2 class="card__title">График за неделю</h2>
+              <h2 id="mood-chart-title" class="card__title">График за неделю</h2>
               <div id="mood-week-chart"></div>
             </div>
           </section>
@@ -583,7 +583,7 @@
           <input id="tm-text" class="input" maxlength="100" required placeholder="Что нужно сделать?" />
         </div>
         <div class="details__grid">
-          <div class="field"><label class="field__label" for="tm-date">Дата</label><input id="tm-date" type="date" class="input" /></div>
+          <div class="field"><label class="field__label" for="tm-date">Дата</label><input id="tm-date" type="date" class="input" data-clearable /></div>
           <div class="field"><label class="field__label" for="tm-time">Время</label><input id="tm-time" type="time" class="input" /></div>
           <div class="field"><label class="field__label" for="tm-category">Категория</label><input id="tm-category" class="input" maxlength="30" placeholder="Учёба, Личное…" /></div>
         </div>
