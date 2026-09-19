@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88">
+  <!-- Значок в меню-баре: монохромный «шаблон» (macOS сам красит его под тёмную и светлую строку меню) -->
+  <g fill="none" stroke="#000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="44" cy="44" r="24"/>
+    <path d="M33 45l8 8 15-17"/>
+    <path d="M44 8v8M44 72v8M8 44h8M72 44h8M18.5 18.5l5.6 5.6M63.9 63.9l5.6 5.6M18.5 69.5l5.6-5.6M63.9 24.1l5.6-5.6"/>
+  </g>
+</svg>
