@@ -146,7 +146,7 @@
                 <div class="stat-card__row">
                   <div><div class="stat-card__value" data-stat="deadlines.overdue">0</div><div class="stat-card__label">просрочено</div></div>
                   <div><div class="stat-card__value" data-stat="deadlines.today">0</div><div class="stat-card__label">сегодня</div></div>
-                  <div><div class="stat-card__value" data-stat="deadlines.week">0</div><div class="stat-card__label">на неделе</div></div>
+                  <div><div class="stat-card__value" data-stat="deadlines.week">0</div><div class="stat-card__label">ближ. 7 дней</div></div>
                 </div>
                 <div class="viz" id="viz-deadline"></div>
               </article>
@@ -158,7 +158,7 @@
                   <h2 id="dash-list-title" class="card__title card__title--flush">Задачи</h2>
                   <div id="dash-list-filter" class="segmented" role="group" aria-label="Период списка">
                     <button type="button" class="segmented__btn" data-filter="today">Сегодня</button>
-                    <button type="button" class="segmented__btn" data-filter="week">Неделя</button>
+                    <button type="button" class="segmented__btn" data-filter="week" title="Текущая неделя: с понедельника по воскресенье, включая просроченное и выполненное">Неделя</button>
                     <button type="button" class="segmented__btn" data-filter="overdue">Просрочено</button>
                   </div>
                 </div>
@@ -218,18 +218,34 @@
                 <label class="field__label" for="task-text">Задача</label>
                 <input id="task-text" name="task-text" type="text" class="input" placeholder="Что нужно сделать?" required maxlength="100" />
               </div>
-              <div class="field">
+              <div class="field task-form__date">
                 <label class="field__label" for="task-date">Дедлайн</label>
                 <div class="input-group">
                   <input id="task-date" name="task-date" type="date" class="input" />
                   <button id="today-btn" type="button" class="btn btn--ghost">Сегодня</button>
                 </div>
               </div>
-              <div class="field">
-                <label class="field__label" for="task-category">Категория</label>
-                <input id="task-category" name="task-category" type="text" class="input" placeholder="Учёба, Личное…" />
+              <div class="field task-form__time">
+                <label class="field__label" for="task-time">Время</label>
+                <input id="task-time" name="task-time" type="time" class="input" />
               </div>
-              <button type="submit" class="btn btn--primary"><i data-icon="plus" data-size="18"></i> Добавить</button>
+              <div class="field task-form__category">
+                <label class="field__label" for="task-category">Категория</label>
+                <input id="task-category" name="task-category" type="text" class="input" placeholder="Учёба, Личное…" maxlength="30" />
+              </div>
+              <div class="field task-form__priority">
+                <span class="field__label">Приоритет</span>
+                <div class="segmented" role="radiogroup" aria-label="Приоритет">
+                  <label class="segmented__opt"><input type="radio" name="task-priority" value="low" /><span class="segmented__btn">Низкий</span></label>
+                  <label class="segmented__opt"><input type="radio" name="task-priority" value="normal" checked /><span class="segmented__btn">Обычный</span></label>
+                  <label class="segmented__opt"><input type="radio" name="task-priority" value="high" /><span class="segmented__btn">Высокий</span></label>
+                </div>
+              </div>
+              <div class="field task-form__notes">
+                <label class="field__label" for="task-notes">Заметка</label>
+                <textarea id="task-notes" name="task-notes" rows="2" class="input" placeholder="Подробности, ссылки, что нужно не забыть…"></textarea>
+              </div>
+              <button type="submit" class="btn btn--primary task-form__submit"><i data-icon="plus" data-size="18"></i> Добавить</button>
             </form>
 
             <div class="card">
@@ -518,9 +534,13 @@
             <label class="segmented__opt"><input type="radio" name="tm-priority" value="high" /><span class="segmented__btn">Высокий</span></label>
           </div>
         </div>
+        <div class="field">
+          <label class="field__label" for="tm-notes">Заметка</label>
+          <textarea id="tm-notes" class="input" rows="3" placeholder="Подробности, ссылки, что нужно не забыть…"></textarea>
+        </div>
         <div class="modal__actions">
           <button id="task-modal-cancel" type="button" class="btn btn--ghost">Отмена</button>
-          <button type="submit" class="btn btn--primary">Добавить</button>
+          <button id="task-modal-submit" type="submit" class="btn btn--primary">Добавить</button>
         </div>
       </form>
     </div>

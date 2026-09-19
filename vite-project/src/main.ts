@@ -10,7 +10,8 @@ import { setupMood } from './mood';
 import { initRouter } from './router';
 import { setupSettings } from './settings';
 import { initThemeSwitcher } from './theme';
-import { setupTodo } from './todo';
+import { openTaskModal } from './taskModal';
+import { setEditHandler, setupTodo } from './todo';
 import { setupTopbar } from './topbar';
 import { initTooltips } from './viz';
 
@@ -23,6 +24,7 @@ initTooltips();
 
 // Инициализация разделов
 setupTodo();
+setEditHandler((task) => openTaskModal({ task }));
 setupHabits();
 setupMood();
 setupSettings();

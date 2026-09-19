@@ -68,3 +68,9 @@ export function monthGrid(year: number, month: number): string[][] {
     const start = addDays(toDateStr(first), -((first.getDay() + 6) % 7));
     return Array.from({ length: 6 }, (_, w) => Array.from({ length: 7 }, (_, d) => addDays(start, w * 7 + d)));
 }
+
+/** Календарная неделя, в которую входит день: с понедельника по воскресенье. */
+export function weekRange(dateStr: string): { from: string; to: string } {
+    const from = addDays(dateStr, -weekdayIndex(dateStr));
+    return { from, to: addDays(from, 6) };
+}

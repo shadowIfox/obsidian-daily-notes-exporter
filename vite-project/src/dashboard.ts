@@ -200,7 +200,7 @@ function renderTaskList(tasks: Task[], today: string): Task[] {
     if (empty) {
         const messages: Record<TaskListFilter, string> = {
             today: 'На сегодня задач нет.',
-            week: 'На ближайшую неделю задач нет.',
+            week: 'На этой неделе задач нет.',
             overdue: 'Просроченных задач нет — отлично!',
         };
         empty.textContent = messages[listFilter];
@@ -209,7 +209,7 @@ function renderTaskList(tasks: Task[], today: string): Task[] {
 
     for (const task of items) {
         const li = document.createElement('li');
-        li.className = 'pick';
+        li.className = task.completed ? 'pick pick--done' : 'pick';
         if (task.id === selectedId) li.setAttribute('aria-current', 'true');
 
         const check = document.createElement('input');
@@ -406,9 +406,11 @@ export function setupDashboard(): void {
     });
 
     // Новая задача из календаря: выбираем её день и сразу показываем детали
-    setupTaskModal((task) => {
-        if (task.date) selectDate(task.date);
-        selectedId = task.id;
+    setupTaskModal((task, created) => {
+        if (created) {
+            if (task.date) selectDate(task.date);
+            selectedId = task.id;
+        }
         renderDashboard();
     });
 

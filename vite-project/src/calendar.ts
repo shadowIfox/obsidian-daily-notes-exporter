@@ -257,6 +257,6 @@ export function setupSide(h: SideHandlers): void {
         timelineFilter = btn.dataset.filter as 'all' | 'active';
         renderSide(lastTasks, lastToday);
     });
-    $('#cal-add')?.addEventListener('click', () => openTaskModal(getSelectedDate(lastToday)));
+    $('#cal-add')?.addEventListener('click', () => openTaskModal({ date: getSelectedDate(lastToday) }));
 }
 

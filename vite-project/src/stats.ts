@@ -1,6 +1,6 @@
 // stats.ts — чистые функции статистики (без DOM и localStorage), данные приходят аргументами.
 
-import { addDays, lastNDates, todayStr, weekdayIndex } from './dates';
+import { addDays, lastNDates, todayStr, weekRange, weekdayIndex } from './dates';
 import type { Habit, MoodEntry, Task } from './store';
 
 export type DayCount = { date: string; count: number };
@@ -131,16 +131,20 @@ function byDeadline(a: Task, b: Task): number {
     );
 }
 
-/** Невыполненные задачи для списка на главной: на сегодня / на 7 дней вперёд / просроченные. */
+/**
+ * Задачи для списка на главной.
+ * «Сегодня» и «Просрочено» — только невыполненные.
+ * «Неделя» — всё, что назначено на текущую календарную неделю (Пн–Вс): и предстоящее, и просроченное,
+ * и уже выполненное (выполненные в конце списка).
+ */
 export function tasksForList(tasks: Task[], filter: TaskListFilter, today: string = todayStr()): Task[] {
-    const weekEnd = addDays(today, 7);
+    if (filter === 'week') {
+        const { from, to } = weekRange(today);
+        const inWeek = tasks.filter((t) => t.date >= from && t.date <= to);
+        return [...inWeek.filter((t) => !t.completed).sort(byDeadline), ...inWeek.filter((t) => t.completed).sort(byDeadline)];
+    }
     const active = tasks.filter((t) => !t.completed);
-    const picked =
-        filter === 'overdue'
-            ? active.filter((t) => t.date && t.date < today)
-            : filter === 'week'
-              ? active.filter((t) => t.date >= today && t.date <= weekEnd)
-              : active.filter((t) => t.date === today);
+    const picked = filter === 'overdue' ? active.filter((t) => t.date && t.date < today) : active.filter((t) => t.date === today);
     return picked.sort(byDeadline);
 }
 

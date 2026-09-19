@@ -3,6 +3,12 @@ import { icon } from './icons';
 import { loadTasks, newId, saveTasks, type Priority, type Task } from './store';
 
 let currentTasks: Task[] = [];
+let editHandler: ((task: Task) => void) | null = null;
+
+/** Кто открывает окно правки задачи (подключается в main.ts). */
+export function setEditHandler(handler: (task: Task) => void): void {
+    editHandler = handler;
+}
 let currentFilter: 'all' | 'active' | 'completed' = 'all';
 
 // --- API для других разделов (главная меняет задачи через него, чтобы не разъезжалось состояние) ---
@@ -102,12 +108,30 @@ export function createTaskElement(task: Task): HTMLLIElement {
         meta.appendChild(important);
     }
 
+    if (task.notes) {
+        const note = document.createElement('span');
+        note.className = 'task__note';
+        note.setAttribute('data-tip', task.notes.length > 160 ? `${task.notes.slice(0, 160)}…` : task.notes);
+        note.setAttribute('aria-label', 'Есть заметка');
+        note.innerHTML = icon('sticky-note', 16);
+        meta.appendChild(note);
+    }
+
     if (task.category) {
         const chip = document.createElement('span');
         chip.className = 'chip';
         chip.textContent = task.category;
         meta.appendChild(chip);
     }
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'icon-btn icon-btn--sm';
+    editBtn.setAttribute('aria-label', 'Изменить задачу');
+    editBtn.title = 'Изменить';
+    editBtn.innerHTML = icon('pencil', 16);
+    editBtn.onclick = () => editHandler?.(task);
+    meta.appendChild(editBtn);
 
     // Удаляем по id: индекс в отфильтрованном списке не совпадает с индексом в полном
     const removeBtn = document.createElement('button');
@@ -204,7 +228,9 @@ export function setupTodo() {
     const form = document.getElementById('add-task-form') as HTMLFormElement | null;
     const textInput = document.getElementById('task-text') as HTMLInputElement | null;
     const dateInput = document.getElementById('task-date') as HTMLInputElement | null;
+    const timeInput = document.getElementById('task-time') as HTMLInputElement | null;
     const categoryInput = document.getElementById('task-category') as HTMLInputElement | null;
+    const notesInput = document.getElementById('task-notes') as HTMLTextAreaElement | null;
 
     currentTasks = loadTasks();
     renderTasks();
@@ -212,7 +238,7 @@ export function setupTodo() {
     setupClearCompleted();
     setupTodayBtn();
 
-    if (!form || !textInput || !dateInput || !categoryInput) {
+    if (!form || !textInput || !dateInput || !timeInput || !categoryInput || !notesInput) {
         console.log('Не найдены нужные элементы формы!');
         return;
     }
@@ -220,15 +246,22 @@ export function setupTodo() {
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = textInput.value.trim();
-        const date = dateInput.value;
-        const category = categoryInput.value.trim();
-
         if (!text) return;
 
-        currentTasks.push({ id: newId(), text, date, category, priority: 'normal', notes: '', completed: false });
-        saveTasks(currentTasks);
-        renderTasks();
-        form.reset();
+        const time = timeInput.value;
+        // Время без даты не попало бы в расписание дня — считаем, что задача на сегодня
+        const date = dateInput.value || (time ? todayStr() : '');
+        const priority = (form.querySelector<HTMLInputElement>('input[name="task-priority"]:checked')?.value ?? 'normal') as Priority;
+
+        addTask({
+            text,
+            date,
+            time: time || undefined,
+            category: categoryInput.value.trim(),
+            priority,
+            notes: notesInput.value.trim(),
+        });
+        form.reset(); // приоритет возвращается к «Обычный» (у него checked в разметке)
     });
 }
 
