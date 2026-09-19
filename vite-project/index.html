@@ -316,12 +316,16 @@
           <section id="mood-section" class="page hidden">
             <header class="page-head">
               <h1 class="page-title">Настроение</h1>
-              <p class="page-sub">Одна запись в день — повторное сохранение заменяет сегодняшнюю.</p>
+              <p class="page-sub">Одна запись в день. Можно записать или исправить любой прошлый день: выберите дату или нажмите на запись в истории.</p>
             </header>
 
             <div class="grid-2">
               <form id="mood-form" class="card form-stack">
                 <h2 class="card__title card__title--flush">Как вы себя чувствуете?</h2>
+                <div class="field mood-date-field">
+                  <label class="field__label" for="mood-date">Дата</label>
+                  <input id="mood-date" type="date" class="input" />
+                </div>
                 <div class="field">
                   <span class="field__label">Оценка</span>
                   <div class="rating" id="mood-rating" role="radiogroup" aria-label="Оценка настроения">
@@ -337,11 +341,22 @@
                   <label class="field__label" for="mood-note">Заметка</label>
                   <textarea id="mood-note" rows="3" class="input" placeholder="Как прошёл день?"></textarea>
                 </div>
-                <div><button type="submit" class="btn btn--primary">Сохранить</button></div>
+                <p id="mood-hint" class="hint" role="status"></p>
+                <div class="mood-actions">
+                  <button type="submit" class="btn btn--primary">Сохранить</button>
+                  <button id="mood-delete" type="button" class="btn btn--ghost btn--danger-text hidden">Удалить запись</button>
+                  <span id="mood-status" class="hint" role="status"></span>
+                </div>
               </form>
 
               <div class="card">
-                <h2 class="card__title">История за неделю</h2>
+                <div class="card__head">
+                  <h2 class="card__title">История</h2>
+                  <div id="mood-range" class="segmented" role="group" aria-label="Период истории">
+                    <button type="button" class="segmented__btn" data-days="7">7 дней</button>
+                    <button type="button" class="segmented__btn" data-days="30">30 дней</button>
+                  </div>
+                </div>
                 <ul id="mood-history" class="stack"></ul>
                 <p id="mood-empty" class="empty hidden">За последние 7 дней записей нет.</p>
               </div>
