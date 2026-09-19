@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Иконка приложения «Мой день»: тёмный скруглённый квадрат, розовое солнце с галочкой (палитра приложения) -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#14130f"/>
+  <g stroke="#f3a5cd" stroke-width="38" stroke-linecap="round">
+    <path d="M512 218v-54M512 806v54M218 512h-54M806 512h54M304 304l-38-38M720 720l38 38M304 720l-38 38M720 304l38-38"/>
+  </g>
+  <circle cx="512" cy="512" r="200" fill="#f3a5cd"/>
+  <path d="M420 516l70 70 122-146" fill="none" stroke="#14130f" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
