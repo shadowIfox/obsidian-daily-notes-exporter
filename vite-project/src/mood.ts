@@ -1,4 +1,4 @@
-import { addDays, formatDateShort, todayStr } from './dates';
+import { addDays, formatDateShort, lastNDates, todayStr } from './dates';
 import { icon } from './icons';
 import { loadMood, saveMood, type MoodEntry } from './store';
 import { renderColumns } from './viz';
@@ -178,7 +178,8 @@ export function revealMoodEntry(date: string): void {
 // ===== График =====
 
 /** --- Секция: Рендер графика настроения ---
- * Столбцы по записям за последние 7 дней; цвет столбца — по оценке (палитра из CSS-переменных --mood-1…5).
+ * Семь календарных дней, заканчивая сегодняшним: у каждого дня свой столбец, у дней без записи он пустой.
+ * Так вчера стоит рядом с сегодня, а пропуски видны. Цвет столбца — по оценке (палитра --mood-1…5).
  */
 export function renderMoodChart(): void {
     const box = el('mood-week-chart');
@@ -188,13 +189,19 @@ export function renderMoodChart(): void {
         box.innerHTML = '<p class="viz__empty">За последние 7 дней записей нет.</p>';
         return;
     }
+    const byDate = new Map(entries.map((e) => [e.date, e]));
     box.innerHTML = renderColumns(
-        entries.map((e) => ({
-            label: formatDateShort(e.date),
-            value: e.rating,
-            tip: `${formatDateShort(e.date)}: ${e.rating}${e.note ? ` — ${e.note.length > 60 ? e.note.slice(0, 60) + '…' : e.note}` : ''}`,
-            color: `var(--mood-${e.rating})`,
-        })),
+        lastNDates(7).map((date) => {
+            const e = byDate.get(date);
+            const label = formatDateShort(date);
+            if (!e) return { label, value: 0, tip: `${label}: записи нет` };
+            return {
+                label,
+                value: e.rating,
+                tip: `${label}: ${e.rating}${e.note ? ` — ${e.note.length > 60 ? e.note.slice(0, 60) + '…' : e.note}` : ''}`,
+                color: `var(--mood-${e.rating})`,
+            };
+        }),
         { height: 200, max: 5, showValues: true },
     );
 }

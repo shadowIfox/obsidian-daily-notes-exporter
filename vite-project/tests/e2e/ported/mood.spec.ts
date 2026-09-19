@@ -40,7 +40,7 @@ await submit();
 check('сохранение за сегодня: запись в хранилище, форма очищена, статус «Сохранено»', (await stored()).some(e => e.date === D0 && e.rating === 5 && e.note === 'отличный день') && (await q('#mood-status')) === 'Сохранено' && JSON.parse(await formState()).rating === null && JSON.parse(await formState()).note === '');
 f = JSON.parse(await formState());
 check('после сохранения подсказка «Запись за … уже есть» и кнопка «Удалить запись» (запись за сегодня существует)', f.hint.includes('уже есть') && f.del === true, JSON.stringify(f));
-check('график и история обновились: 3 записи за неделю, последний столбец — оценка 5', (await n('#mood-history .mood-item')) === 3 && (await n('#mood-week-chart .col__bar')) === 3 && (await ev(`[...document.querySelectorAll('#mood-week-chart .col__bar')].pop().getAttribute('style')`)).includes('var(--mood-5)'));
+check('график и история обновились: 3 записи за неделю, последний столбец — оценка 5', (await n('#mood-history .mood-item')) === 3 && (await n('#mood-week-chart .col__bar')) === 7 && (await n('#mood-week-chart .col__bar[style*="var(--mood-"]')) === 3 && (await ev(`[...document.querySelectorAll('#mood-week-chart .col__bar')].pop().getAttribute('style')`)).includes('var(--mood-5)'));
 
 // ===== Запись за прошлый день, которого не было =====
 await setDate(D2);
@@ -93,7 +93,7 @@ await ev(`${item(D10)}.click()`); await sleep(250);
 await setNote('давно — дописал');
 await submit();
 check('запись 10-дневной давности правится из истории за 30 дней', (await stored()).find(e => e.date === D10).note === 'давно — дописал' && (await stored()).find(e => e.date === D10).rating === 4);
-check('старая запись не попадает в график недели', (await n('#mood-week-chart .col__bar')) === 4);
+check('старая запись не попадает в график недели (семь дней, 4 из них с записью)', (await n('#mood-week-chart .col__bar')) === 7 && (await n('#mood-week-chart .col__bar[style*="var(--mood-"]')) === 4);
 
 // ===== Влияние на главную =====
 await ev(`location.hash = '#/dashboard'`); await sleep(400);
