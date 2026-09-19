@@ -1,8 +1,9 @@
 mod db;
+mod shell;
 
 use db::Db;
 use std::fs;
-use tauri::{Manager, State};
+use tauri::{Manager, State, WindowEvent};
 
 /// Читает значение по ключу; None — ключа в базе ещё нет.
 #[tauri::command]
@@ -31,9 +32,30 @@ pub fn run() {
             fs::create_dir_all(&dir)?;
             let db = Db::open(&dir.join("myday.sqlite"))?;
             app.manage(db);
+            shell::setup_tray(app.handle())?;
             Ok(())
         })
+        // Красная кнопка окна не завершает приложение, а прячет окно: оно остаётся в меню-баре
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .invoke_handler(tauri::generate_handler![storage_read, storage_write])
-        .run(tauri::generate_context!())
-        .expect("не удалось запустить приложение");
+        .build(tauri::generate_context!())
+        .expect("не удалось собрать приложение")
+        .run(|app, event| {
+            // Клик по значку в Dock, когда окно спрятано, возвращает окно
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen {
+                has_visible_windows: false,
+                ..
+            } = event
+            {
+                shell::show_main_window(app);
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 }
