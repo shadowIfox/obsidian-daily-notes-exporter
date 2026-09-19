@@ -10,6 +10,9 @@ export default tseslint.config(
             'node_modules',
             'test-results',
             'playwright-report',
+            // Rust-часть: сборка и сгенерированные Tauri файлы
+            'src-tauri/target',
+            'src-tauri/gen',
             // перенесены из временных скриптов дословно (см. .prettierignore)
             'tests/e2e/ported',
         ],
