@@ -8,7 +8,7 @@ import { onNewTaskRequested } from './desktopEvents';
 import { enhanceDateInputs } from './datePicker';
 import { setupHabits } from './habits';
 import { hydrateIcons } from './icons';
-import { setLanguage } from './i18n';
+import { setLanguage, tr } from './i18n';
 import { setupMood } from './mood';
 import { readPref, writePref } from './prefs';
 import { initRouter } from './router';
@@ -32,14 +32,14 @@ function showFatal(error: unknown): void {
     box.setAttribute('role', 'alert');
     box.style.cssText =
         'position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#fff8ee;color:#3a2a10;font:16px/1.5 system-ui;text-align:center;z-index:9999';
-    box.textContent = `Не удалось открыть данные: ${error instanceof Error ? error.message : String(error)}`;
+    box.textContent = tr('Не удалось открыть данные: {message}', { message: error instanceof Error ? error.message : String(error) });
     document.body.append(box);
 }
 
 // Запись в хранилище идёт следом за изменением — если она не удалась, об этом нельзя молчать
 window.addEventListener('storeerror', (e) => {
     const { message } = (e as CustomEvent<{ message: string }>).detail;
-    window.alert(`Не удалось сохранить данные: ${message}`);
+    window.alert(tr('Не удалось сохранить данные: {message}', { message }));
 });
 
 /** В окне Tauri данные лежат в SQLite (при первом запуске подтягиваются из localStorage), в браузере — в localStorage. */

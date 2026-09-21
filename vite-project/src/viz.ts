@@ -2,6 +2,7 @@
 // Цвета берутся из CSS (currentColor / --on-pastel), поэтому тема меняется без JS.
 // Весь пользовательский текст (названия категорий и привычек) экранируется через escapeHtml.
 
+import { tr } from './i18n';
 import { addDays, formatDateShort, weekdayIndex } from './dates';
 import type { DayCount, MoodSeries } from './stats';
 import { escapeHtml as esc } from './utils/html';
@@ -19,10 +20,10 @@ export function renderBars(days: DayCount[]): string {
             d.count > 0
                 ? `<span class="bars__value">${d.count}</span><span class="bars__bar" style="height:${Math.max(12, Math.round((d.count / max) * maxHeight))}px"></span>`
                 : '<span class="bars__dot"></span>';
-        return `<div class="bars__col${isToday ? ' bars__col--today' : ''}" data-tip="${formatDateShort(d.date)}: ${d.count}">${bar}<span class="bars__label">${WEEKDAYS[weekdayIndex(d.date)]}</span></div>`;
+        return `<div class="bars__col${isToday ? ' bars__col--today' : ''}" data-tip="${formatDateShort(d.date)}: ${d.count}">${bar}<span class="bars__label">${tr(WEEKDAYS[weekdayIndex(d.date)])}</span></div>`;
     });
 
-    return `<div class="bars" role="img" aria-label="Выполнено задач по дням за неделю">${cols.join('')}</div>`;
+    return `<div class="bars" role="img" aria-label="${tr('Выполнено задач по дням за неделю')}">${cols.join('')}</div>`;
 }
 
 const f = (n: number): string => n.toFixed(1);
@@ -31,7 +32,7 @@ const clamp = (n: number, a: number, b: number): number => Math.min(Math.max(n, 
 /** Плавная линия оценок настроения с пунктирной отметкой на последней записи. */
 export function renderLine(series: MoodSeries, today: string, width = 400): string {
     if (series.points.length === 0) {
-        return `<p class="viz__empty">Оценок за ${series.days} дней пока нет</p>`;
+        return `<p class="viz__empty">${tr('Оценок за {n} дней пока нет', { n: series.days })}</p>`;
     }
 
     const W = width;
@@ -65,11 +66,11 @@ export function renderLine(series: MoodSeries, today: string, width = 400): stri
     const last = pts[pts.length - 1];
     const first = pts[0];
     const baseline = H - bottom + 4;
-    const lastLabel = last.date === today ? 'сегодня' : formatDateShort(last.date);
+    const lastLabel = last.date === today ? tr('сегодня') : formatDateShort(last.date);
     const lastAnchor = last.x > W - 48 ? 'end' : 'middle';
     const showFirstLabel = last.x - padX > 110;
 
-    return `<svg class="line-viz" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Настроение за ${series.days} дней">
+    return `<svg class="line-viz" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${tr('Настроение за {n} дней', { n: series.days })}">
   <line x1="${padX}" y1="${baseline}" x2="${W - padX}" y2="${baseline}" stroke="currentColor" stroke-opacity=".18" />
   <path d="${d}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
   <line x1="${f(last.x)}" y1="${f(last.y + 8)}" x2="${f(last.x)}" y2="${baseline}" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" stroke-opacity=".7" />
@@ -110,7 +111,7 @@ export function renderColumns(
         return `<div class="col" data-tip="${esc(it.tip)}"><div class="col__track" style="height:${height}px">${value}${bar}</div><span class="col__label">${label}</span></div>`;
     });
 
-    return `<div class="cols${dense ? ' cols--dense' : ''}" role="img" aria-label="Столбчатая диаграмма">${cols.join('')}</div>`;
+    return `<div class="cols${dense ? ' cols--dense' : ''}" role="img" aria-label="${tr('Столбчатая диаграмма')}">${cols.join('')}</div>`;
 }
 
 export type HBarItem = { label: string; value: number; valueText: string; tip?: string };
@@ -165,7 +166,7 @@ export function renderDonut(segments: DonutSegment[], centerTop: string, centerB
         }
     }
 
-    return `<svg class="donut" viewBox="0 0 ${size} ${size}" role="img" aria-label="Распределение оценок">
+    return `<svg class="donut" viewBox="0 0 ${size} ${size}" role="img" aria-label="${tr('Распределение оценок')}">
   <g transform="rotate(-90 ${size / 2} ${size / 2})">${arcs}</g>
   <text x="${size / 2}" y="${size / 2 + 4}" text-anchor="middle" font-size="34" font-weight="800" fill="currentColor">${esc(centerTop)}</text>
   <text x="${size / 2}" y="${size / 2 + 26}" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor" fill-opacity=".6">${esc(centerBottom)}</text>
@@ -222,7 +223,7 @@ export function renderMoodArea(
     let xLabels = '';
     for (let i = series.days - 1; i >= 0; i -= step) {
         const date = addDays(o.today, i - (series.days - 1));
-        const label = i === series.days - 1 ? 'сегодня' : formatDateShort(date);
+        const label = i === series.days - 1 ? tr('сегодня') : formatDateShort(date);
         const anchor = i === 0 ? 'start' : i === series.days - 1 ? 'end' : 'middle';
         xLabels += `<text x="${f(x(i))}" y="${H - 8}" text-anchor="${anchor}" font-size="11" font-weight="${i === series.days - 1 ? 800 : 600}" fill="currentColor" fill-opacity="${i === series.days - 1 ? 1 : 0.55}">${label}</text>`;
     }
@@ -231,7 +232,7 @@ export function renderMoodArea(
         o.avg === null
             ? ''
             : `<line x1="${padL}" y1="${f(y(o.avg))}" x2="${W - padR + 4}" y2="${f(y(o.avg))}" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="4 5" />
-  <text x="${W - padR + 10}" y="${f(y(o.avg) + 4)}" text-anchor="start" font-size="11" font-weight="800" fill="currentColor" fill-opacity=".7">ср. ${o.avg}</text>`;
+  <text x="${W - padR + 10}" y="${f(y(o.avg) + 4)}" text-anchor="start" font-size="11" font-weight="800" fill="currentColor" fill-opacity=".7">${tr('ср. {avg}', { avg: o.avg })}</text>`;
 
     const dots = pts
         .map((p) => {
@@ -241,7 +242,7 @@ export function renderMoodArea(
         })
         .join('');
 
-    return `<svg class="area" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Настроение за ${series.days} дней">
+    return `<svg class="area" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${tr('Настроение за {n} дней', { n: series.days })}">
   ${yLabels}
   <line x1="${padL}" y1="${H - bottom + 4}" x2="${W - padR}" y2="${H - bottom + 4}" stroke="currentColor" stroke-opacity=".12" />
   ${area ? `<path d="${area}" fill="currentColor" fill-opacity=".07" />` : ''}

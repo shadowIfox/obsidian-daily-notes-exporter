@@ -15,7 +15,13 @@ export const DEFAULT_LANGUAGE: Language = 'ru';
 
 const DICTIONARIES: Record<Language, Record<string, string>> = { ru: {}, en };
 
-let current: Language = DEFAULT_LANGUAGE;
+/** Язык до чтения настроек: его заранее ставит встроенный скрипт в index.html, чтобы надписи, вычисляемые при загрузке модулей, сразу были на нужном языке. */
+function initialLanguage(): Language {
+    const marked = typeof document === 'undefined' ? null : document.documentElement.getAttribute('data-lang');
+    return isLanguage(marked) ? marked : DEFAULT_LANGUAGE;
+}
+
+let current: Language = initialLanguage();
 
 export function getLanguage(): Language {
     return current;
@@ -40,6 +46,9 @@ function fill(text: string, vars?: Vars): string {
 export function t(text: string, vars?: Vars): string {
     return fill(DICTIONARIES[current][text] ?? text, vars);
 }
+
+/** Короткое имя для кода приложения: в файлах, где `t` — переменная (задача, таймер), `t()` затеняется, поэтому везде используем `tr()`. */
+export const tr = t;
 
 /** Номер формы: русский — 1 / 2–4 / 5+, английский — 1 / остальное. */
 function formIndex(n: number, forms: number): number {

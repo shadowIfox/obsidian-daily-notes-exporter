@@ -1,7 +1,7 @@
 // notifications.ts — что стоит показать в колокольчике (чистая логика, без DOM).
 
+import { tr, tp } from './i18n';
 import { isDue } from './stats';
-import { plural } from './utils/plural';
 import type { Habit, MoodEntry, Task } from './store';
 
 export type NoticeTone = 'danger' | 'info' | 'habit' | 'mood';
@@ -33,8 +33,8 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
         notices.push({
             id: 'overdue',
             tone: 'danger',
-            title: `Просрочено: ${overdue.length} ${plural(overdue.length, ['задача', 'задачи', 'задач'])}`,
-            detail: rest > 0 ? `${overdue[0].text} и ещё ${rest}` : overdue[0].text,
+            title: tp('Просрочено: {n} задача|Просрочено: {n} задачи|Просрочено: {n} задач', overdue.length),
+            detail: rest > 0 ? tr('{text} и ещё {rest}', { text: overdue[0].text, rest }) : overdue[0].text,
             route: 'dashboard',
             taskId: overdue[0].id,
         });
@@ -47,8 +47,8 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
         notices.push({
             id: 'today',
             tone: 'info',
-            title: `На сегодня: ${todays.length} ${plural(todays.length, ['задача', 'задачи', 'задач'])}`,
-            detail: upcoming ? `Ближайшая в ${upcoming.time} — ${upcoming.text}` : focus.text,
+            title: tp('На сегодня: {n} задача|На сегодня: {n} задачи|На сегодня: {n} задач', todays.length),
+            detail: upcoming ? tr('Ближайшая в {time} — {text}', { time: upcoming.time ?? '', text: upcoming.text }) : focus.text,
             route: 'dashboard',
             taskId: focus.id,
         });
@@ -63,8 +63,8 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
         notices.push({
             id: 'habits',
             tone: 'habit',
-            title: `Привычек без отметки: ${pending.length}`,
-            detail: pending.length > 2 ? `${names} и ещё ${pending.length - 2}` : names,
+            title: tr('Привычек без отметки: {n}', { n: pending.length }),
+            detail: pending.length > 2 ? tr('{text} и ещё {rest}', { text: names, rest: pending.length - 2 }) : names,
             route: 'habits',
         });
     }
@@ -73,8 +73,8 @@ export function buildNotices(tasks: Task[], habits: Habit[], mood: MoodEntry[], 
         notices.push({
             id: 'mood',
             tone: 'mood',
-            title: 'Настроение за сегодня не записано',
-            detail: 'Оцените день — это займёт пару секунд',
+            title: tr('Настроение за сегодня не записано'),
+            detail: tr('Оцените день — это займёт пару секунд'),
             route: 'mood',
         });
     }

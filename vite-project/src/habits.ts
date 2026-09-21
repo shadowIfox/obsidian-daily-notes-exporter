@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import { daysInMonth, formatDateShort, lastNDates, todayStr, weekdayIndex } from './dates';
 import { WEEKDAY_LABELS, createWeekdayPicker, describeDays, openHabitEditor, openHabitHistory, setupHabitDialogs } from './habitDialogs';
 import { icon } from './icons';
@@ -16,13 +17,18 @@ export function updateHabitChart() {
     if (!box) return;
     const active = activeHabits();
     if (active.length === 0) {
-        box.innerHTML = '<p class="viz__empty">Добавьте привычку — здесь появятся её серии.</p>';
+        box.innerHTML = `<p class="viz__empty">${tr('Добавьте привычку — здесь появятся её серии.')}</p>`;
         return;
     }
     box.innerHTML = renderHBars(
         active.map((h) => {
             const streak = getStreak(h.dates, undefined, h.days);
-            return { label: h.text, value: streak, valueText: `${streak} дн.`, tip: `${h.text}: серия ${streak} дн. подряд` };
+            return {
+                label: h.text,
+                value: streak,
+                valueText: tr('{n} дн.', { n: streak }),
+                tip: tr('{text}: серия {n} дн. подряд', { text: h.text, n: streak }),
+            };
         }),
     );
 }
@@ -83,7 +89,7 @@ function renderHabits() {
         checkbox.type = 'checkbox';
         checkbox.className = 'check';
         checkbox.checked = habit.dates.includes(today);
-        checkbox.setAttribute('aria-label', 'Отметить на сегодня');
+        checkbox.setAttribute('aria-label', tr('Отметить на сегодня'));
         checkbox.addEventListener('change', () => toggleDate(habit, today));
 
         // Основная часть: название + статистика
@@ -97,7 +103,7 @@ function renderHabits() {
             const chip = document.createElement('span');
             chip.className = 'chip chip--mini';
             chip.textContent = schedule;
-            chip.title = 'Дни по графику';
+            chip.title = tr('Дни по графику');
             name.append(' ', chip);
         }
 
@@ -114,7 +120,7 @@ function renderHabits() {
             if (habit.dates.includes(date)) doneMonth++;
         }
         const monthText = document.createElement('span');
-        monthText.textContent = `В этом месяце: ${doneMonth} из ${dueMonth}`;
+        monthText.textContent = tr('В этом месяце: {done} из {due}', { done: doneMonth, due: dueMonth });
 
         const progress = document.createElement('div');
         progress.className = 'progress progress--sm';
@@ -127,7 +133,7 @@ function renderHabits() {
         const dots = document.createElement('div');
         dots.className = 'dots';
         dots.setAttribute('role', 'group');
-        dots.setAttribute('aria-label', 'Последние 7 дней');
+        dots.setAttribute('aria-label', tr('Последние 7 дней'));
         for (const dayStr of lastNDates(7)) {
             const on = habit.dates.includes(dayStr);
             const dot = document.createElement('button');
@@ -137,9 +143,9 @@ function renderHabits() {
             dot.dataset.date = dayStr;
             dot.setAttribute(
                 'data-tip',
-                `${formatDateShort(dayStr)} (${WEEKDAY_LABELS[weekdayIndex(dayStr)]}): ${on ? 'отмечено — нажмите, чтобы снять' : 'нажмите, чтобы отметить'}`,
+                `${formatDateShort(dayStr)} (${tr(WEEKDAY_LABELS[weekdayIndex(dayStr)])}): ${on ? tr('отмечено — нажмите, чтобы снять') : tr('нажмите, чтобы отметить')}`,
             );
-            dot.setAttribute('aria-label', `${formatDateShort(dayStr)}: ${on ? 'отмечено' : 'не отмечено'}`);
+            dot.setAttribute('aria-label', `${formatDateShort(dayStr)}: ${on ? tr('отмечено') : tr('не отмечено')}`);
             dot.addEventListener('click', () => toggleDate(habit, dayStr));
             dots.appendChild(dot);
         }
@@ -147,7 +153,7 @@ function renderHabits() {
         meta.append(monthText, progress, dots);
         if (!dueToday) {
             const rest = document.createElement('span');
-            rest.textContent = 'сегодня не по графику';
+            rest.textContent = tr('сегодня не по графику');
             meta.appendChild(rest);
         }
         main.append(name, meta);
@@ -159,13 +165,13 @@ function renderHabits() {
         const streakValue = getStreak(habit.dates, today, habit.days);
         const streak = document.createElement('span');
         streak.className = streakValue > 10 ? 'chip chip--accent' : 'chip';
-        streak.title = 'Серия дней подряд';
+        streak.title = tr('Серия дней подряд');
         streak.innerHTML = `${icon('flame', 14)}<span>${streakValue}</span>`;
 
         side.append(
             streak,
-            iconButton('calendar', 'Календарь отметок', () => openHabitHistory(api, habit.id)),
-            iconButton('pencil', 'Изменить привычку', () => openHabitEditor(api, habit.id)),
+            iconButton('calendar', tr('Календарь отметок'), () => openHabitHistory(api, habit.id)),
+            iconButton('pencil', tr('Изменить привычку'), () => openHabitEditor(api, habit.id)),
         );
         li.append(checkbox, main, side);
         habitList.appendChild(li);
@@ -196,12 +202,12 @@ function renderArchive() {
         name.textContent = habit.text;
         const info = document.createElement('span');
         info.className = 'archive-row__info';
-        info.textContent = `отметок: ${habit.dates.length}`;
+        info.textContent = tr('отметок: {n}', { n: habit.dates.length });
 
         const restore = document.createElement('button');
         restore.type = 'button';
         restore.className = 'btn btn--ghost btn--sm';
-        restore.textContent = 'Вернуть';
+        restore.textContent = tr('Вернуть');
         restore.addEventListener('click', () => {
             habit.archived = undefined;
             saveHabits(habits);
@@ -211,12 +217,12 @@ function renderArchive() {
         let armed = false;
         const del = iconButton(
             'trash-2',
-            'Удалить навсегда',
+            tr('Удалить навсегда'),
             () => {
                 if (!armed) {
                     armed = true;
                     del.classList.add('is-armed');
-                    del.title = 'Нажмите ещё раз, чтобы удалить навсегда';
+                    del.title = tr('Нажмите ещё раз, чтобы удалить навсегда');
                     return;
                 }
                 api.remove(habit.id);

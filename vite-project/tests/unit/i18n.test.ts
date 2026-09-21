@@ -48,15 +48,16 @@ describe('tp: склонение', () => {
     });
 
     it('английский: две формы (1 и остальное), 0 — множественное', () => {
-        en[RU] = '{n} task|{n} tasks';
+        const key = 'ТЕСТ {n} штука|ТЕСТ {n} штуки|ТЕСТ {n} штук'; // отдельный ключ: настоящий словарь не трогаем
+        en[key] = '{n} item|{n} items';
         try {
             setLanguage('en');
             assert.deepEqual(
-                [0, 1, 2, 21].map((n) => tp(RU, n)),
-                ['0 tasks', '1 task', '2 tasks', '21 tasks'],
+                [0, 1, 2, 21].map((n) => tp(key, n)),
+                ['0 items', '1 item', '2 items', '21 items'],
             );
         } finally {
-            delete en[RU];
+            delete en[key];
         }
     });
 
@@ -139,5 +140,29 @@ describe('словарь охватывает всю разметку', () => {
     it('в английских переводах не осталось кириллицы (кроме названия языка «Русский»)', () => {
         const leftovers = Object.entries(en).filter(([ru, translated]) => /[А-Яа-яЁё]/.test(translated) && translated !== ru);
         assert.deepEqual(leftovers, []);
+    });
+});
+
+describe('словарь охватывает весь код', () => {
+    it('каждая строка в tr(…) и tp(…) в src/ имеет английский перевод', async () => {
+        const { readdirSync, readFileSync: read, statSync } = await import('node:fs');
+        const files: string[] = [];
+        const walk = (dir: string): void => {
+            for (const name of readdirSync(dir)) {
+                const path = `${dir}/${name}`;
+                if (statSync(path).isDirectory()) walk(path);
+                else if (path.endsWith('.ts') && !path.endsWith('i18n.ts') && !path.includes('/locales/')) files.push(path);
+            }
+        };
+        walk('src');
+        const literal = /\b(?:tr|tp)\(\s*'((?:[^'\\]|\\.)*)'/g;
+        const missing: string[] = [];
+        for (const file of files) {
+            for (const match of read(file, 'utf8').matchAll(literal)) {
+                const key = match[1].replace(/\\'/g, "'");
+                if (/[А-Яа-яЁё]/.test(key) && !(key in en)) missing.push(`${file}: ${key}`);
+            }
+        }
+        assert.deepEqual(missing, []);
     });
 });

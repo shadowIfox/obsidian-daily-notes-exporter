@@ -1,6 +1,7 @@
 // router.ts — навигация между разделами по адресу (#/tasks, #/habits …).
 // Обновление страницы не сбрасывает раздел, работает кнопка «Назад».
 
+import { tr } from './i18n';
 import { renderAnalyticsPage } from './analytics';
 import { renderDashboard } from './dashboard';
 
@@ -40,7 +41,7 @@ function show(route: Route): void {
         else link.removeAttribute('aria-current');
     });
 
-    document.title = `${ROUTES[route].title} — Мой день`;
+    document.title = `${tr(ROUTES[route].title)} — ${tr('Мой день')}`;
     window.scrollTo(0, 0);
 
     if (route === 'dashboard') renderDashboard();

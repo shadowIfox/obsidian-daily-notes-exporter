@@ -1,5 +1,6 @@
 // search.ts — поиск по задачам, привычкам и заметкам настроения (чистая логика, без DOM).
 
+import { tr } from './i18n';
 import { formatDateShort } from './dates';
 import { getStreak } from './stats';
 import type { Habit, MoodEntry, Task } from './store';
@@ -58,7 +59,7 @@ function searchTasks(query: string, tasks: Task[]): Scored[] {
         const inNotes = inTitle || inCategory ? null : findRange(t.notes, query);
         if (!inTitle && !inCategory && !inNotes) continue;
 
-        let sub = t.category || 'Без категории';
+        let sub = t.category || tr('Без категории');
         let subRange: Range | null = null;
         if (inCategory) subRange = inCategory;
         if (inNotes) {
@@ -96,7 +97,7 @@ function searchHabits(query: string, habits: Habit[]): Scored[] {
                 id: h.id,
                 title: h.text,
                 titleRange: range,
-                sub: `серия ${getStreak(h.dates, undefined, h.days)} дн.`,
+                sub: tr('серия {n} дн.', { n: getStreak(h.dates, undefined, h.days) }),
                 subRange: null,
                 meta: '',
             },

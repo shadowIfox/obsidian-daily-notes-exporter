@@ -5,10 +5,11 @@
 // но скрыто, а вместо него показывается кнопка с датой; по нажатию открывается календарь в стиле приложения.
 // Код, который читает или ставит input.value, менять не нужно.
 
+import { tr, locale } from './i18n';
 import { addDays, monthGrid, parseDateStr, todayStr, toDateStr, weekdayIndex } from './dates';
 import { icon } from './icons';
 
-const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']; // ключи перевода, сами надписи берутся через tr()
 const ENHANCED = 'datepickEnhanced';
 
 const valueDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value') as PropertyDescriptor;
@@ -16,11 +17,11 @@ const valueDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototy
 /** «19 сентября 2026» — как дата показывается на кнопке. */
 function formatLong(dateStr: string): string {
     const d = parseDateStr(dateStr);
-    return d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).replace(/\s*г\.$/, '') : '';
+    return d ? d.toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' }).replace(/\s*г\.$/, '') : '';
 }
 
 function monthTitle(year: number, month: number): string {
-    return new Date(year, month, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, '');
+    return new Date(year, month, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, '');
 }
 
 // Открыт может быть только один календарь
@@ -40,8 +41,8 @@ function enhance(input: HTMLInputElement): void {
     button.className = 'input datepick';
     button.setAttribute('aria-haspopup', 'dialog');
     const label = input.id ? document.querySelector(`label[for="${CSS.escape(input.id)}"]`) : null;
-    const labelText = label?.textContent?.trim() ?? 'Дата';
-    const placeholder = input.dataset.placeholder ?? 'Без даты';
+    const labelText = label?.textContent?.trim() ?? tr('Дата');
+    const placeholder = input.dataset.placeholder ?? tr('Без даты');
 
     input.classList.add('datepick__native');
     input.tabIndex = -1;
@@ -95,7 +96,7 @@ function openCalendar(input: HTMLInputElement, button: HTMLButtonElement): NonNu
     const panel = document.createElement('div');
     panel.className = 'datepick__panel';
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', 'Выбор даты');
+    panel.setAttribute('aria-label', tr('Выбор даты'));
     document.body.append(panel);
 
     const disabled = (d: string): boolean => (!!min && d < min) || (!!max && d > max);
@@ -123,15 +124,15 @@ function openCalendar(input: HTMLInputElement, button: HTMLButtonElement): NonNu
             .join('');
         panel.innerHTML = `
             <div class="datepick__head">
-                <button type="button" class="icon-btn icon-btn--sm" data-nav="-1" aria-label="Предыдущий месяц">${icon('chevron-left', 16)}</button>
+                <button type="button" class="icon-btn icon-btn--sm" data-nav="-1" aria-label="${tr('Предыдущий месяц')}">${icon('chevron-left', 16)}</button>
                 <span class="datepick__title" aria-live="polite">${monthTitle(year, month)}</span>
-                <button type="button" class="icon-btn icon-btn--sm" data-nav="1" aria-label="Следующий месяц">${icon('chevron-right', 16)}</button>
+                <button type="button" class="icon-btn icon-btn--sm" data-nav="1" aria-label="${tr('Следующий месяц')}">${icon('chevron-right', 16)}</button>
             </div>
-            <div class="datepick__weekdays" aria-hidden="true">${WEEKDAYS.map((w) => `<span>${w}</span>`).join('')}</div>
+            <div class="datepick__weekdays" aria-hidden="true">${WEEKDAYS.map((w) => `<span>${tr(w)}</span>`).join('')}</div>
             <div class="datepick__grid">${cells}</div>
             <div class="datepick__foot">
-                <button type="button" class="datepick__link" data-today${disabled(today) ? ' disabled' : ''}>Сегодня</button>
-                ${clearable ? '<button type="button" class="datepick__link" data-clear>Очистить</button>' : ''}
+                <button type="button" class="datepick__link" data-today${disabled(today) ? ' disabled' : ''}>${tr('Сегодня')}</button>
+                ${clearable ? `<button type="button" class="datepick__link" data-clear>${tr('Очистить')}</button>` : ''}
             </div>`;
     };
 

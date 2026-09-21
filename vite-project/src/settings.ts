@@ -12,10 +12,9 @@ import {
     type ImportSummary,
 } from './backup';
 import { formatDateShort } from './dates';
-import { getLanguage, isLanguage } from './i18n';
+import { getLanguage, isLanguage, tp, tr } from './i18n';
 import { exportFullData } from './exporter';
 import { flushStore, loadSettings, saveSettings, type NotificationSettings } from './store';
-import { plural } from './utils/plural';
 import { downloadText } from './utils/download';
 import { isTauri } from './utils/platform';
 
@@ -32,7 +31,7 @@ function setupProfile() {
         e.preventDefault();
         saveSettings({ userName: input.value.trim() });
         if (!hint) return;
-        hint.textContent = 'Сохранено';
+        hint.textContent = tr('Сохранено');
         window.clearTimeout(hideTimer);
         hideTimer = window.setTimeout(() => {
             hint.textContent = '';
@@ -77,7 +76,11 @@ function setupExportModal() {
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
 
 function countsText(c: BackupCounts): string {
-    return `${c.tasks} ${plural(c.tasks, ['задача', 'задачи', 'задач'])}, ${c.habits} ${plural(c.habits, ['привычка', 'привычки', 'привычек'])}, ${c.mood} ${plural(c.mood, ['запись настроения', 'записи настроения', 'записей настроения'])}`;
+    return [
+        tp('{n} задача|{n} задачи|{n} задач', c.tasks),
+        tp('{n} привычка|{n} привычки|{n} привычек', c.habits),
+        tp('{n} запись настроения|{n} записи настроения|{n} записей настроения', c.mood),
+    ].join(', ');
 }
 
 function setBackupStatus(text: string, isError = false): void {
@@ -89,10 +92,11 @@ function setBackupStatus(text: string, isError = false): void {
 }
 
 function summaryText(s: ImportSummary): string {
-    if (s.mode === 'replace') return `Данные заменены копией: ${countsText({ tasks: s.tasks, habits: s.habits, mood: s.mood })}.`;
-    const parts = [`добавлено: ${countsText({ tasks: s.tasks, habits: s.habits, mood: s.mood })}`];
-    if (s.habitMarks > 0) parts.push(`новых отметок у привычек: ${s.habitMarks}`);
-    return `Данные объединены — ${parts.join(', ')}.`;
+    if (s.mode === 'replace')
+        return tr('Данные заменены копией: {counts}.', { counts: countsText({ tasks: s.tasks, habits: s.habits, mood: s.mood }) });
+    const parts = [tr('добавлено: {counts}', { counts: countsText({ tasks: s.tasks, habits: s.habits, mood: s.mood }) })];
+    if (s.habitMarks > 0) parts.push(tr('новых отметок у привычек: {n}', { n: s.habitMarks }));
+    return tr('Данные объединены — {parts}.', { parts: parts.join(', ') });
 }
 
 function setupBackup(): void {
@@ -114,7 +118,7 @@ function setupBackup(): void {
         if (!pending) return;
         const summary = applyBackup(pending, mode);
         closeModal();
-        setBackupStatus(`${summaryText(summary)} Страница сейчас обновится.`);
+        setBackupStatus(tr('{summary} Страница сейчас обновится.', { summary: summaryText(summary) }));
         // Разделы держат данные в памяти — перезагрузка гарантирует, что везде видны новые
         window.setTimeout(() => window.location.reload(), 1200);
     };
@@ -123,7 +127,9 @@ function setupBackup(): void {
         const backup = buildBackup();
         downloadText(serializeBackup(backup), backupFilename(), 'application/json');
         setBackupStatus(
-            `Копия сохранена: ${countsText({ tasks: backup.tasks.length, habits: backup.habits.length, mood: backup.mood.length })}.`,
+            tr('Копия сохранена: {counts}.', {
+                counts: countsText({ tasks: backup.tasks.length, habits: backup.habits.length, mood: backup.mood.length }),
+            }),
         );
     });
 
@@ -137,7 +143,7 @@ function setupBackup(): void {
         try {
             text = await file.text();
         } catch {
-            setBackupStatus('Не удалось прочитать файл.', true);
+            setBackupStatus(tr('Не удалось прочитать файл.'), true);
             return;
         }
         const result = parseBackup(text);
@@ -150,10 +156,10 @@ function setupBackup(): void {
         const when = result.backup.exportedAt ? new Date(result.backup.exportedAt) : null;
         const whenText =
             when && !isNaN(when.getTime())
-                ? ` от ${formatDateShort(`${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}-${String(when.getDate()).padStart(2, '0')}`)}`
+                ? ` ${tr('от {date}', { date: formatDateShort(`${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}-${String(when.getDate()).padStart(2, '0')}`) })}`
                 : '';
-        $('import-summary')!.textContent = `В копии${whenText}: ${countsText(result.counts)}.`;
-        $('import-replace')!.textContent = 'Заменить всё';
+        $('import-summary')!.textContent = tr('В копии{when}: {counts}.', { when: whenText, counts: countsText(result.counts) });
+        $('import-replace')!.textContent = tr('Заменить всё');
         setBackupStatus('');
         modal.classList.add('is-open');
     });
@@ -163,7 +169,7 @@ function setupBackup(): void {
     $('import-replace')?.addEventListener('click', () => {
         if (!replaceArmed) {
             replaceArmed = true;
-            $('import-replace')!.textContent = 'Точно заменить?';
+            $('import-replace')!.textContent = tr('Точно заменить?');
             return;
         }
         finish('replace');
@@ -253,9 +259,12 @@ function setupNotifications(): void {
         try {
             const { invoke } = await import('@tauri-apps/api/core');
             await invoke('send_test_notification');
-            setStatus('Пробное уведомление отправлено. Если его не видно — проверьте Системные настройки → Уведомления → «Мой день».');
+            setStatus(tr('Пробное уведомление отправлено. Если его не видно — проверьте Системные настройки → Уведомления → «Мой день».'));
         } catch (error) {
-            setStatus(`Не удалось показать уведомление: ${error instanceof Error ? error.message : String(error)}`, true);
+            setStatus(
+                tr('Не удалось показать уведомление: {message}', { message: error instanceof Error ? error.message : String(error) }),
+                true,
+            );
         }
     };
 
