@@ -1,6 +1,6 @@
 [package]
 name = "myday"
-version = "0.1.0"
+version = "0.1.1"
 description = "Мой день: задачи, привычки, настроение"
 authors = ["shadowIfox"]
 license = ""
