@@ -23,11 +23,15 @@ const QUIT_HINT: Option<&str> = None;
 
 /// Показывает главное окно поверх остальных (из меню-бара, из Dock, по горячей клавише).
 pub fn show_main_window(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
+    let Some(window) = app.get_webview_window("main") else {
+        log::warn!("Не удалось показать окно: главное окно не найдено");
+        return;
+    };
+    let _ = window.unminimize();
+    if let Err(e) = window.show() {
+        log::warn!("Не удалось показать окно: {e}");
     }
+    let _ = window.set_focus();
 }
 
 /// Открывает окно приложения и просит интерфейс показать «Новая задача».
