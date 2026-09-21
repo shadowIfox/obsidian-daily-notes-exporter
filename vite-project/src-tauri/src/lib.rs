@@ -25,6 +25,12 @@ fn send_test_notification(app: tauri::AppHandle) -> Result<(), String> {
     notify::send_test(&app)
 }
 
+/// Обновляет подписи меню значка после смены языка интерфейса.
+#[tauri::command]
+fn refresh_tray(app: tauri::AppHandle) -> Result<(), String> {
+    shell::refresh_tray(&app).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -72,7 +78,12 @@ pub fn run() {
                 log::info!("Окно спрятано (крестик): приложение остаётся в меню-баре");
             }
         })
-        .invoke_handler(tauri::generate_handler![storage_read, storage_write, send_test_notification])
+        .invoke_handler(tauri::generate_handler![
+            storage_read,
+            storage_write,
+            send_test_notification,
+            refresh_tray
+        ])
         .build(tauri::generate_context!())
         .expect("не удалось собрать приложение")
         .run(|app, event| {

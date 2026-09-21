@@ -15,9 +15,28 @@ const MAX_SEPARATE_TASKS: usize = 5;
 /// За сколько минут до срока напоминать о задаче.
 const BEFORE_DEADLINE_MIN: u32 = 120;
 
+/// Язык текстов уведомлений и меню значка (userSettings.language во фронтенде).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Lang {
+    #[default]
+    Ru,
+    En,
+}
+
+/// Выбор текста по языку: выражение для нужного языка вычисляется только при выборе.
+macro_rules! l {
+    ($lang:expr, $ru:expr, $en:expr) => {
+        match $lang {
+            Lang::Ru => $ru,
+            Lang::En => $en,
+        }
+    };
+}
+
 /// Настройки уведомлений (userSettings.notifications во фронтенде). Времена — минуты от полуночи.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
+    pub lang: Lang,
     pub enabled: bool,
     pub day_start: u32,
     pub task_at_day_start: bool,
@@ -30,6 +49,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            lang: Lang::Ru,
             enabled: false,
             day_start: 9 * 60,
             task_at_day_start: true,
@@ -107,11 +127,20 @@ pub fn parse_settings(user_settings: Option<&str>) -> Settings {
     let root = user_settings
         .and_then(|t| serde_json::from_str::<Value>(t).ok())
         .unwrap_or(Value::Null);
+    let lang = if root.get("language").and_then(Value::as_str) == Some("en") {
+        Lang::En
+    } else {
+        Lang::Ru
+    };
     let Some(n) = root.get("notifications").filter(|v| v.is_object()) else {
-        return Settings::default();
+        return Settings {
+            lang,
+            ..Settings::default()
+        };
     };
     let d = Settings::default();
     Settings {
+        lang,
         enabled: flag(n, "enabled", d.enabled),
         day_start: time_or(n, "dayStart", d.day_start),
         task_at_day_start: flag(n, "taskAtDayStart", d.task_at_day_start),
@@ -170,20 +199,27 @@ fn plural(n: usize, forms: [&str; 3]) -> &str {
     }
 }
 
-fn tasks_word(n: usize) -> String {
-    format!("{n} {}", plural(n, ["задача", "задачи", "задач"]))
+fn tasks_word(lang: Lang, n: usize) -> String {
+    match lang {
+        Lang::Ru => format!("{n} {}", plural(n, ["задача", "задачи", "задач"])),
+        Lang::En => format!("{n} {}", if n == 1 { "task" } else { "tasks" }),
+    }
 }
 
 fn hhmm(min: u32) -> String {
     format!("{:02}:{:02}", min / 60, min % 60)
 }
 
-/// «1 ч 45 мин», «2 ч», «40 мин».
-fn left_text(min: u32) -> String {
-    match (min / 60, min % 60) {
-        (0, m) => format!("{m} мин"),
-        (h, 0) => format!("{h} ч"),
-        (h, m) => format!("{h} ч {m} мин"),
+/// «1 ч 45 мин», «2 ч», «40 мин» (по-английски «1 h 45 min»).
+fn left_text(lang: Lang, min: u32) -> String {
+    let (h, m) = (min / 60, min % 60);
+    match (lang, h, m) {
+        (Lang::Ru, 0, m) => format!("{m} мин"),
+        (Lang::Ru, h, 0) => format!("{h} ч"),
+        (Lang::Ru, h, m) => format!("{h} ч {m} мин"),
+        (Lang::En, 0, m) => format!("{m} min"),
+        (Lang::En, h, 0) => format!("{h} h"),
+        (Lang::En, h, m) => format!("{h} h {m} min"),
     }
 }
 
@@ -197,6 +233,7 @@ fn is_due(habit: &Habit, weekday: u8) -> bool {
 /// Функция «без памяти»: она возвращает всё, что подходит по времени; уже отправленное отсеивает журнал `notified` по ключу.
 pub fn due_notices(snap: &Snapshot, today: &str, weekday: u8, now: u32) -> Vec<Notice> {
     let s = &snap.settings;
+    let lang = s.lang;
     if !s.enabled {
         return vec![];
     }
@@ -224,15 +261,21 @@ pub fn due_notices(snap: &Snapshot, today: &str, weekday: u8, now: u32) -> Vec<N
             } else {
                 format!("{} ({})", t.text, t.category)
             };
-            out.push(notice("start", &t.id, format!("Сегодня в {}", hhmm(t.time.unwrap_or(0))), body));
+            let at = hhmm(t.time.unwrap_or(0));
+            out.push(notice(
+                "start",
+                &t.id,
+                l!(lang, format!("Сегодня в {at}"), format!("Today at {at}")),
+                body,
+            ));
         }
         if upcoming.len() > MAX_SEPARATE_TASKS {
-            let rest = upcoming.len() - MAX_SEPARATE_TASKS;
+            let rest = tasks_word(lang, upcoming.len() - MAX_SEPARATE_TASKS);
             out.push(notice(
                 "start",
                 "more",
-                "Сегодня по времени".into(),
-                format!("и ещё {}", tasks_word(rest)),
+                l!(lang, "Сегодня по времени".into(), "Timed tasks today".into()),
+                l!(lang, format!("и ещё {rest}"), format!("and {rest} more")),
             ));
         }
     }
@@ -250,11 +293,16 @@ pub fn due_notices(snap: &Snapshot, today: &str, weekday: u8, now: u32) -> Vec<N
                 fire = s.day_start;
             }
             if fire < due && now >= fire && now < due {
+                let (at, left) = (hhmm(due), left_text(lang, due - now));
                 out.push(notice(
                     "due",
                     &t.id,
                     t.text.clone(),
-                    format!("Срок сегодня в {} — осталось {}", hhmm(due), left_text(due - now)),
+                    l!(
+                        lang,
+                        format!("Срок сегодня в {at} — осталось {left}"),
+                        format!("Due today at {at} — {left} left")
+                    ),
                 ));
             }
         }
@@ -265,15 +313,20 @@ pub fn due_notices(snap: &Snapshot, today: &str, weekday: u8, now: u32) -> Vec<N
         if now >= at && !open_today.is_empty() {
             let names: Vec<&str> = open_today.iter().take(3).map(|t| t.text.as_str()).collect();
             let more = open_today.len().saturating_sub(3);
+            let list = names.join(", ");
             let body = if more > 0 {
-                format!("{} и ещё {more}", names.join(", "))
+                l!(lang, format!("{list} и ещё {more}"), format!("{list} and {more} more"))
             } else {
-                names.join(", ")
+                list
             };
             out.push(notice(
                 "repeat",
                 "",
-                format!("Ещё не сделано: {}", tasks_word(open_today.len())),
+                l!(
+                    lang,
+                    format!("Ещё не сделано: {}", tasks_word(lang, open_today.len())),
+                    format!("Still to do: {}", tasks_word(lang, open_today.len()))
+                ),
                 body,
             ));
         }
@@ -293,16 +346,22 @@ pub fn due_notices(snap: &Snapshot, today: &str, weekday: u8, now: u32) -> Vec<N
             .count();
         let mut parts = Vec::new();
         if !open_today.is_empty() {
-            parts.push(format!("на сегодня: {}", tasks_word(open_today.len())));
+            let n = tasks_word(lang, open_today.len());
+            parts.push(l!(lang, format!("на сегодня: {n}"), format!("today: {n}")));
         }
         if overdue > 0 {
-            parts.push(format!("просрочено: {overdue}"));
+            parts.push(l!(lang, format!("просрочено: {overdue}"), format!("overdue: {overdue}")));
         }
         if habits > 0 {
-            parts.push(format!("привычек: {habits}"));
+            parts.push(l!(lang, format!("привычек: {habits}"), format!("habits: {habits}")));
         }
         if !parts.is_empty() {
-            out.push(notice("morning", "", "План на сегодня".into(), parts.join(" · ")));
+            out.push(notice(
+                "morning",
+                "",
+                l!(lang, "План на сегодня".into(), "Today's plan".into()),
+                parts.join(" · "),
+            ));
         }
     }
 
@@ -312,14 +371,23 @@ pub fn due_notices(snap: &Snapshot, today: &str, weekday: u8, now: u32) -> Vec<N
             let done = snap.tasks.iter().filter(|t| t.completed && t.completed_at == today).count();
             let due_habits: Vec<&Habit> = snap.habits.iter().filter(|h| is_due(h, weekday)).collect();
             let habits_done = due_habits.iter().filter(|h| h.dates.iter().any(|d| d == today)).count();
-            let mut body = format!("Задач выполнено: {done}");
+            let mut body = l!(lang, format!("Задач выполнено: {done}"), format!("Tasks completed: {done}"));
             if !due_habits.is_empty() {
-                body += &format!(" · привычек: {habits_done} из {}", due_habits.len());
+                let total = due_habits.len();
+                body += &l!(
+                    lang,
+                    format!(" · привычек: {habits_done} из {total}"),
+                    format!(" · habits: {habits_done} of {total}")
+                );
             }
             if !snap.mood_dates.iter().any(|d| d == today) {
-                body += ". Как прошёл день? Запишите настроение.";
+                body += l!(
+                    lang,
+                    ". Как прошёл день? Запишите настроение.",
+                    ". How was your day? Log your mood."
+                );
             }
-            out.push(notice("evening", "", "Итоги дня".into(), body));
+            out.push(notice("evening", "", l!(lang, "Итоги дня".into(), "Daily summary".into()), body));
         }
     }
 
@@ -365,12 +433,23 @@ fn tick(app: &AppHandle) {
     }
 }
 
+/// Язык интерфейса из сохранённых настроек (по умолчанию русский).
+pub fn current_lang(app: &AppHandle) -> Lang {
+    let raw = app.try_state::<Db>().and_then(|db| db.read("userSettings").ok().flatten());
+    parse_settings(raw.as_deref()).lang
+}
+
 /// Пробное уведомление: по нему пользователь проверяет, что macOS разрешила показ.
 pub fn send_test(app: &AppHandle) -> Result<(), String> {
+    let lang = current_lang(app);
     app.notification()
         .builder()
-        .title("Мой день")
-        .body("Уведомления работают: так будут выглядеть напоминания.")
+        .title(l!(lang, "Мой день", "My Day"))
+        .body(l!(
+            lang,
+            "Уведомления работают: так будут выглядеть напоминания.",
+            "Notifications work: this is how reminders will look."
+        ))
         .show()
         .map_err(|e| e.to_string())
 }
@@ -587,10 +666,76 @@ mod tests {
 
     #[test]
     fn russian_plurals() {
-        assert_eq!(tasks_word(1), "1 задача");
-        assert_eq!(tasks_word(3), "3 задачи");
-        assert_eq!(tasks_word(5), "5 задач");
-        assert_eq!(tasks_word(11), "11 задач");
-        assert_eq!(tasks_word(22), "22 задачи");
+        assert_eq!(tasks_word(Lang::Ru, 1), "1 задача");
+        assert_eq!(tasks_word(Lang::Ru, 3), "3 задачи");
+        assert_eq!(tasks_word(Lang::Ru, 5), "5 задач");
+        assert_eq!(tasks_word(Lang::Ru, 11), "11 задач");
+        assert_eq!(tasks_word(Lang::Ru, 22), "22 задачи");
+    }
+
+    fn snap_en(tasks: &str, settings: &str) -> Snapshot {
+        Snapshot::from_json(
+            Some(tasks),
+            Some("[]"),
+            Some("[]"),
+            Some(&format!(r#"{{"language":"en","notifications":{settings}}}"#)),
+        )
+    }
+
+    #[test]
+    fn english_language_switches_all_texts() {
+        // начало дня и «за 2 часа»
+        let s = snap_en(T_1430, r#"{"enabled":true,"dayStart":"09:00"}"#);
+        let n = due_notices(&s, TODAY, 5, 9 * 60);
+        assert_eq!(n[0].title, "Today at 14:30");
+        assert_eq!(n[0].body, "Позвонить маме (Дом)", "текст самой задачи не переводится");
+        let due = snap_en(T_1430, r#"{"enabled":true,"taskAtDayStart":false}"#);
+        assert_eq!(due_notices(&due, TODAY, 5, 12 * 60 + 30)[0].body, "Due today at 14:30 — 2 h left");
+        assert_eq!(
+            due_notices(&due, TODAY, 5, 13 * 60 + 15)[0].body,
+            "Due today at 14:30 — 1 h 15 min left"
+        );
+        assert_eq!(due_notices(&due, TODAY, 5, 14 * 60)[0].body, "Due today at 14:30 — 30 min left");
+    }
+
+    #[test]
+    fn english_summaries_and_repeat() {
+        let tasks = r#"[{"id":"a","text":"One","date":"2026-09-19","completed":false},{"id":"b","text":"Two","date":"2026-09-19","completed":false},{"id":"c","text":"Old","date":"2026-09-10","completed":false},{"id":"d","text":"Done","date":"2026-09-18","completed":true,"completedAt":"2026-09-19"}]"#;
+        let habits = r#"[{"dates":[]},{"dates":["2026-09-19"]}]"#;
+        let settings = r#"{"language":"en","notifications":{"enabled":true,"taskAtDayStart":false,"taskBeforeDeadline":false,"morningDigest":true,"repeatEnabled":true,"repeatTime":"18:00","eveningEnabled":true,"eveningTime":"21:00"}}"#;
+        let s = Snapshot::from_json(Some(tasks), Some(habits), Some("[]"), Some(settings));
+
+        let morning = due_notices(&s, TODAY, 5, 9 * 60);
+        assert_eq!(morning[0].title, "Today's plan");
+        assert_eq!(morning[0].body, "today: 2 tasks · overdue: 1 · habits: 1");
+
+        let at_18 = due_notices(&s, TODAY, 5, 18 * 60);
+        let repeat = at_18.iter().find(|n| n.key.ends_with("|repeat")).expect("повторное напоминание");
+        assert_eq!(repeat.title, "Still to do: 2 tasks");
+        assert_eq!(repeat.body, "One, Two");
+
+        let evening_all = due_notices(&s, TODAY, 5, 21 * 60);
+        let last = evening_all.iter().find(|n| n.key.ends_with("|evening")).expect("итоги дня");
+        assert_eq!(last.title, "Daily summary");
+        assert_eq!(last.body, "Tasks completed: 1 · habits: 1 of 2. How was your day? Log your mood.");
+    }
+
+    #[test]
+    fn language_is_read_even_without_notification_settings() {
+        assert_eq!(parse_settings(Some(r#"{"language":"en"}"#)).lang, Lang::En);
+        assert_eq!(parse_settings(Some(r#"{"language":"ru","notifications":{}}"#)).lang, Lang::Ru);
+        assert_eq!(
+            parse_settings(Some(r#"{"language":"de"}"#)).lang,
+            Lang::Ru,
+            "неизвестный язык — русский"
+        );
+        assert_eq!(parse_settings(None).lang, Lang::Ru);
+    }
+
+    #[test]
+    fn english_plural_words() {
+        assert_eq!(tasks_word(Lang::En, 1), "1 task");
+        assert_eq!(tasks_word(Lang::En, 0), "0 tasks");
+        assert_eq!(tasks_word(Lang::En, 5), "5 tasks");
     }
 }

@@ -57,6 +57,12 @@ async function start(): Promise<void> {
 
     // Язык — сразу после чтения настроек: все разделы дальше строят тексты уже на нём
     setLanguage(loadSettings().language);
+    // Название окна приложения (в рамке окна) на языке интерфейса; в браузере это делает <title>
+    if (isTauri()) {
+        void import('@tauri-apps/api/window')
+            .then(({ getCurrentWindow }) => getCurrentWindow().setTitle(tr('Мой день')))
+            .catch((error) => console.warn('Не удалось задать название окна', error));
+    }
 
     // Поля даты в разметке заменяются календарём в стиле приложения (до разделов, которые ставят в них значения)
     enhanceDateInputs();

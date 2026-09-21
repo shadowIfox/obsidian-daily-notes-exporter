@@ -294,7 +294,18 @@ function setupLanguage(): void {
         if (!isLanguage(value) || value === getLanguage()) return;
         saveSettings({ language: value });
         // сначала дожидаемся записи, иначе после перезагрузки прочитается прежний язык
-        void flushStore().then(() => window.location.reload());
+        void flushStore().then(async () => {
+            if (isTauri()) {
+                try {
+                    // Rust перечитает язык из базы и пересоберёт меню значка; не вышло — меню обновится при следующем запуске
+                    const { invoke } = await import('@tauri-apps/api/core');
+                    await invoke('refresh_tray');
+                } catch (error) {
+                    console.warn('Не удалось обновить меню значка', error);
+                }
+            }
+            window.location.reload();
+        });
     });
 }
 

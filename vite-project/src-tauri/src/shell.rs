@@ -1,5 +1,6 @@
 // shell.rs — «оболочка» приложения для Mac: значок в меню-баре, показ окна и запрос «Новая задача».
 
+use crate::notify::{current_lang, Lang};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     plugin::TauriPlugin,
@@ -41,13 +42,38 @@ pub fn request_new_task(app: &AppHandle) {
 }
 
 /// Значок в меню-баре: слева открывает меню «Открыть / Новая задача / Выйти».
-pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
-    let open = MenuItem::with_id(app, "open", "Открыть «Мой день»", true, None::<&str>)?;
-    let new_task = MenuItem::with_id(app, "new-task", "Новая задача", true, Some(NEW_TASK_HINT))?;
-    let quit = MenuItem::with_id(app, "quit", "Выйти", true, QUIT_HINT)?;
-    let menu = Menu::with_items(app, &[&open, &new_task, &PredefinedMenuItem::separator(app)?, &quit])?;
+/// Подписи меню значка и подсказки: «Открыть», «Новая задача», «Выйти», название.
+fn labels(lang: Lang) -> (&'static str, &'static str, &'static str, &'static str) {
+    match lang {
+        Lang::Ru => ("Открыть «Мой день»", "Новая задача", "Выйти", "Мой день"),
+        Lang::En => ("Open “My Day”", "New task", "Quit", "My Day"),
+    }
+}
 
-    let builder = TrayIconBuilder::with_id("main").tooltip("Мой день").menu(&menu);
+fn build_menu(app: &AppHandle, lang: Lang) -> tauri::Result<Menu<Wry>> {
+    let (open_label, new_label, quit_label, _) = labels(lang);
+    let open = MenuItem::with_id(app, "open", open_label, true, None::<&str>)?;
+    let new_task = MenuItem::with_id(app, "new-task", new_label, true, Some(NEW_TASK_HINT))?;
+    let quit = MenuItem::with_id(app, "quit", quit_label, true, QUIT_HINT)?;
+    Menu::with_items(app, &[&open, &new_task, &PredefinedMenuItem::separator(app)?, &quit])
+}
+
+/// Пересобирает меню значка на текущем языке (вызывается после смены языка в настройках).
+pub fn refresh_tray(app: &AppHandle) -> tauri::Result<()> {
+    let lang = current_lang(app);
+    if let Some(tray) = app.tray_by_id("main") {
+        tray.set_menu(Some(build_menu(app, lang)?))?;
+        tray.set_tooltip(Some(labels(lang).3))?;
+    }
+    Ok(())
+}
+
+/// Значок в меню-баре: слева открывает меню «Открыть / Новая задача / Выйти».
+pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
+    let lang = current_lang(app);
+    let menu = build_menu(app, lang)?;
+
+    let builder = TrayIconBuilder::with_id("main").tooltip(labels(lang).3).menu(&menu);
 
     // Mac: монохромный «шаблон», macOS красит его под тёмную и светлую строку меню; левый клик открывает меню.
     #[cfg(target_os = "macos")]
