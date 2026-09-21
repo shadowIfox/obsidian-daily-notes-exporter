@@ -93,7 +93,7 @@ await ev(`${rowOf('<b>Йога</b>')}.querySelector('[aria-label="Изменит
 await setv('#hm-name', '   ');
 await ev(`document.getElementById('habit-modal-form').requestSubmit()`); await sleep(150);
 check('пустое название не сохраняется (окно открыто)', (await modalOpen('habit-modal')) && (await stored()).find(h => h.id === 'h2').text === '<b>Йога</b>');
-await ev(`(() => { document.getElementById('hm-name').value = 'Йога утром'; const b = document.querySelectorAll('#hm-days .chip-btn'); b[0].click(); b[2].click(); document.getElementById('habit-modal-form').requestSubmit(); })()`); await sleep(300);
+await ev(`(() => { document.getElementById('hm-name').value = 'Йога утром'; const b = document.querySelectorAll('#hm-days .chip-btn'); [0, 2].forEach(i => { if (b[i].getAttribute('aria-pressed') !== 'true') b[i].click(); }); document.getElementById('habit-modal-form').requestSubmit(); })()`); await sleep(300);
 let h2 = (await stored()).find(h => h.id === 'h2');
 check('сохранение: новое название и график (день недели сегодня + Пн + Ср), окно закрыто', h2.text === 'Йога утром' && JSON.stringify(h2.days) === JSON.stringify([...new Set([0, 2, idxNow])].sort((a,b) => a-b)) && !(await modalOpen('habit-modal')), JSON.stringify(h2));
 check('в списке появился чип графика с сокращениями дней', (await ev(`${rowOf('Йога утром')}.querySelector('.chip--mini').textContent.includes('Пн')`)) === true);
