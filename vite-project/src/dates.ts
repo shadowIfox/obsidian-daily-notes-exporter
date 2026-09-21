@@ -1,6 +1,8 @@
 // dates.ts — даты в ЛОКАЛЬНОМ часовом поясе в формате YYYY-MM-DD.
 // toISOString() здесь не используем: он отдаёт UTC, и ночью «сегодня» превращается во «вчера».
 
+import { locale } from './i18n';
+
 const pad = (n: number): string => String(n).padStart(2, '0');
 
 export function toDateStr(d: Date): string {
@@ -48,7 +50,7 @@ export function weekdayIndex(dateStr: string): number {
 /** «19 сент.» — короткая дата для интерфейса. */
 export function formatDateShort(dateStr: string): string {
     const d = parseDateStr(dateStr);
-    return d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : dateStr;
+    return d ? d.toLocaleDateString(locale(), { day: 'numeric', month: 'short' }) : dateStr;
 }
 
 /** Номер недели по ISO 8601 (неделя начинается в понедельник; первая — та, где четверг первого января). */

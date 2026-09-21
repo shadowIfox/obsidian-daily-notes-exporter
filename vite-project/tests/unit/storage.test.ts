@@ -152,7 +152,9 @@ describe('сбой записи', () => {
         saveSettings({ userName: 'Вторая' }); // должна записаться
         await flushStore();
         consoleError.mockRestore();
-        assert.deepEqual(backend.writes, [{ themeMode: 'system', userName: 'Вторая', notifications: DEFAULT_NOTIFICATIONS }]);
+        assert.deepEqual(backend.writes, [
+            { themeMode: 'system', userName: 'Вторая', language: 'ru', notifications: DEFAULT_NOTIFICATIONS },
+        ]);
         assert.equal(loadSettings().userName, 'Вторая');
     });
 });

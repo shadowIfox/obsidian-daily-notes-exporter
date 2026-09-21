@@ -12,8 +12,9 @@ import {
     type ImportSummary,
 } from './backup';
 import { formatDateShort } from './dates';
+import { getLanguage, isLanguage } from './i18n';
 import { exportFullData } from './exporter';
-import { loadSettings, saveSettings, type NotificationSettings } from './store';
+import { flushStore, loadSettings, saveSettings, type NotificationSettings } from './store';
 import { plural } from './utils/plural';
 import { downloadText } from './utils/download';
 import { isTauri } from './utils/platform';
@@ -270,9 +271,28 @@ function setupNotifications(): void {
     render(settings);
 }
 
+// ===== Язык интерфейса =====
+
+/** Переключатель языка: язык запоминается, окно перезагружается и строится уже на новом языке. */
+function setupLanguage(): void {
+    const group = $('language-group');
+    if (!group) return;
+    group.querySelectorAll<HTMLInputElement>('input[name="language"]').forEach((radio) => {
+        radio.checked = radio.value === getLanguage();
+    });
+    group.addEventListener('change', (e) => {
+        const value = (e.target as HTMLInputElement).value;
+        if (!isLanguage(value) || value === getLanguage()) return;
+        saveSettings({ language: value });
+        // сначала дожидаемся записи, иначе после перезагрузки прочитается прежний язык
+        void flushStore().then(() => window.location.reload());
+    });
+}
+
 export function setupSettings() {
     setupProfile();
     setupExportModal();
     setupBackup();
     setupNotifications();
+    setupLanguage();
 }
