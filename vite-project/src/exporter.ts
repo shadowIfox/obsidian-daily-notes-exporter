@@ -1,5 +1,6 @@
 // exporter.ts — экспорт данных в Markdown / CSV / PDF (через печать)
 
+import { getLanguage, tr } from './i18n';
 import { addDays, lastNDates, todayStr } from './dates';
 import { isDue } from './stats';
 import { loadActiveHabits, loadMood, loadTasks, type MoodEntry, type Task } from './store';
@@ -25,14 +26,17 @@ type ExportData = {
 };
 
 const PERIOD_DAYS: Record<string, number> = { day: 1, week: 7, month: 30 };
-const NO_DATE = 'Без даты';
+const NO_DATE = 'Без даты'; // внутренняя метка группы; на экран и в файл выводится через dayLabel()
+
+/** Название группы задач: дата как есть, «Без даты» — на языке интерфейса. */
+const dayLabel = (day: string): string => (day === NO_DATE ? tr(NO_DATE) : day);
 const PRIORITY_LABELS = { low: 'низкий', normal: 'обычный', high: 'высокий' } as const;
 
 /** Строка задачи: «14:30 Название (Категория) — важно». */
 function taskLine(t: Task): string {
     const parts = [t.time ? `${t.time} ` : '', t.text, t.category ? ` (${t.category})` : ''];
-    if (t.priority === 'high') parts.push(' — важно');
-    else if (t.priority === 'low') parts.push(' — низкий приоритет');
+    if (t.priority === 'high') parts.push(` — ${tr('важно')}`);
+    else if (t.priority === 'low') parts.push(` — ${tr('низкий приоритет')}`);
     return parts.join('');
 }
 
@@ -83,15 +87,15 @@ const isEmpty = (d: ExportData): boolean => !d.tasks.length && !d.habits.length 
 // ===== Markdown =====
 
 function toMarkdown(d: ExportData, today: string): string {
-    let out = `# Экспорт данных от ${today}\n\n`;
-    out += `**Период экспорта:** ${d.from} — ${d.to}\n\n`;
+    let out = `# ${tr('Экспорт данных от {date}', { date: today })}\n\n`;
+    out += `**${tr('Период экспорта:')}** ${d.from} — ${d.to}\n\n`;
 
-    if (isEmpty(d)) return out + 'Нет данных за выбранный период.\n';
+    if (isEmpty(d)) return out + tr('Нет данных за выбранный период.') + '\n';
 
     if (d.tasks.length) {
-        out += `## Задачи\n`;
+        out += `## ${tr('Задачи')}\n`;
         for (const [day, list] of groupTasksByDate(d.tasks)) {
-            out += `### ${day}\n`;
+            out += `### ${dayLabel(day)}\n`;
             for (const t of list) {
                 out += `- [${t.completed ? 'x' : ' '}] ${taskLine(t)}\n`;
                 // заметка — цитатой под задачей (в Obsidian отображается как блок)
@@ -107,13 +111,13 @@ function toMarkdown(d: ExportData, today: string): string {
     }
 
     if (d.habits.length) {
-        out += `## Привычки\n`;
-        for (const h of d.habits) out += `- ${h.name}: ${h.daysDone}/${h.totalDays} дней\n`;
+        out += `## ${tr('Привычки')}\n`;
+        for (const h of d.habits) out += `- ${tr('{name}: {done}/{total} дней', { name: h.name, done: h.daysDone, total: h.totalDays })}\n`;
         out += '\n';
     }
 
     if (d.mood.length) {
-        out += `## Настроение\n`;
+        out += `## ${tr('Настроение')}\n`;
         for (const m of d.mood) out += `- ${m.date}: ${m.rating}/5${m.note ? ' — ' + m.note : ''}\n`;
         out += '\n';
     }
@@ -131,15 +135,15 @@ function toCsv(d: ExportData): string {
     let out = '';
 
     if (d.tasks.length) {
-        out += csvRow(['Дата', 'Время', 'Задача', 'Категория', 'Приоритет', 'Статус', 'Заметка']);
+        out += csvRow([tr('Дата'), tr('Время'), tr('Задача'), tr('Категория'), tr('Приоритет'), tr('Статус'), tr('Заметка')]);
         for (const t of d.tasks) {
             out += csvRow([
                 t.date,
                 t.time ?? '',
                 t.text,
                 t.category,
-                PRIORITY_LABELS[t.priority],
-                t.completed ? 'выполнено' : 'не выполнено',
+                tr(PRIORITY_LABELS[t.priority]),
+                t.completed ? tr('выполнено') : tr('не выполнено'),
                 t.notes,
             ]);
         }
@@ -147,13 +151,13 @@ function toCsv(d: ExportData): string {
     }
 
     if (d.habits.length) {
-        out += csvRow(['Привычка', 'Выполнено', 'Всего']);
+        out += csvRow([tr('Привычка'), tr('Выполнено'), tr('Всего')]);
         for (const h of d.habits) out += csvRow([h.name, h.daysDone, h.totalDays]);
         out += '\n';
     }
 
     if (d.mood.length) {
-        out += csvRow(['Дата', 'Оценка', 'Комментарий']);
+        out += csvRow([tr('Дата'), tr('Оценка'), tr('Комментарий')]);
         for (const m of d.mood) out += csvRow([m.date, m.rating, m.note]);
         out += '\n';
     }
@@ -166,14 +170,14 @@ function toCsv(d: ExportData): string {
 
 function toHtml(d: ExportData, today: string): string {
     const li = (s: string) => `<li>${escapeHtml(s)}</li>`;
-    let body = `<h1>Экспорт данных от ${today}</h1><p><b>Период:</b> ${d.from} — ${d.to}</p>`;
+    let body = `<h1>${escapeHtml(tr('Экспорт данных от {date}', { date: today }))}</h1><p><b>${escapeHtml(tr('Период:'))}</b> ${d.from} — ${d.to}</p>`;
 
-    if (isEmpty(d)) body += '<p>Нет данных за выбранный период.</p>';
+    if (isEmpty(d)) body += `<p>${escapeHtml(tr('Нет данных за выбранный период.'))}</p>`;
 
     if (d.tasks.length) {
-        body += '<h2>Задачи</h2>';
+        body += `<h2>${escapeHtml(tr('Задачи'))}</h2>`;
         for (const [day, list] of groupTasksByDate(d.tasks)) {
-            body += `<h3>${escapeHtml(day)}</h3><ul>`;
+            body += `<h3>${escapeHtml(dayLabel(day))}</h3><ul>`;
             for (const t of list) {
                 body += li(`${t.completed ? '☑' : '☐'} ${taskLine(t)}${t.notes ? ` — ${t.notes}` : ''}`);
             }
@@ -181,14 +185,19 @@ function toHtml(d: ExportData, today: string): string {
         }
     }
     if (d.habits.length) {
-        body += '<h2>Привычки</h2><ul>' + d.habits.map((h) => li(`${h.name}: ${h.daysDone}/${h.totalDays} дней`)).join('') + '</ul>';
+        body +=
+            `<h2>${escapeHtml(tr('Привычки'))}</h2><ul>` +
+            d.habits.map((h) => li(tr('{name}: {done}/{total} дней', { name: h.name, done: h.daysDone, total: h.totalDays }))).join('') +
+            '</ul>';
     }
     if (d.mood.length) {
         body +=
-            '<h2>Настроение</h2><ul>' + d.mood.map((m) => li(`${m.date}: ${m.rating}/5${m.note ? ' — ' + m.note : ''}`)).join('') + '</ul>';
+            `<h2>${escapeHtml(tr('Настроение'))}</h2><ul>` +
+            d.mood.map((m) => li(`${m.date}: ${m.rating}/5${m.note ? ' — ' + m.note : ''}`)).join('') +
+            '</ul>';
     }
 
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Экспорт данных</title>
+    return `<!DOCTYPE html><html lang="${getLanguage()}"><head><meta charset="UTF-8"><title>${escapeHtml(tr('Экспорт данных'))}</title>
 <style>body{font-family:-apple-system,Helvetica,Arial,sans-serif;margin:32px;color:#111}
 h1{font-size:22px}h2{font-size:18px;margin-top:24px}h3{font-size:14px;margin:12px 0 4px}ul{margin:0;padding-left:20px}li{margin:2px 0}</style>
 </head><body>${body}</body></html>`;

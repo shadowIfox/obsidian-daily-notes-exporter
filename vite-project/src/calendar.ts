@@ -1,11 +1,11 @@
 // calendar.ts — правая колонка главной: календарь месяца и расписание выбранного дня.
 // Разметка лежит в index.html (.dash__side), здесь — данные и события.
 
+import { locale, tp, tr } from './i18n';
 import { isoWeek, monthGrid, parseDateStr } from './dates';
 import type { Priority, Task } from './store';
 import { openTaskModal } from './taskModal';
 import { toggleTask } from './todo';
-import { plural } from './utils/plural';
 
 export type SideHandlers = {
     /** Клик по задаче в расписании: показать её детали. */
@@ -25,7 +25,7 @@ let lastToday = '';
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string): T | null => document.querySelector<T>(selector);
 
-const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']; // ключи перевода: надписи берутся через tr()
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
 
 const capitalize = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
@@ -56,7 +56,7 @@ function renderCalendar(tasks: Task[], today: string): void {
     if (!grid || !label || viewYear === null) return;
 
     label.textContent = capitalize(
-        new Date(viewYear, viewMonth, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''),
+        new Date(viewYear, viewMonth, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''),
     );
 
     // Сколько задач на каждый день: активных, выполненных, есть ли просроченные
@@ -70,10 +70,10 @@ function renderCalendar(tasks: Task[], today: string): void {
     }
 
     const sel = getSelectedDate(today);
-    const cells: string[] = ['<span></span>', ...WEEKDAYS.map((d) => `<span class="cal__dow">${d}</span>`)];
+    const cells: string[] = ['<span></span>', ...WEEKDAYS.map((d) => `<span class="cal__dow">${tr(d)}</span>`)];
 
     for (const week of monthGrid(viewYear, viewMonth)) {
-        cells.push(`<span class="cal__week" title="Неделя ${isoWeek(week[0])}">${isoWeek(week[0])}</span>`);
+        cells.push(`<span class="cal__week" title="${tr('Неделя {n}', { n: isoWeek(week[0]) })}">${isoWeek(week[0])}</span>`);
         for (const date of week) {
             const d = parseDateStr(date)!;
             const info = byDate.get(date);
@@ -86,8 +86,8 @@ function renderCalendar(tasks: Task[], today: string): void {
                 const kind = info.active === 0 ? 'cal__dot--done' : date < today ? 'cal__dot--overdue' : '';
                 dot = `<span class="cal__dot ${kind}"></span>`;
             }
-            const human = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-            const aria = `${human}${total ? `, задач: ${total}` : ''}`;
+            const human = d.toLocaleDateString(locale(), { day: 'numeric', month: 'long' });
+            const aria = `${human}${total ? `, ${tr('задач: {total}', { total })}` : ''}`;
             cells.push(
                 `<button type="button" class="${classes.join(' ')}" data-date="${date}" aria-pressed="${date === sel}" aria-label="${aria}">${d.getDate()}${dot}</button>`,
             );
@@ -114,7 +114,7 @@ function buildCard(task: Task, isNext: boolean): HTMLElement {
     check.type = 'checkbox';
     check.className = 'check';
     check.checked = task.completed;
-    check.setAttribute('aria-label', 'Выполнено');
+    check.setAttribute('aria-label', tr('Выполнено'));
     check.addEventListener('change', () => {
         toggleTask(task.id);
         handlers?.onChange();
@@ -128,7 +128,7 @@ function buildCard(task: Task, isNext: boolean): HTMLElement {
     title.textContent = task.text;
     const sub = document.createElement('span');
     sub.className = 'tl__sub';
-    sub.textContent = [task.category || 'Без категории', task.priority === 'high' ? 'важно' : ''].filter(Boolean).join(' · ');
+    sub.textContent = [task.category || tr('Без категории'), task.priority === 'high' ? tr('важно') : ''].filter(Boolean).join(' · ');
     main.append(title, sub);
     main.addEventListener('click', () => handlers?.onSelectTask(task.id));
 
@@ -146,11 +146,11 @@ function renderTimeline(tasks: Task[], today: string): void {
     const all = tasks.filter((t) => t.date === sel).length;
 
     const heading = $('#tl-title');
-    if (heading && d) heading.textContent = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    if (heading && d) heading.textContent = d.toLocaleDateString(locale(), { day: 'numeric', month: 'long' });
     const sub = $('#tl-sub');
     if (sub && d) {
-        const weekday = d.toLocaleDateString('ru-RU', { weekday: 'long' });
-        sub.textContent = `${weekday}${sel === today ? ' · сегодня' : ''} · ${all} ${plural(all, ['задача', 'задачи', 'задач'])}`;
+        const weekday = d.toLocaleDateString(locale(), { weekday: 'long' });
+        sub.textContent = `${weekday}${sel === today ? ` · ${tr('сегодня')}` : ''} · ${tp('{n} задача|{n} задачи|{n} задач', all)}`;
     }
     document.querySelectorAll<HTMLElement>('#tl-filter [data-filter]').forEach((btn) => {
         const active = btn.dataset.filter === timelineFilter;
@@ -163,7 +163,7 @@ function renderTimeline(tasks: Task[], today: string): void {
     if (items.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'empty';
-        empty.textContent = all > 0 ? 'Все задачи этого дня выполнены.' : 'На этот день задач нет.';
+        empty.textContent = all > 0 ? tr('Все задачи этого дня выполнены.') : tr('На этот день задач нет.');
         box.appendChild(empty);
         return;
     }
@@ -192,7 +192,7 @@ function renderTimeline(tasks: Task[], today: string): void {
         const group = document.createElement('div');
         group.className = 'tl__group';
         for (const task of allDay) group.appendChild(buildCard(task, false));
-        box.appendChild(row('Весь день', group));
+        box.appendChild(row(tr('Весь день'), group));
     }
 
     let nowPlaced = !isToday || timed.length === 0;
@@ -209,7 +209,7 @@ function renderTimeline(tasks: Task[], today: string): void {
 function buildNowLine(now: string): HTMLElement {
     const line = document.createElement('div');
     line.className = 'tl__now';
-    line.setAttribute('aria-label', `Сейчас ${now}`);
+    line.setAttribute('aria-label', tr('Сейчас {now}', { now }));
     const pill = document.createElement('span');
     pill.className = 'tl__now-pill';
     pill.textContent = now;

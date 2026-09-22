@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import { addDays, formatDateShort, lastNDates, todayStr } from './dates';
 import { icon } from './icons';
 import { loadMood, saveMood, type MoodEntry } from './store';
@@ -39,11 +40,11 @@ function flashStatus(text: string): void {
 function updateFormState(date: string): void {
     const exists = moodData.some((e) => e.date === date);
     const hint = el('mood-hint');
-    if (hint) hint.textContent = exists ? `Запись за ${formatDateShort(date)} уже есть — сохранение заменит её.` : '';
+    if (hint) hint.textContent = exists ? tr('Запись за {date} уже есть — сохранение заменит её.', { date: formatDateShort(date) }) : '';
     const del = el('mood-delete');
     if (del) {
         del.classList.toggle('hidden', !exists);
-        del.textContent = 'Удалить запись';
+        del.textContent = tr('Удалить запись');
     }
     deleteArmed = false;
 }
@@ -108,7 +109,7 @@ function renderMoodHistory(): void {
 
     const empty = el('mood-empty');
     if (empty) {
-        empty.textContent = `За последние ${historyDays} дней записей нет.`;
+        empty.textContent = tr('За последние {n} дней записей нет.', { n: historyDays });
         empty.classList.toggle('hidden', entries.length > 0);
     }
     document.querySelectorAll<HTMLElement>('#mood-range [data-days]').forEach((btn) => {
@@ -123,7 +124,7 @@ function renderMoodHistory(): void {
         li.dataset.date = entry.date;
         li.tabIndex = 0;
         li.setAttribute('role', 'button');
-        li.setAttribute('aria-label', `Изменить запись за ${formatDateShort(entry.date)}`);
+        li.setAttribute('aria-label', tr('Изменить запись за {date}', { date: formatDateShort(entry.date) }));
 
         const rating = document.createElement('span');
         rating.className = 'mood-item__score';
@@ -143,7 +144,7 @@ function renderMoodHistory(): void {
         if (entry === pinned) {
             const tag = document.createElement('span');
             tag.className = 'chip';
-            tag.textContent = 'из поиска';
+            tag.textContent = tr('из поиска');
             li.appendChild(tag);
         }
         const pencil = document.createElement('span');
@@ -186,10 +187,10 @@ export function renderMoodChart(): void {
     const box = el('mood-week-chart');
     if (!box) return;
     const title = el('mood-chart-title');
-    if (title) title.textContent = historyDays === 7 ? 'График за неделю' : `График за ${historyDays} дней`;
+    if (title) title.textContent = historyDays === 7 ? tr('График за неделю') : tr('График за {n} дней', { n: historyDays });
     const entries = entriesSince(historyDays);
     if (entries.length === 0) {
-        box.innerHTML = `<p class="viz__empty">За последние ${historyDays} дней записей нет.</p>`;
+        box.innerHTML = `<p class="viz__empty">${tr('За последние {n} дней записей нет.', { n: historyDays })}</p>`;
         return;
     }
     const byDate = new Map(entries.map((e) => [e.date, e]));
@@ -198,7 +199,7 @@ export function renderMoodChart(): void {
         dates.map((date) => {
             const e = byDate.get(date);
             const label = formatDateShort(date);
-            if (!e) return { label, value: 0, tip: `${label}: записи нет` };
+            if (!e) return { label, value: 0, tip: tr('{label}: записи нет', { label }) };
             return {
                 label,
                 value: e.rating,
@@ -247,7 +248,7 @@ export function setupMood(): void {
         const date = el<HTMLInputElement>('mood-date')!.value || todayStr();
         if (!deleteArmed) {
             deleteArmed = true;
-            el('mood-delete')!.textContent = 'Точно удалить?';
+            el('mood-delete')!.textContent = tr('Точно удалить?');
             return;
         }
         moodData = moodData.filter((m) => m.date !== date);
@@ -255,7 +256,7 @@ export function setupMood(): void {
         pinnedDate = pinnedDate === date ? null : pinnedDate;
         resetForm();
         refresh();
-        flashStatus(`Запись за ${formatDateShort(date)} удалена`);
+        flashStatus(tr('Запись за {date} удалена', { date: formatDateShort(date) }));
     });
 
     /** После отправки формы добавляет запись (или заменяет запись выбранной даты), сохраняет и перерисовывает. */
@@ -272,7 +273,7 @@ export function setupMood(): void {
         const date = el<HTMLInputElement>('mood-date')?.value || today;
         if (date > today) {
             const hint = el('mood-hint');
-            if (hint) hint.textContent = 'Нельзя записать настроение за будущую дату.';
+            if (hint) hint.textContent = tr('Нельзя записать настроение за будущую дату.');
             return;
         }
 
@@ -285,6 +286,6 @@ export function setupMood(): void {
         saveMood(moodData);
         resetForm();
         refresh();
-        flashStatus(date === today ? 'Сохранено' : `Сохранено: ${formatDateShort(date)}`);
+        flashStatus(date === today ? tr('Сохранено') : tr('Сохранено: {date}', { date: formatDateShort(date) }));
     });
 }

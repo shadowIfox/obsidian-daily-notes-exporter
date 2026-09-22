@@ -1,5 +1,6 @@
 // stats.ts — чистые функции статистики (без DOM и localStorage), данные приходят аргументами.
 
+import { tr } from './i18n';
 import { addDays, lastNDates, todayStr, weekRange, weekdayIndex } from './dates';
 import type { Habit, MoodEntry, Task } from './store';
 
@@ -222,7 +223,7 @@ export function categoryBreakdown(tasks: Task[], today: string = todayStr(), day
     for (const t of tasks) {
         const day = completionDay(t);
         if (!day || !window.has(day)) continue;
-        const name = t.category || 'Без категории';
+        const name = t.category || tr('Без категории');
         counts.set(name, (counts.get(name) ?? 0) + 1);
     }
     return [...counts.entries()]

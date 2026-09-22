@@ -2,6 +2,7 @@
 // Открывается из календаря на главной и кнопкой «Изменить» в разделе «Задачи».
 // Разметка лежит в index.html (#task-modal).
 
+import { tr } from './i18n';
 import { todayStr } from './dates';
 import type { Priority, Task } from './store';
 import { addTask, updateTask } from './todo';
@@ -23,8 +24,8 @@ export function openTaskModal(opts: { date?: string; task?: Task } = {}): void {
     editing = opts.task ?? null;
     form.reset();
 
-    el('task-modal-title')!.textContent = editing ? 'Редактировать задачу' : 'Новая задача';
-    el('task-modal-submit')!.textContent = editing ? 'Сохранить' : 'Добавить';
+    el('task-modal-title')!.textContent = editing ? tr('Редактировать задачу') : tr('Новая задача');
+    el('task-modal-submit')!.textContent = editing ? tr('Сохранить') : tr('Добавить');
 
     el<HTMLInputElement>('tm-text')!.value = editing?.text ?? '';
     el<HTMLInputElement>('tm-date')!.value = editing ? editing.date : opts.date || todayStr();

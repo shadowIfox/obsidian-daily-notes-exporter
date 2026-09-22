@@ -1,6 +1,7 @@
 // topbar.ts — верхняя панель: дата, поиск (⌘K) и колокольчик с уведомлениями.
 // Разметка лежит в index.html (.topbar), здесь — данные и события.
 
+import { tr, locale } from './i18n';
 import { focusTask } from './dashboard';
 import { todayStr } from './dates';
 import { revealHabit } from './habits';
@@ -152,7 +153,7 @@ function renderSearch(): void {
     if (!query.trim()) {
         const hint = document.createElement('p');
         hint.className = 'search__hint';
-        hint.textContent = 'Введите название задачи или привычки, категорию или слова из заметки.';
+        hint.textContent = tr('Введите название задачи или привычки, категорию или слова из заметки.');
         results.appendChild(hint);
         return;
     }
@@ -167,7 +168,9 @@ function renderSearch(): void {
         title.className = 'search__group';
         const count = found.counts[key];
         title.textContent =
-            count > hits.length ? `${GROUP_TITLES[key]} · показаны ${hits.length} из ${count}` : `${GROUP_TITLES[key]} · ${count}`;
+            count > hits.length
+                ? tr('{title} · показаны {shown} из {count}', { title: tr(GROUP_TITLES[key]), shown: hits.length, count })
+                : `${tr(GROUP_TITLES[key])} · ${count}`;
         results.appendChild(title);
 
         for (const hit of hits) {
@@ -180,7 +183,7 @@ function renderSearch(): void {
     if (rows.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'search__hint';
-        empty.textContent = `Ничего не найдено по запросу «${query.trim()}».`;
+        empty.textContent = tr('Ничего не найдено по запросу «{query}».', { query: query.trim() });
         results.appendChild(empty);
         return;
     }
@@ -279,7 +282,7 @@ function renderNotifications(): void {
     if (notices.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'search__hint';
-        empty.textContent = 'Всё спокойно — напоминаний нет.';
+        empty.textContent = tr('Всё спокойно — напоминаний нет.');
         list.appendChild(empty);
         return;
     }
@@ -344,7 +347,7 @@ function setupNotifications(): void {
 /** Обновляет дату и счётчик на колокольчике (данные читаются из хранилища заново). */
 export function refreshTopbar(): void {
     const label = $('#today-label');
-    if (label) label.textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (label) label.textContent = new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
 
     const count = currentNotices().length;
     const badge = $('#notif-badge');
@@ -352,7 +355,7 @@ export function refreshTopbar(): void {
         badge.textContent = String(count);
         badge.hidden = count === 0;
     }
-    $('#notif-btn')?.setAttribute('aria-label', count > 0 ? `Уведомления: ${count}` : 'Уведомления');
+    $('#notif-btn')?.setAttribute('aria-label', count > 0 ? tr('Уведомления: {count}', { count }) : tr('Уведомления'));
     if (isNotifOpen()) renderNotifications();
 }
 

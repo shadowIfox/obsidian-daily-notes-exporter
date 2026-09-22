@@ -1,5 +1,6 @@
 // backup.ts — резервная копия всех данных одним JSON-файлом и восстановление из неё (без DOM).
 
+import { tr } from './i18n';
 import { toDateStr } from './dates';
 import { migrate, SCHEMA_VERSION } from './migrations';
 import {
@@ -78,24 +79,24 @@ function dedupeBy<T>(list: T[], key: (item: T) => string): T[] {
 
 /** Разбирает и проверяет текст копии. Ничего не сохраняет. Мусорные записи отбрасываются. */
 export function parseBackup(text: string): ParseResult {
-    if (!text.trim()) return { ok: false, error: 'Файл пустой.' };
-    if (text.length > MAX_BACKUP_CHARS) return { ok: false, error: 'Файл слишком большой для резервной копии.' };
+    if (!text.trim()) return { ok: false, error: tr('Файл пустой.') };
+    if (text.length > MAX_BACKUP_CHARS) return { ok: false, error: tr('Файл слишком большой для резервной копии.') };
 
     let data: unknown;
     try {
         data = JSON.parse(text);
     } catch {
-        return { ok: false, error: 'Не удалось прочитать файл: это не JSON.' };
+        return { ok: false, error: tr('Не удалось прочитать файл: это не JSON.') };
     }
     if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-        return { ok: false, error: 'Файл не похож на резервную копию приложения.' };
+        return { ok: false, error: tr('Файл не похож на резервную копию приложения.') };
     }
 
     const d = data as Record<string, unknown>;
     const hasData = ['tasks', 'habits', 'mood'].some((k) => Array.isArray(d[k]));
-    if (d.app !== BACKUP_APP && !hasData) return { ok: false, error: 'Файл не похож на резервную копию приложения.' };
+    if (d.app !== BACKUP_APP && !hasData) return { ok: false, error: tr('Файл не похож на резервную копию приложения.') };
     if (typeof d.version === 'number' && d.version > BACKUP_VERSION) {
-        return { ok: false, error: 'Копия создана в более новой версии приложения — обновите приложение и повторите.' };
+        return { ok: false, error: tr('Копия создана в более новой версии приложения — обновите приложение и повторите.') };
     }
 
     // Копия без версии — от руки собранный или очень старый файл: считаем её версией 0

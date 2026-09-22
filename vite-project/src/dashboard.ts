@@ -2,6 +2,7 @@
 // список задач и редактируемые детали выбранной задачи.
 // Статичная разметка лежит в index.html (#dashboard-section), здесь — данные и события.
 
+import { tp, tr, translateDom } from './i18n';
 import { renderSide, selectDate, setupSide } from './calendar';
 import { enhanceDateInputs } from './datePicker';
 import { addDays, formatDateShort, todayStr } from './dates';
@@ -23,7 +24,6 @@ import {
 import { loadActiveHabits, loadMood, loadSettings, loadTasks, type Habit, type Priority, type Task } from './store';
 import { setupTaskModal } from './taskModal';
 import { removeTask, toggleTask, updateTask } from './todo';
-import { plural } from './utils/plural';
 import { mountResponsive, renderBars, renderLine } from './viz';
 
 // --- Состояние главной ---
@@ -34,10 +34,10 @@ let savedFlash = false; // показать «Сохранено» после п
 const $ = <T extends HTMLElement = HTMLElement>(selector: string): T | null => document.querySelector<T>(selector);
 
 function greetingFor(hour: number): string {
-    if (hour < 5) return 'Доброй ночи';
-    if (hour < 12) return 'Доброе утро';
-    if (hour < 18) return 'Добрый день';
-    return 'Добрый вечер';
+    if (hour < 5) return tr('Доброй ночи');
+    if (hour < 12) return tr('Доброе утро');
+    if (hour < 18) return tr('Добрый день');
+    return tr('Добрый вечер');
 }
 
 function setText(selector: string, value: string | number): void {
@@ -57,13 +57,16 @@ function renderHeader(tasks: Task[], habits: Habit[], today: string): void {
     const habitStats = habitOverview(habits, today);
     const dueNow = deadlines.overdue + deadlines.today;
 
-    let sub = 'Добавьте первую задачу или привычку — и здесь появится сводка дня.';
+    let sub = tr('Добавьте первую задачу или привычку — и здесь появится сводка дня.');
     if (tasks.length > 0 || habits.length > 0) {
         const parts: string[] = [];
-        if (dueNow > 0) parts.push(`${dueNow} ${plural(dueNow, ['задача', 'задачи', 'задач'])} на сегодня и просроченных`);
+        if (dueNow > 0)
+            parts.push(
+                tp('{n} задача на сегодня и просроченных|{n} задачи на сегодня и просроченных|{n} задач на сегодня и просроченных', dueNow),
+            );
         if (habitStats.left > 0)
-            parts.push(`${habitStats.left} ${plural(habitStats.left, ['привычка ждёт', 'привычки ждут', 'привычек ждут'])} отметки`);
-        sub = parts.length > 0 ? `${parts.join(', ')}.` : 'На сегодня всё сделано — можно отдыхать.';
+            parts.push(tp('{n} привычка ждёт отметки|{n} привычки ждут отметки|{n} привычек ждут отметки', habitStats.left));
+        sub = parts.length > 0 ? `${parts.join(', ')}.` : tr('На сегодня всё сделано — можно отдыхать.');
     }
     setText('#greeting-sub', sub);
 }
@@ -99,14 +102,14 @@ function renderHabitsViz(habits: Habit[], today: string): void {
     box.replaceChildren();
 
     if (habits.length === 0) {
-        box.innerHTML = '<p class="viz__empty">Привычек пока нет — добавьте первую в разделе «Привычки».</p>';
+        box.innerHTML = `<p class="viz__empty">${tr('Привычек пока нет — добавьте первую в разделе «Привычки».')}</p>`;
         return;
     }
 
     // Показываем то, что нужно сегодня по графику, и всё уже отмеченное; неотмеченные — сверху
     const visible = habits.filter((h) => isDue(h, today) || h.dates.includes(today));
     if (visible.length === 0) {
-        box.innerHTML = '<p class="viz__empty">На сегодня привычек по графику нет.</p>';
+        box.innerHTML = `<p class="viz__empty">${tr('На сегодня привычек по графику нет.')}</p>`;
         return;
     }
     const sorted = [...visible].sort((a, b) => Number(a.dates.includes(today)) - Number(b.dates.includes(today)));
@@ -132,7 +135,7 @@ function renderHabitsViz(habits: Habit[], today: string): void {
 
         const streak = document.createElement('span');
         streak.className = 'chip';
-        streak.title = 'Серия дней подряд';
+        streak.title = tr('Серия дней подряд');
         streak.innerHTML = `${icon('flame', 14)}<span>${getStreak(habit.dates, today, habit.days)}</span>`;
 
         row.append(check, name, streak);
@@ -143,7 +146,7 @@ function renderHabitsViz(habits: Habit[], today: string): void {
         const more = document.createElement('a');
         more.className = 'mini-more';
         more.href = '#/habits';
-        more.textContent = `Ещё ${visible.length - 3} →`;
+        more.textContent = tr('Ещё {n} →', { n: visible.length - 3 });
         list.appendChild(more);
     }
     box.appendChild(list);
@@ -156,7 +159,7 @@ function renderDeadlineViz(tasks: Task[], today: string): void {
 
     const next = nearestDeadline(tasks);
     if (!next) {
-        box.innerHTML = '<p class="viz__empty">Активных дедлайнов нет.</p>';
+        box.innerHTML = `<p class="viz__empty">${tr('Активных дедлайнов нет.')}</p>`;
         return;
     }
 
@@ -167,7 +170,7 @@ function renderDeadlineViz(tasks: Task[], today: string): void {
     text.className = 'mini-row__body';
     const label = document.createElement('span');
     label.className = 'mini-row__label';
-    label.textContent = next.date < today ? 'Просрочено' : 'Ближайший дедлайн';
+    label.textContent = next.date < today ? tr('Просрочено') : tr('Ближайший дедлайн');
     const title = document.createElement('span');
     title.className = 'mini-row__name';
     title.textContent = next.text;
@@ -175,7 +178,7 @@ function renderDeadlineViz(tasks: Task[], today: string): void {
 
     const pill = document.createElement('span');
     pill.className = 'pill';
-    pill.textContent = next.date === today ? 'сегодня' : formatDateShort(next.date);
+    pill.textContent = next.date === today ? tr('сегодня') : formatDateShort(next.date);
 
     row.append(text, pill);
     box.appendChild(row);
@@ -186,7 +189,7 @@ function renderDeadlineViz(tasks: Task[], today: string): void {
 function pillFor(task: Task, today: string): string {
     if (task.time) return task.time;
     if (!task.date) return '—';
-    return task.date === today ? 'сегодня' : formatDateShort(task.date);
+    return task.date === today ? tr('сегодня') : formatDateShort(task.date);
 }
 
 function renderTaskList(tasks: Task[], today: string): Task[] {
@@ -207,9 +210,9 @@ function renderTaskList(tasks: Task[], today: string): Task[] {
 
     if (empty) {
         const messages: Record<TaskListFilter, string> = {
-            today: 'На сегодня задач нет.',
-            week: 'На этой неделе задач нет.',
-            overdue: 'Просроченных задач нет — отлично!',
+            today: tr('На сегодня задач нет.'),
+            week: tr('На этой неделе задач нет.'),
+            overdue: tr('Просроченных задач нет — отлично!'),
         };
         empty.textContent = messages[listFilter];
         empty.classList.toggle('hidden', items.length > 0);
@@ -224,7 +227,7 @@ function renderTaskList(tasks: Task[], today: string): Task[] {
         check.type = 'checkbox';
         check.className = 'check';
         check.checked = task.completed;
-        check.setAttribute('aria-label', 'Выполнено');
+        check.setAttribute('aria-label', tr('Выполнено'));
         check.addEventListener('change', () => {
             toggleTask(task.id);
             renderDashboard();
@@ -238,7 +241,7 @@ function renderTaskList(tasks: Task[], today: string): Task[] {
         title.textContent = task.text;
         const sub = document.createElement('span');
         sub.className = 'pick__sub';
-        sub.textContent = task.category || 'Без категории';
+        sub.textContent = task.category || tr('Без категории');
         main.append(title, sub);
         main.addEventListener('click', () => {
             selectedId = task.id;
@@ -258,13 +261,13 @@ function renderTaskList(tasks: Task[], today: string): Task[] {
 
 // ===== Детали выбранной задачи =====
 
-const PRIORITY_LABELS: Record<Priority, string> = { low: 'Низкий', normal: 'Обычный', high: 'Высокий' };
+const PRIORITY_LABELS: Record<Priority, string> = { low: tr('Низкий'), normal: tr('Обычный'), high: tr('Высокий') };
 
 function statusOf(task: Task, today: string): string {
-    if (task.completed) return 'Выполнена';
-    if (task.date && task.date < today) return 'Просрочена';
-    if (task.date === today) return 'На сегодня';
-    return 'В работе';
+    if (task.completed) return tr('Выполнена');
+    if (task.date && task.date < today) return tr('Просрочена');
+    if (task.date === today) return tr('На сегодня');
+    return tr('В работе');
 }
 
 function renderDetails(tasks: Task[], today: string): void {
@@ -273,7 +276,7 @@ function renderDetails(tasks: Task[], today: string): void {
     const task = tasks.find((t) => t.id === selectedId);
 
     if (!task) {
-        box.innerHTML = '<p class="viz__empty">Выберите задачу в списке — здесь появятся её детали и редактирование.</p>';
+        box.innerHTML = `<p class="viz__empty">${tr('Выберите задачу в списке — здесь появятся её детали и редактирование.')}</p>`;
         return;
     }
 
@@ -314,6 +317,7 @@ function renderDetails(tasks: Task[], today: string): void {
         <span class="hint" data-role="hint" role="status"></span>
       </div>
     </form>`;
+    translateDom(box); // статичные подписи формы (названия полей, подсказки) переводятся по словарю
 
     const form = box.querySelector<HTMLFormElement>('form')!;
     enhanceDateInputs(form);
@@ -328,12 +332,12 @@ function renderDetails(tasks: Task[], today: string): void {
     form.querySelectorAll<HTMLInputElement>('input[name="d-priority"]').forEach((r) => {
         r.checked = r.value === task.priority;
     });
-    field('[data-role="toggle"]').textContent = task.completed ? 'Вернуть в работу' : 'Отметить выполненной';
+    field('[data-role="toggle"]').textContent = task.completed ? tr('Вернуть в работу') : tr('Отметить выполненной');
 
     const hint = field('[data-role="hint"]');
     if (savedFlash) {
         savedFlash = false;
-        hint.textContent = 'Сохранено';
+        hint.textContent = tr('Сохранено');
         window.setTimeout(() => {
             hint.textContent = '';
         }, 2000);

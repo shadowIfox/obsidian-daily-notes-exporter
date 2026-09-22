@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import { formatDateShort, todayStr } from './dates';
 import { icon } from './icons';
 import { readPref, writePref } from './prefs';
@@ -78,14 +79,14 @@ export function createTaskElement(task: Task): HTMLLIElement {
     checkbox.type = 'checkbox';
     checkbox.className = 'check';
     checkbox.checked = task.completed;
-    checkbox.setAttribute('aria-label', 'Выполнено');
+    checkbox.setAttribute('aria-label', tr('Выполнено'));
 
     checkbox.addEventListener('change', () => toggleTask(task.id));
 
     // Текст задачи (редактируется по двойному клику)
     const spanText = document.createElement('span');
     spanText.className = 'task__text';
-    spanText.title = 'Двойной клик — редактировать';
+    spanText.title = tr('Двойной клик — редактировать');
     spanText.textContent = task.text;
 
     spanText.addEventListener('dblclick', () => {
@@ -119,7 +120,7 @@ export function createTaskElement(task: Task): HTMLLIElement {
         const today = todayStr();
         const badge = document.createElement('span');
         badge.className = 'badge ' + (task.date < today ? 'badge--overdue' : task.date === today ? 'badge--today' : 'badge--upcoming');
-        badge.textContent = `до ${formatDateShort(task.date)}${task.time ? ` ${task.time}` : ''}`;
+        badge.textContent = `${tr('до {date}', { date: formatDateShort(task.date) })}${task.time ? ` ${task.time}` : ''}`;
         badge.title = task.date;
         meta.appendChild(badge);
     }
@@ -127,7 +128,7 @@ export function createTaskElement(task: Task): HTMLLIElement {
     if (task.priority === 'high') {
         const important = document.createElement('span');
         important.className = 'badge badge--high';
-        important.textContent = 'Важно';
+        important.textContent = tr('Важно');
         meta.appendChild(important);
     }
 
@@ -135,7 +136,7 @@ export function createTaskElement(task: Task): HTMLLIElement {
         const note = document.createElement('span');
         note.className = 'task__note';
         note.setAttribute('data-tip', task.notes.length > 160 ? `${task.notes.slice(0, 160)}…` : task.notes);
-        note.setAttribute('aria-label', 'Есть заметка');
+        note.setAttribute('aria-label', tr('Есть заметка'));
         note.innerHTML = icon('sticky-note', 16);
         meta.appendChild(note);
     }
@@ -150,8 +151,8 @@ export function createTaskElement(task: Task): HTMLLIElement {
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className = 'icon-btn icon-btn--sm';
-    editBtn.setAttribute('aria-label', 'Изменить задачу');
-    editBtn.title = 'Изменить';
+    editBtn.setAttribute('aria-label', tr('Изменить задачу'));
+    editBtn.title = tr('Изменить');
     editBtn.innerHTML = icon('pencil', 16);
     editBtn.onclick = () => editHandler?.(task);
     meta.appendChild(editBtn);
@@ -160,8 +161,8 @@ export function createTaskElement(task: Task): HTMLLIElement {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'icon-btn icon-btn--sm icon-btn--danger';
-    removeBtn.setAttribute('aria-label', 'Удалить задачу');
-    removeBtn.title = 'Удалить';
+    removeBtn.setAttribute('aria-label', tr('Удалить задачу'));
+    removeBtn.title = tr('Удалить');
     removeBtn.innerHTML = icon('trash-2', 16);
     removeBtn.onclick = () => removeTask(task.id);
     meta.appendChild(removeBtn);
@@ -185,8 +186,8 @@ function renderCategoryOptions(): void {
         o.textContent = label;
         select.appendChild(o);
     };
-    add('', 'Все категории');
-    if (currentTasks.some((t) => !t.category)) add(NO_CATEGORY, 'Без категории');
+    add('', tr('Все категории'));
+    if (currentTasks.some((t) => !t.category)) add(NO_CATEGORY, tr('Без категории'));
     categories.forEach((c) => add(c, c));
     select.value = currentCategory;
 }
@@ -210,7 +211,8 @@ function renderTasks() {
 
     // Плейсхолдер если задач нет
     if (emptyMsg) {
-        emptyMsg.textContent = currentTasks.length === 0 ? 'Задач пока нет — добавьте первую выше.' : 'По выбранным условиям задач нет.';
+        emptyMsg.textContent =
+            currentTasks.length === 0 ? tr('Задач пока нет — добавьте первую выше.') : tr('По выбранным условиям задач нет.');
         emptyMsg.classList.toggle('hidden', filteredTasks.length > 0);
     }
 
@@ -226,7 +228,7 @@ function updateProgress() {
     const bar = document.getElementById('progress-bar');
     const text = document.getElementById('progress-text');
     if (bar) bar.style.width = percent + '%';
-    if (text) text.textContent = `Выполнено: ${completed} из ${total}`;
+    if (text) text.textContent = tr('Выполнено: {completed} из {total}', { completed, total });
 }
 
 // --- Фильтры ---

@@ -1,5 +1,7 @@
 // tips.ts
 
+import { tr } from './i18n';
+
 // --- Советы по задачам ---
 const taskAdvices = [
     'Планируйте задачи с вечера — начнёте день бодро!',
@@ -28,20 +30,20 @@ const moodAdvices = [
 // Здесь параметры avg, streak и др. влияют на вывод
 
 export function generateTaskAdvice(avg: number, streak: number): string {
-    if (avg > 4) return 'Вы очень продуктивны! Можно добавить новую цель.';
-    if (streak > 3) return 'Ваша серия выполненных задач вдохновляет — продолжайте!';
-    return taskAdvices[Math.floor(Math.random() * taskAdvices.length)];
+    if (avg > 4) return tr('Вы очень продуктивны! Можно добавить новую цель.');
+    if (streak > 3) return tr('Ваша серия выполненных задач вдохновляет — продолжайте!');
+    return tr(taskAdvices[Math.floor(Math.random() * taskAdvices.length)]);
 }
 
 export function generateHabitAdvice(streak: number): string {
-    if (streak >= 7) return 'Неделя стабильности — гордимся вами!';
-    if (streak <= 2) return 'Начинайте с простых привычек, не давите на себя.';
-    return habitAdvices[Math.floor(Math.random() * habitAdvices.length)];
+    if (streak >= 7) return tr('Неделя стабильности — гордимся вами!');
+    if (streak <= 2) return tr('Начинайте с простых привычек, не давите на себя.');
+    return tr(habitAdvices[Math.floor(Math.random() * habitAdvices.length)]);
 }
 
 export function generateMoodAdvice(avgScore: number, frequent: string): string {
-    if (avgScore >= 4) return 'У вас отличное настроение! Сохраните этот настрой.';
-    if (avgScore <= 2) return 'Попробуйте добавить маленькие радости каждый день.';
-    if (frequent === 'плохое' || frequent === 'ужасное') return 'Берегите себя, выделите время на отдых.';
-    return moodAdvices[Math.floor(Math.random() * moodAdvices.length)];
+    if (avgScore >= 4) return tr('У вас отличное настроение! Сохраните этот настрой.');
+    if (avgScore <= 2) return tr('Попробуйте добавить маленькие радости каждый день.');
+    if (frequent === 'плохое' || frequent === 'ужасное') return tr('Берегите себя, выделите время на отдых.');
+    return tr(moodAdvices[Math.floor(Math.random() * moodAdvices.length)]);
 }

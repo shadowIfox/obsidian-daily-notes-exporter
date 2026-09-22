@@ -5,6 +5,7 @@ mod shell;
 use db::Db;
 use std::fs;
 use tauri::{Manager, State, WindowEvent};
+use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
 
 /// Читает значение по ключу; None — ключа в базе ещё нет.
 #[tauri::command]
@@ -24,18 +25,41 @@ fn send_test_notification(app: tauri::AppHandle) -> Result<(), String> {
     notify::send_test(&app)
 }
 
+/// Обновляет подписи меню значка после смены языка интерфейса.
+#[tauri::command]
+fn refresh_tray(app: tauri::AppHandle) -> Result<(), String> {
+    shell::refresh_tray(&app).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Повторный запуск не создаёт второй экземпляр, а показывает окно первого (окно могло быть спрятано в меню-бар).
+        // Плагин должен идти первым.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            log::info!("Повторный запуск приложения: показываю окно");
+            shell::show_main_window(app);
+        }))
+        // Журнал в файл (macOS: ~/Library/Logs/com.shadowifox.myday/myday.log), чтобы причину сбоя можно было увидеть постфактум
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::LogDir {
+                        file_name: Some("myday".into()),
+                    }),
+                    Target::new(TargetKind::Stdout),
+                ])
+                .level(log::LevelFilter::Info)
+                .max_file_size(1_000_000)
+                .rotation_strategy(RotationStrategy::KeepOne)
+                .build(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(shell::global_shortcut_plugin())
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle()
-                    .plugin(tauri_plugin_log::Builder::default().level(log::LevelFilter::Info).build())?;
-            }
+            log::info!("Запуск «Мой день» {}", app.package_info().version);
             // База лежит в папке данных приложения: ~/Library/Application Support/com.shadowifox.myday/
             let dir = app.path().app_data_dir()?;
             fs::create_dir_all(&dir)?;
@@ -51,9 +75,15 @@ pub fn run() {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();
+                log::info!("Окно спрятано (крестик): приложение остаётся в меню-баре");
             }
         })
-        .invoke_handler(tauri::generate_handler![storage_read, storage_write, send_test_notification])
+        .invoke_handler(tauri::generate_handler![
+            storage_read,
+            storage_write,
+            send_test_notification,
+            refresh_tray
+        ])
         .build(tauri::generate_context!())
         .expect("не удалось собрать приложение")
         .run(|app, event| {
@@ -64,6 +94,7 @@ pub fn run() {
                 ..
             } = event
             {
+                log::info!("Клик по значку в Dock: возвращаю окно");
                 shell::show_main_window(app);
             }
             #[cfg(not(target_os = "macos"))]

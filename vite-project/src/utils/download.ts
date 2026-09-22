@@ -1,5 +1,6 @@
 // utils/download.ts — сохранение текста как файла
 
+import { tr } from '../i18n';
 import { isTauri } from './platform';
 
 const EXTENSION = /\.([a-z0-9]+)$/i;
@@ -40,6 +41,6 @@ export async function downloadText(content: string, filename: string, mime: stri
         await saveWithDialog(content, filename);
     } catch (error) {
         console.error('Не удалось сохранить файл', error);
-        window.alert(`Не удалось сохранить файл: ${error instanceof Error ? error.message : String(error)}`);
+        window.alert(tr('Не удалось сохранить файл: {message}', { message: error instanceof Error ? error.message : String(error) }));
     }
 }

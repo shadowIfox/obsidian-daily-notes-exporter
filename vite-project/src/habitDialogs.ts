@@ -2,6 +2,7 @@
 // и календарь отметок за любой месяц (можно отметить и прошлые дни).
 // Разметка лежит в index.html (#habit-modal, #habit-history).
 
+import { locale, tr } from './i18n';
 import { daysInMonth, monthGrid, parseDateStr, todayStr } from './dates';
 import { isDue } from './stats';
 import type { Habit } from './store';
@@ -19,9 +20,9 @@ export const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', '
 export function describeDays(days?: number[]): string {
     if (!days) return '';
     const key = days.join(',');
-    if (key === '0,1,2,3,4') return 'Будни';
-    if (key === '5,6') return 'Выходные';
-    return days.map((d) => WEEKDAY_LABELS[d]).join(' · ');
+    if (key === '0,1,2,3,4') return tr('Будни');
+    if (key === '5,6') return tr('Выходные');
+    return days.map((d) => tr(WEEKDAY_LABELS[d])).join(' · ');
 }
 
 /** Переключаемые кнопки дней недели. Ничего не выбрано или выбраны все семь — «каждый день» (undefined). */
@@ -31,7 +32,7 @@ export function createWeekdayPicker(container: HTMLElement, initial?: number[]) 
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'chip-btn';
-        b.textContent = label;
+        b.textContent = tr(label);
         b.addEventListener('click', () => {
             if (selected.has(day)) selected.delete(day);
             else selected.add(day);
@@ -78,7 +79,7 @@ export function openHabitEditor(api: HabitApi, id: string): void {
     deleteArmed = false;
     picker = createWeekdayPicker(days, habit.days);
     el<HTMLInputElement>('hm-name')!.value = habit.text;
-    el('hm-delete')!.textContent = 'Удалить';
+    el('hm-delete')!.textContent = tr('Удалить');
     modal.classList.add('is-open');
     el<HTMLInputElement>('hm-name')?.focus();
 }
@@ -122,7 +123,7 @@ function renderHistory(api: HabitApi): void {
 
     el('hh-title')!.textContent = habit.text;
     el('hh-month')!.textContent = capitalize(
-        new Date(viewYear, viewMonth, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''),
+        new Date(viewYear, viewMonth, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, ''),
     );
 
     // Статистика месяца: только прошедшие дни (включая сегодня), и только по графику
@@ -136,13 +137,17 @@ function renderHistory(api: HabitApi): void {
     }
     el('hh-stat')!.textContent =
         dueCount === 0
-            ? 'В этом месяце дней по графику ещё не было.'
-            : `Отмечено ${doneCount} из ${dueCount} дней по графику · ${Math.round((doneCount / dueCount) * 100)}%`;
+            ? tr('В этом месяце дней по графику ещё не было.')
+            : tr('Отмечено {done} из {due} дней по графику · {pct}%', {
+                  done: doneCount,
+                  due: dueCount,
+                  pct: Math.round((doneCount / dueCount) * 100),
+              });
 
     const isCurrentMonth = monthKey === today.slice(0, 7);
     el<HTMLButtonElement>('hh-next')!.disabled = isCurrentMonth;
 
-    const cells = WEEKDAY_LABELS.map((d) => `<span class="hcal__dow">${d}</span>`);
+    const cells = WEEKDAY_LABELS.map((d) => `<span class="hcal__dow">${tr(d)}</span>`);
     for (const week of monthGrid(viewYear, viewMonth)) {
         for (const date of week) {
             const d = parseDateStr(date)!;
@@ -155,9 +160,9 @@ function renderHistory(api: HabitApi): void {
             else classes.push('hcal__day--due');
             if (date === today) classes.push('hcal__day--today');
             const disabled = !inMonth || date > today;
-            const human = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+            const human = d.toLocaleDateString(locale(), { day: 'numeric', month: 'long' });
             cells.push(
-                `<button type="button" class="${classes.join(' ')}" data-date="${date}" aria-pressed="${done}" aria-label="${human}${done ? ', отмечено' : ''}"${disabled ? ' disabled' : ''}>${inMonth ? d.getDate() : ''}</button>`,
+                `<button type="button" class="${classes.join(' ')}" data-date="${date}" aria-pressed="${done}" aria-label="${human}${done ? `, ${tr('отмечено')}` : ''}"${disabled ? ' disabled' : ''}>${inMonth ? d.getDate() : ''}</button>`,
             );
         }
     }
@@ -197,7 +202,7 @@ export function setupHabitDialogs(api: HabitApi): void {
             if (!editingId) return;
             if (!deleteArmed) {
                 deleteArmed = true;
-                el('hm-delete')!.textContent = 'Точно удалить?';
+                el('hm-delete')!.textContent = tr('Точно удалить?');
                 return;
             }
             const id = editingId;

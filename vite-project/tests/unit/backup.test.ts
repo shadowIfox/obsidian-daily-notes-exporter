@@ -57,7 +57,7 @@ describe('резервная копия: сборка', () => {
         assert.equal(built.version, 1);
         assert.equal(built.exportedAt, '2026-09-19T12:00:00.000Z');
         assert.deepEqual([built.tasks.length, built.habits.length, built.mood.length], [2, 2, 2]);
-        assert.deepEqual(built.settings, { themeMode: 'dark', userName: 'Я', notifications: DEFAULT_NOTIFICATIONS });
+        assert.deepEqual(built.settings, { themeMode: 'dark', userName: 'Я', language: 'ru', notifications: DEFAULT_NOTIFICATIONS });
     });
 
     it('имя файла — по локальной дате, а не по UTC', async () => {
@@ -124,7 +124,7 @@ describe('резервная копия: разбор и проверка фай
         );
         assert.deepEqual(backup.habits[0].dates, []);
         assert.deepEqual(backup.mood, [{ date: '2026-09-01', rating: 2, note: '' }]);
-        assert.deepEqual(backup.settings, { themeMode: 'system', userName: '', notifications: DEFAULT_NOTIFICATIONS });
+        assert.deepEqual(backup.settings, { themeMode: 'system', userName: '', language: 'ru', notifications: DEFAULT_NOTIFICATIONS });
     });
 
     it('лишние поля и «внедрённые» свойства не переносятся', async () => {
@@ -159,7 +159,12 @@ describe('резервная копия: восстановление', () => {
                 loadMood().map((m) => m.date),
                 ['2026-09-01', '2026-09-02'],
             );
-            assert.deepEqual(loadSettings(), { themeMode: 'light', userName: 'Из копии', notifications: DEFAULT_NOTIFICATIONS });
+            assert.deepEqual(loadSettings(), {
+                themeMode: 'light',
+                userName: 'Из копии',
+                language: 'ru',
+                notifications: DEFAULT_NOTIFICATIONS,
+            });
         });
     });
 
@@ -184,7 +189,7 @@ describe('резервная копия: восстановление', () => {
                 loadMood().map((m) => `${m.date}:${m.rating}`),
                 ['2026-09-01:3', '2026-09-02:2', '2026-09-03:4'],
             );
-            assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Я', notifications: DEFAULT_NOTIFICATIONS }); // настройки не тронуты
+            assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Я', language: 'ru', notifications: DEFAULT_NOTIFICATIONS }); // настройки не тронуты
         });
 
         it('повторное объединение ничего не добавляет', async () => {

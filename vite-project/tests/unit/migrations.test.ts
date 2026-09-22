@@ -136,7 +136,7 @@ describe('initStore и версия схемы', () => {
         await initStore(backend);
 
         assert.equal(loadTasks()[0].completed, true);
-        assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Аня', notifications: DEFAULT_NOTIFICATIONS });
+        assert.deepEqual(loadSettings(), { themeMode: 'dark', userName: 'Аня', language: 'ru', notifications: DEFAULT_NOTIFICATIONS });
         assert.equal(backend.data.get('schemaVersion'), SCHEMA_VERSION);
         const savedTasks = backend.data.get('tasks') as { id: string; completed: boolean }[];
         assert.equal(savedTasks[0].completed, true);

@@ -11,6 +11,7 @@
 //    (migrations.ts), а данные более новой версии не трогаются — приложение сообщает об этом.
 
 import { parseDateStr } from './dates';
+import { DEFAULT_LANGUAGE, isLanguage, type Language } from './i18n';
 import { migrate, SCHEMA_VERSION, type RawData } from './migrations';
 import { localStorageBackend, type StorageBackend, type StoreKey } from './storage';
 import { newId } from './utils/id';
@@ -75,6 +76,7 @@ export const DEFAULT_NOTIFICATIONS: NotificationSettings = {
 export type UserSettings = {
     themeMode: ThemeMode;
     userName: string;
+    language: Language;
     notifications: NotificationSettings;
 };
 
@@ -287,12 +289,18 @@ export function normalizeNotifications(raw: unknown): NotificationSettings {
 }
 
 export function normalizeSettings(raw: unknown): UserSettings {
-    const defaults: UserSettings = { themeMode: 'system', userName: '', notifications: { ...DEFAULT_NOTIFICATIONS } };
+    const defaults: UserSettings = {
+        themeMode: 'system',
+        userName: '',
+        language: DEFAULT_LANGUAGE,
+        notifications: { ...DEFAULT_NOTIFICATIONS },
+    };
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return defaults;
     const r = raw as Raw;
     return {
         themeMode: THEME_MODES.includes(r.themeMode as ThemeMode) ? (r.themeMode as ThemeMode) : defaults.themeMode,
         userName: str(r.userName),
+        language: isLanguage(r.language) ? r.language : defaults.language,
         notifications: normalizeNotifications(r.notifications),
     };
 }

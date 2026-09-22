@@ -1,6 +1,7 @@
 // analytics.ts — страница «Аналитика»: одна страница с выбором периода.
 // Разметка лежит в index.html (#analytics-section), здесь — данные и отрисовка графиков (viz.ts).
 
+import { locale, tp, tr } from './i18n';
 import { addDays, formatDateShort, todayStr, weekdayIndex } from './dates';
 import {
     aggregateWeeks,
@@ -18,7 +19,6 @@ import {
 } from './stats';
 import { loadActiveHabits, loadMood, loadTasks } from './store';
 import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
-import { plural } from './utils/plural';
 import {
     mountResponsive,
     renderColumns,
@@ -55,8 +55,12 @@ const sign = (n: number): string => (n > 0 ? '+' : n < 0 ? '−' : '');
 
 /** «↑ +3 к предыдущему периоду» / «как в предыдущем периоде». */
 function deltaNote(diff: number, unit = ''): string {
-    if (diff === 0) return 'как в предыдущем периоде';
-    return `${diff > 0 ? '↑' : '↓'} ${sign(diff)}${Math.abs(Math.round(diff * 10) / 10)}${unit} к предыдущему периоду`;
+    if (diff === 0) return tr('как в предыдущем периоде');
+    return tr('{arrow} {value}{unit} к предыдущему периоду', {
+        arrow: diff > 0 ? '↑' : '↓',
+        value: `${sign(diff)}${Math.abs(Math.round(diff * 10) / 10)}`,
+        unit,
+    });
 }
 
 // ===== Итоговые карточки =====
@@ -74,21 +78,21 @@ function renderKpis(days: number, today: string): void {
 
     if (onTime.withDeadline > 0) {
         setText('[data-kpi="ontime"]', `${Math.round((onTime.onTime / onTime.withDeadline) * 100)}%`);
-        setText('[data-kpi-note="ontime"]', `${onTime.onTime} из ${onTime.withDeadline} задач с дедлайном`);
+        setText('[data-kpi-note="ontime"]', tr('{done} из {total} задач с дедлайном', { done: onTime.onTime, total: onTime.withDeadline }));
     } else {
         setText('[data-kpi="ontime"]', '—');
-        setText('[data-kpi-note="ontime"]', 'нет выполненных задач с дедлайном');
+        setText('[data-kpi-note="ontime"]', tr('нет выполненных задач с дедлайном'));
     }
 
     if (habitStats.rate !== null) {
         setText('[data-kpi="habits"]', `${habitStats.rate}%`);
         setText(
             '[data-kpi-note="habits"]',
-            habitStats.prevRate === null ? 'дней с отметкой' : deltaNote(habitStats.rate - habitStats.prevRate, ' п.п.'),
+            habitStats.prevRate === null ? tr('дней с отметкой') : deltaNote(habitStats.rate - habitStats.prevRate, ' ' + tr('п.п.')),
         );
     } else {
         setText('[data-kpi="habits"]', '—');
-        setText('[data-kpi-note="habits"]', 'привычек пока нет');
+        setText('[data-kpi-note="habits"]', tr('привычек пока нет'));
     }
 
     if (mood.avg !== null) {
@@ -96,12 +100,12 @@ function renderKpis(days: number, today: string): void {
         setText(
             '[data-kpi-note="mood"]',
             mood.prevAvg === null
-                ? `${mood.entries.length} ${plural(mood.entries.length, ['оценка', 'оценки', 'оценок'])} за период`
+                ? tp('{n} оценка за период|{n} оценки за период|{n} оценок за период', mood.entries.length)
                 : deltaNote(mood.avg - mood.prevAvg),
         );
     } else {
         setText('[data-kpi="mood"]', '—');
-        setText('[data-kpi-note="mood"]', 'оценок за период нет');
+        setText('[data-kpi-note="mood"]', tr('оценок за период нет'));
     }
 }
 
@@ -117,22 +121,25 @@ function renderTaskCharts(days: number, today: string): void {
     const top = Math.max(0, ...source.map((d) => d.count));
     const firstMax = source.findIndex((d) => d.count === top);
     const items: ColumnItem[] = source.map((d, i) => ({
-        label: days <= 7 ? WEEKDAYS[weekdayIndex(d.date)] : formatDateShort(d.date),
+        label: days <= 7 ? tr(WEEKDAYS[weekdayIndex(d.date)]) : formatDateShort(d.date),
         value: d.count,
-        tip: weekly ? `Неделя с ${formatDateShort(d.date)}: ${d.count}` : `${formatDateShort(d.date)}: ${d.count}`,
+        tip: weekly ? tr('Неделя с {date}: {n}', { date: formatDateShort(d.date), n: d.count }) : `${formatDateShort(d.date)}: ${d.count}`,
         accent: top > 0 && i === firstMax,
     }));
     const every = days <= 7 ? 1 : weekly ? 2 : 5;
 
     setText(
         '#an-tasks-meta',
-        `всего ${stats.total} · в среднем ${(Math.round(stats.perDay * 10) / 10).toString().replace('.', ',')} в день`,
+        tr('всего {total} · в среднем {avg} в день', {
+            total: stats.total,
+            avg: (Math.round(stats.perDay * 10) / 10).toLocaleString(locale()),
+        }),
     );
     const box = $('#an-tasks-days');
     if (box) {
         box.innerHTML =
             stats.total === 0
-                ? '<p class="viz__empty">За этот период выполненных задач нет.</p>'
+                ? `<p class="viz__empty">${tr('За этот период выполненных задач нет.')}</p>`
                 : renderColumns(items, {
                       height: 190,
                       showValues: items.length <= 14,
@@ -143,17 +150,17 @@ function renderTaskCharts(days: number, today: string): void {
     // По дням недели
     const totals = weekdayTotals(stats.byDay);
     const bw = pickBestWorst(totals);
-    setText('#an-weekdays-meta', bw ? `лучший день — ${WEEKDAYS[bw.best]}` : '');
+    setText('#an-weekdays-meta', bw ? tr('лучший день — {day}', { day: tr(WEEKDAYS[bw.best]) }) : '');
     const weekdayBox = $('#an-weekdays');
     if (weekdayBox) {
         weekdayBox.innerHTML =
             stats.total === 0
-                ? '<p class="viz__empty">Пока нет данных.</p>'
+                ? `<p class="viz__empty">${tr('Пока нет данных.')}</p>`
                 : renderColumns(
                       totals.map((v, i) => ({
-                          label: WEEKDAYS[i],
+                          label: tr(WEEKDAYS[i]),
                           value: v,
-                          tip: `${WEEKDAYS[i]}: ${v}`,
+                          tip: `${tr(WEEKDAYS[i])}: ${v}`,
                           accent: bw !== null && i === bw.best,
                       })),
                       { height: 130, showValues: true },
@@ -166,7 +173,7 @@ function renderTaskCharts(days: number, today: string): void {
     if (catBox) {
         catBox.innerHTML =
             cats.length === 0
-                ? '<p class="viz__empty">Пока нет данных.</p>'
+                ? `<p class="viz__empty">${tr('Пока нет данных.')}</p>`
                 : renderHBars(
                       cats.map((c) => ({ label: c.name, value: c.count, valueText: String(c.count), tip: `${c.name}: ${c.count}` })),
                   );
@@ -182,12 +189,12 @@ function renderHabitChart(days: number, today: string): void {
 
     if (habits.length === 0) {
         setText('#an-habits-meta', '');
-        setEmpty('#an-habits', 'Привычек пока нет — добавьте первую в разделе «Привычки».');
+        setEmpty('#an-habits', tr('Привычек пока нет — добавьте первую в разделе «Привычки».'));
         return;
     }
 
     const stats = habitPeriodStats(habits, today, days);
-    setText('#an-habits-meta', `${stats.rate ?? 0}% дней с отметкой`);
+    setText('#an-habits-meta', tr('{rate}% дней с отметкой', { rate: stats.rate ?? 0 }));
 
     // За 3 месяца — ячейка на неделю (интенсивность = доля отмеченных дней)
     const weekly = days > 30;
@@ -198,7 +205,8 @@ function renderHabitChart(days: number, today: string): void {
                 cells: r.marks.map((m) => (m ? 1 : 0)),
                 off: r.marks.map((m, i) => !m && !r.due[i]), // не по графику и не отмечено — «выходной»
                 tips: r.marks.map(
-                    (m, i) => `${formatDateShort(stats.dates[i])} — ${r.text}: ${m ? 'отмечено' : r.due[i] ? 'нет' : 'не по графику'}`,
+                    (m, i) =>
+                        `${formatDateShort(stats.dates[i])} — ${r.text}: ${m ? tr('отмечено') : r.due[i] ? tr('нет') : tr('не по графику')}`,
                 ),
                 value: `${r.percent}%`,
             };
@@ -213,13 +221,17 @@ function renderHabitChart(days: number, today: string): void {
             cells.unshift(dueN === 0 ? 0 : done / dueN);
             off.unshift(dueN === 0);
             tips.unshift(
-                `Неделя с ${formatDateShort(stats.dates[from])} — ${r.text}: ${dueN === 0 ? 'нет дней по графику' : `${done} из ${dueN}`}`,
+                tr('Неделя с {date} — {text}: {result}', {
+                    date: formatDateShort(stats.dates[from]),
+                    text: r.text,
+                    result: dueN === 0 ? tr('нет дней по графику') : tr('{done} из {total}', { done, total: dueN }),
+                }),
             );
         }
         return { label: r.text, cells, off, tips, value: `${r.percent}%` };
     });
 
-    box.innerHTML = renderHeatmap(rows, formatDateShort(stats.dates[0]), 'сегодня');
+    box.innerHTML = renderHeatmap(rows, formatDateShort(stats.dates[0]), tr('сегодня'));
 }
 
 // ===== Настроение =====
@@ -232,12 +244,12 @@ function renderMoodCharts(days: number, today: string): void {
 
     if (stats.entries.length === 0) {
         setText('#an-mood-meta', '');
-        setEmpty('#an-mood-line', 'За этот период оценок нет.');
-        setEmpty('#an-mood-donut', 'Пока нет данных.');
+        setEmpty('#an-mood-line', tr('За этот период оценок нет.'));
+        setEmpty('#an-mood-donut', tr('Пока нет данных.'));
         return;
     }
 
-    setText('#an-mood-meta', `${stats.entries.length} ${plural(stats.entries.length, ['оценка', 'оценки', 'оценок'])}`);
+    setText('#an-mood-meta', tp('{n} оценка|{n} оценки|{n} оценок', stats.entries.length));
 
     const notes = new Map(stats.entries.filter((e) => e.note).map((e) => [e.date, e.note]));
     if (lineBox) mountResponsive(lineBox, (width) => renderMoodArea(stats.series, { width, height: 230, avg: stats.avg, today, notes }));
@@ -245,7 +257,7 @@ function renderMoodCharts(days: number, today: string): void {
     // Кольцо: порядок «Отлично … Ужасно», цвета — из палитры настроения
     const total = stats.counts.reduce((a, b) => a + b, 0);
     const colors = ['var(--mood-5)', 'var(--mood-4)', 'var(--mood-3)', 'var(--mood-2)', 'var(--mood-1)'];
-    const segments = stats.counts.map((value, i) => ({ label: MOOD_LABELS[i], value, color: colors[i] }));
+    const segments = stats.counts.map((value, i) => ({ label: tr(MOOD_LABELS[i]), value, color: colors[i] }));
     const legend = segments
         .map(
             (s) =>
@@ -253,7 +265,7 @@ function renderMoodCharts(days: number, today: string): void {
         )
         .join('');
     if (donutBox)
-        donutBox.innerHTML = `<div class="donut-wrap">${renderDonut(segments, String(stats.avg ?? '—'), 'среднее')}<div class="legend">${legend}</div></div>`;
+        donutBox.innerHTML = `<div class="donut-wrap">${renderDonut(segments, String(stats.avg ?? '—'), tr('среднее'))}<div class="legend">${legend}</div></div>`;
 }
 
 // ===== Наблюдения и советы =====
@@ -267,33 +279,46 @@ function buildInsights(days: number, today: string): string[] {
     const totals = weekdayTotals(taskStats.byDay);
     const bw = pickBestWorst(totals);
     if (taskStats.total > 0 && bw) {
-        list.push(`Чаще всего вы закрываете задачи по ${WEEKDAYS_DATIVE[bw.best]}: ${totals[bw.best]} из ${taskStats.total}.`);
+        list.push(
+            tr('Чаще всего вы закрываете задачи по {day}: {n} из {total}.', {
+                day: tr(WEEKDAYS_DATIVE[bw.best]),
+                n: totals[bw.best],
+                total: taskStats.total,
+            }),
+        );
     }
 
     const onTime = onTimeStats(tasks, today, days);
     if (onTime.withDeadline > 0) {
-        list.push(`В срок закрыто ${onTime.onTime} из ${onTime.withDeadline} задач с дедлайном.`);
+        list.push(tr('В срок закрыто {done} из {total} задач с дедлайном.', { done: onTime.onTime, total: onTime.withDeadline }));
     }
 
     const overdue = tasks.filter((t) => !t.completed && t.date && t.date < today).length;
-    if (overdue > 0) list.push(`Сейчас просрочено задач: ${overdue}. Разберите их на главной во вкладке «Просрочено».`);
+    if (overdue > 0) list.push(tr('Сейчас просрочено задач: {n}. Разберите их на главной во вкладке «Просрочено».', { n: overdue }));
 
     const habitStats = habitPeriodStats(habits, today, days);
     if (habitStats.rows.length > 0 && habitStats.rows.some((r) => r.done > 0)) {
         const byPercent = [...habitStats.rows].sort((a, b) => b.percent - a.percent);
-        list.push(`Самая стабильная привычка — «${byPercent[0].text}»: отмечена в ${byPercent[0].percent}% дней.`);
+        list.push(
+            tr('Самая стабильная привычка — «{text}»: отмечена в {pct}% дней.', { text: byPercent[0].text, pct: byPercent[0].percent }),
+        );
         const weakest = byPercent[byPercent.length - 1];
         if (byPercent.length > 1 && weakest.percent < byPercent[0].percent) {
-            list.push(`Чаще всего пропускается «${weakest.text}» — отметки в ${weakest.percent}% дней.`);
+            list.push(tr('Чаще всего пропускается «{text}» — отметки в {pct}% дней.', { text: weakest.text, pct: weakest.percent }));
         }
     }
 
     const link = moodVsHabits(habits, loadMood(), today, days);
     if (link) {
-        list.push(`В дни, когда отмечено не меньше половины привычек, настроение в среднем ${link.high}, в остальные дни — ${link.low}.`);
+        list.push(
+            tr('В дни, когда отмечено не меньше половины привычек, настроение в среднем {high}, в остальные дни — {low}.', {
+                high: link.high,
+                low: link.low,
+            }),
+        );
     }
 
-    if (list.length === 0) list.push('Пока мало данных для выводов — продолжайте отмечать, и здесь появятся наблюдения.');
+    if (list.length === 0) list.push(tr('Пока мало данных для выводов — продолжайте отмечать, и здесь появятся наблюдения.'));
     return list;
 }
 
@@ -326,13 +351,16 @@ function renderAdvice(days: number, today: string): void {
 
     const rows: [string, string][] = [
         [
-            'Задачи',
+            tr('Задачи'),
             tasks.length > 0
                 ? generateTaskAdvice(stats.perDay, taskStreak(tasks, today))
-                : 'Добавьте первую задачу — и здесь появится совет.',
+                : tr('Добавьте первую задачу — и здесь появится совет.'),
         ],
-        ['Привычки', habits.length > 0 ? generateHabitAdvice(bestStreak) : 'Добавьте привычку — и здесь появится совет.'],
-        ['Настроение', mood.avg !== null ? generateMoodAdvice(mood.avg, frequent) : 'Запишите настроение — и здесь появится совет.'],
+        [tr('Привычки'), habits.length > 0 ? generateHabitAdvice(bestStreak) : tr('Добавьте привычку — и здесь появится совет.')],
+        [
+            tr('Настроение'),
+            mood.avg !== null ? generateMoodAdvice(mood.avg, frequent) : tr('Запишите настроение — и здесь появится совет.'),
+        ],
     ];
 
     for (const [tag, text] of rows) {
@@ -358,7 +386,13 @@ export function renderAnalyticsPage(): void {
     unmountResponsive(section);
 
     const today = todayStr();
-    setText('#analytics-sub', `Статистика за ${PERIOD_LABELS[period]}: ${formatDateShort(addDays(today, -(period - 1)))} — сегодня`);
+    setText(
+        '#analytics-sub',
+        tr('Статистика за {period}: {date} — сегодня', {
+            period: tr(PERIOD_LABELS[period]),
+            date: formatDateShort(addDays(today, -(period - 1))),
+        }),
+    );
 
     document.querySelectorAll<HTMLElement>('#analytics-period [data-days]').forEach((btn) => {
         const active = Number(btn.dataset.days) === period;

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Файл приложения называется по-латыни (MyDay.app): у имён с кириллицей «й» бывает записана двумя способами
+       (NFC/NFD), и macOS (Dock, Launchpad, Spotlight) путает пути. Что видит человек, задают эти два ключа. -->
+  <key>CFBundleName</key>
+  <string>Мой день</string>
+  <key>CFBundleDisplayName</key>
+  <string>Мой день</string>
+</dict>
+</plist>

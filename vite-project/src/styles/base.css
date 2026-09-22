@@ -42,3 +42,6 @@ a { color: inherit; text-decoration: none; }
 
 /* Скрыто визуально, но доступно для скринридеров и программного клика (например, <input type="file">) */
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Английский язык: пока разметка не переведена (i18n.ts), окно скрыто, чтобы не мелькал русский */
+html[data-lang='en']:not([data-i18n-ready]) body { visibility: hidden; }
