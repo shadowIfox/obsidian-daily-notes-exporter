@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'vitest';
 import {
+    ensureMarker,
     flushStore,
     initStore,
     loadActiveHabits,
     loadHabits,
+    loadMarkers,
     loadMood,
     loadSettings,
     loadTasks,
+    recordMarkerHistory,
     saveHabits,
     saveSettings,
     DEFAULT_NOTIFICATIONS,
@@ -38,6 +41,28 @@ describe('store: разбор старых и битых данных', () => {
         assert.deepEqual([t1.priority, t1.notes, t1.time], ['normal', '', undefined]);
         assert.deepEqual([t2.priority, t2.notes, t2.time], ['high', 'заметка', '09:15']);
         assert.deepEqual([t3.priority, t3.notes, t3.time], ['normal', '', undefined]);
+    });
+
+    it('подпункты: разбор, мусор отбрасывается, id выдаётся', async () => {
+        await seed.tasks([
+            {
+                text: 'с подпунктами',
+                subtasks: [
+                    { id: 's1', text: 'первый', completed: true, completedAt: '2026-09-19' },
+                    { text: 'без id' },
+                    'мусор',
+                    null,
+                    { text: 5, completed: 'да' },
+                ],
+            },
+            { text: 'без подпунктов' },
+        ]);
+        const [t1, t2] = loadTasks();
+        assert.equal(t1.subtasks.length, 3);
+        assert.deepEqual(t1.subtasks[0], { id: 's1', text: 'первый', completed: true, completedAt: '2026-09-19' });
+        assert.ok(t1.subtasks[1].id);
+        assert.deepEqual([t1.subtasks[2].text, t1.subtasks[2].completed], ['', true]); // text не строка → '', completed — Boolean(любого значения)
+        assert.deepEqual(t2.subtasks, []);
     });
 
     it('привычки и настроение: битые записи отбрасываются', async () => {
@@ -124,5 +149,41 @@ describe('store: настройки', () => {
         saveSettings({ userName: 'Я' });
         window.removeEventListener('datachange', on);
         assert.equal(fired, 1);
+    });
+});
+
+describe('store: маркеры (категории задач)', () => {
+    it('мусор при чтении: без имени отбрасывается, отрицательные счётчики — в ноль, id выдаётся', async () => {
+        await seed.markers([
+            { id: 'm1', name: 'Работа', historyTotal: 5, historyCompleted: 2 },
+            { name: '  ' },
+            { name: 'Без id', historyTotal: -3 },
+        ]);
+        const markers = loadMarkers();
+        assert.deepEqual(
+            markers.map((m) => m.name),
+            ['Работа', 'Без id'],
+        );
+        assert.equal(markers[1].historyTotal, 0);
+        assert.ok(markers[1].id);
+    });
+
+    it('ensureMarker: добавляет один раз, пустое имя игнорирует, пробелы обрезает', () => {
+        ensureMarker('Учёба');
+        ensureMarker('Учёба');
+        ensureMarker('  ');
+        ensureMarker('  Дом  ');
+        const names = loadMarkers().map((m) => m.name);
+        assert.deepEqual(names, ['Учёба', 'Дом']);
+    });
+
+    it('recordMarkerHistory: копит счётчики для существующего маркера, создаёт новый для неизвестного', () => {
+        ensureMarker('Учёба');
+        recordMarkerHistory('Учёба', true);
+        recordMarkerHistory('Учёба', false);
+        recordMarkerHistory('Архив', true);
+        const byName = Object.fromEntries(loadMarkers().map((m) => [m.name, m]));
+        assert.deepEqual(byName['Учёба'], { id: byName['Учёба'].id, name: 'Учёба', historyTotal: 2, historyCompleted: 1 });
+        assert.deepEqual(byName['Архив'], { id: byName['Архив'].id, name: 'Архив', historyTotal: 1, historyCompleted: 1 });
     });
 });

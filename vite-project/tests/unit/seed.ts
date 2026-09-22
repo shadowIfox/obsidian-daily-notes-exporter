@@ -14,4 +14,5 @@ export const seed = {
     habits: put('habits'),
     mood: put('moodData'),
     settings: put('userSettings'),
+    markers: put('categoryMarkers'),
 };

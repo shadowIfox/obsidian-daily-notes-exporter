@@ -5,18 +5,22 @@ import { toDateStr } from './dates';
 import { migrate, SCHEMA_VERSION } from './migrations';
 import {
     loadHabits,
+    loadMarkers,
     loadMood,
     loadSettings,
     loadTasks,
     normalizeHabits,
+    normalizeMarkers,
     normalizeMood,
     normalizeSettings,
     normalizeTasks,
     saveHabits,
+    saveMarkers,
     saveMood,
     saveSettings,
     saveTasks,
     type Habit,
+    type Marker,
     type MoodEntry,
     type Task,
     type UserSettings,
@@ -35,6 +39,7 @@ export type Backup = {
     habits: Habit[];
     mood: MoodEntry[];
     settings: UserSettings;
+    markers: Marker[];
 };
 
 export type BackupCounts = { tasks: number; habits: number; mood: number };
@@ -61,6 +66,7 @@ export function buildBackup(now: Date = new Date()): Backup {
         habits: loadHabits(),
         mood: loadMood(),
         settings: loadSettings(),
+        markers: loadMarkers(),
     };
 }
 
@@ -101,7 +107,7 @@ export function parseBackup(text: string): ParseResult {
 
     // Копия без версии — от руки собранный или очень старый файл: считаем её версией 0
     const fileVersion = typeof d.version === 'number' && Number.isInteger(d.version) && d.version >= 0 ? d.version : 0;
-    const migrated = migrate({ tasks: d.tasks, habits: d.habits, mood: d.mood, settings: d.settings }, fileVersion);
+    const migrated = migrate({ tasks: d.tasks, habits: d.habits, mood: d.mood, settings: d.settings, markers: d.markers }, fileVersion);
 
     const backup: Backup = {
         app: BACKUP_APP,
@@ -111,6 +117,7 @@ export function parseBackup(text: string): ParseResult {
         habits: dedupeBy(normalizeHabits(migrated.habits), (h) => h.id),
         mood: dedupeBy(normalizeMood(migrated.mood), (m) => m.date),
         settings: normalizeSettings(migrated.settings),
+        markers: dedupeBy(normalizeMarkers(migrated.markers), (m) => m.id),
     };
     return { ok: true, backup, counts: { tasks: backup.tasks.length, habits: backup.habits.length, mood: backup.mood.length } };
 }
@@ -127,6 +134,7 @@ export function applyBackup(backup: Backup, mode: ImportMode): ImportSummary {
         saveHabits(backup.habits);
         saveMood(backup.mood);
         saveSettings(backup.settings);
+        saveMarkers(backup.markers);
         return { mode, tasks: backup.tasks.length, habits: backup.habits.length, habitMarks: 0, mood: backup.mood.length };
     }
 
@@ -156,6 +164,20 @@ export function applyBackup(backup: Backup, mode: ImportMode): ImportSummary {
     const dates = new Set(mood.map((m) => m.date));
     const newMood = backup.mood.filter((m) => !dates.has(m.date));
     saveMood([...mood, ...newMood].sort((a, b) => a.date.localeCompare(b.date)));
+
+    // Маркеры объединяются по имени — история (счётчики) из копии добавляется к уже имеющейся
+    const markers = loadMarkers();
+    const byName = new Map(markers.map((m) => [m.name, m]));
+    for (const incoming of backup.markers) {
+        const existing = byName.get(incoming.name);
+        if (existing) {
+            existing.historyTotal += incoming.historyTotal;
+            existing.historyCompleted += incoming.historyCompleted;
+        } else {
+            markers.push(incoming);
+        }
+    }
+    saveMarkers(markers);
 
     return { mode, tasks: newTasks.length, habits: newHabits, habitMarks, mood: newMood.length };
 }

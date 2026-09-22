@@ -20,6 +20,14 @@ export { newId };
 
 export type Priority = 'low' | 'normal' | 'high';
 
+/** Подпункт задачи: свой чекбокс, своя дата выполнения — считается в статистике наравне с задачами. */
+export type Subtask = {
+    id: string;
+    text: string;
+    completed: boolean;
+    completedAt?: string; // YYYY-MM-DD, когда отмечен выполненным
+};
+
 export type Task = {
     id: string;
     text: string;
@@ -30,6 +38,19 @@ export type Task = {
     notes: string;
     completed: boolean;
     completedAt?: string; // YYYY-MM-DD, когда отмечена выполненной
+    subtasks: Subtask[]; // подпункты; пока не заведены — пустой массив
+};
+
+/**
+ * Маркер — категория задачи, вынесенная в отдельную сущность: список переживает удаление задач,
+ * а historyTotal/historyCompleted — счётчик задач, которые уже удалены (см. recordMarkerHistory).
+ * Текущие (ещё не удалённые) задачи с этой категорией считаются поверх этих чисел — см. markerStats в stats.ts.
+ */
+export type Marker = {
+    id: string;
+    name: string;
+    historyTotal: number;
+    historyCompleted: number;
 };
 
 export type Habit = {
@@ -87,6 +108,7 @@ const KEYS = {
     habits: 'habits',
     mood: 'moodData',
     settings: 'userSettings',
+    markers: 'categoryMarkers',
     version: 'schemaVersion',
     migrationBackup: 'migrationBackup',
 } as const satisfies Record<string, StoreKey>;
@@ -94,6 +116,8 @@ const KEYS = {
 type Raw = Record<string, unknown>;
 
 const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : fallback);
+const nonNegInt = (v: unknown, fallback = 0): number =>
+    typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.trunc(v)) : fallback;
 
 function toRecords(parsed: unknown): Raw[] {
     if (!Array.isArray(parsed)) return [];
@@ -102,7 +126,7 @@ function toRecords(parsed: unknown): Raw[] {
 
 // --- Кэш в памяти и очередь записи ---
 
-type Snapshot = { tasks: Task[]; habits: Habit[]; mood: MoodEntry[]; settings: UserSettings };
+type Snapshot = { tasks: Task[]; habits: Habit[]; mood: MoodEntry[]; settings: UserSettings; markers: Marker[] };
 
 let backend: StorageBackend = localStorageBackend;
 let cache: Snapshot | null = null;
@@ -142,17 +166,18 @@ export async function initStore(next: StorageBackend = backend): Promise<void> {
     backend = next;
     cache = null; // если открыть не получится, старые данные из памяти не должны сойти за актуальные
 
-    const [tasks, habits, mood, settings, version] = await Promise.all([
+    const [tasks, habits, mood, settings, markers, version] = await Promise.all([
         next.read(KEYS.tasks),
         next.read(KEYS.habits),
         next.read(KEYS.mood),
         next.read(KEYS.settings),
+        next.read(KEYS.markers),
         next.read(KEYS.version),
     ]);
     // Нет версии — данные записаны до появления версий (версия 0)
     const storedVersion = typeof version === 'number' && Number.isInteger(version) && version >= 0 ? version : 0;
 
-    const raw: RawData = { tasks, habits, mood, settings };
+    const raw: RawData = { tasks, habits, mood, settings, markers };
     const migrated = migrate(raw, storedVersion); // данные из более новой версии: бросает SchemaTooNewError, ничего не записав
 
     cache = {
@@ -160,6 +185,7 @@ export async function initStore(next: StorageBackend = backend): Promise<void> {
         habits: normalizeHabits(migrated.habits),
         mood: normalizeMood(migrated.mood),
         settings: normalizeSettings(migrated.settings),
+        markers: normalizeMarkers(migrated.markers),
     };
 
     if (storedVersion < SCHEMA_VERSION) {
@@ -172,6 +198,7 @@ export async function initStore(next: StorageBackend = backend): Promise<void> {
             commit(KEYS.habits, false);
             commit(KEYS.mood, false);
             commit(KEYS.settings, false);
+            commit(KEYS.markers, false);
         }
         persist(KEYS.version, SCHEMA_VERSION);
         await pending;
@@ -179,13 +206,22 @@ export async function initStore(next: StorageBackend = backend): Promise<void> {
 }
 
 /** Фиксирует изменение: запись в хранилище + (по умолчанию) сообщение интерфейсу, например колокольчику. */
-function commit(key: 'tasks' | 'habits' | 'moodData' | 'userSettings', notify = true): void {
+function commit(key: 'tasks' | 'habits' | 'moodData' | 'userSettings' | 'categoryMarkers', notify = true): void {
     const s = state();
-    persist(key, { tasks: s.tasks, habits: s.habits, moodData: s.mood, userSettings: s.settings }[key]);
+    persist(key, { tasks: s.tasks, habits: s.habits, moodData: s.mood, userSettings: s.settings, categoryMarkers: s.markers }[key]);
     if (notify) emit('datachange');
 }
 
 // --- Задачи ---
+
+function normalizeSubtasks(raw: unknown): Subtask[] {
+    return toRecords(raw).map((s) => ({
+        id: str(s.id) || newId(),
+        text: str(s.text),
+        completed: Boolean(s.completed),
+        completedAt: str(s.completedAt) || undefined,
+    }));
+}
 
 export function normalizeTasks(raw: unknown): Task[] {
     return toRecords(raw).map((t) => ({
@@ -199,6 +235,7 @@ export function normalizeTasks(raw: unknown): Task[] {
         // checked/done — поля старых версий приложения
         completed: Boolean(t.completed ?? t.checked ?? t.done),
         completedAt: str(t.completedAt) || undefined,
+        subtasks: normalizeSubtasks(t.subtasks),
     }));
 }
 
@@ -313,4 +350,56 @@ export function saveSettings(patch: Partial<UserSettings>): UserSettings {
     state().settings = normalizeSettings({ ...state().settings, ...patch });
     commit(KEYS.settings);
     return loadSettings();
+}
+
+// --- Маркеры (категории задач как отдельная сущность) ---
+
+export function normalizeMarkers(raw: unknown): Marker[] {
+    return toRecords(raw)
+        .map((m) => ({
+            id: str(m.id) || newId(),
+            name: str(m.name).trim(),
+            historyTotal: nonNegInt(m.historyTotal),
+            historyCompleted: nonNegInt(m.historyCompleted),
+        }))
+        .filter((m) => m.name);
+}
+
+export function loadMarkers(): Marker[] {
+    return structuredClone(state().markers);
+}
+
+/** Полная замена списка маркеров — для восстановления из резервной копии (см. backup.ts). */
+export function saveMarkers(markers: Marker[]): void {
+    state().markers = normalizeMarkers(markers);
+    commit(KEYS.markers);
+}
+
+/** Регистрирует маркер по имени, если такого ещё нет; пустое имя игнорируется. Вызывается при сохранении задачи с категорией. */
+export function ensureMarker(name: string): void {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const markers = state().markers;
+    if (markers.some((m) => m.name === trimmed)) return;
+    state().markers = [...markers, { id: newId(), name: trimmed, historyTotal: 0, historyCompleted: 0 }];
+    commit(KEYS.markers);
+}
+
+/**
+ * Переносит финальное состояние удаляемой задачи в историю её маркера — счётчик переживает удаление задачи,
+ * а вместе с текущими (ещё не удалёнными) задачами той же категории даёт полную статистику (см. markerStats в stats.ts).
+ */
+export function recordMarkerHistory(category: string, wasCompleted: boolean): void {
+    const trimmed = category.trim();
+    if (!trimmed) return;
+    const markers = state().markers;
+    const existing = markers.find((m) => m.name === trimmed);
+    state().markers = existing
+        ? markers.map((m) =>
+              m === existing
+                  ? { ...m, historyTotal: m.historyTotal + 1, historyCompleted: m.historyCompleted + (wasCompleted ? 1 : 0) }
+                  : m,
+          )
+        : [...markers, { id: newId(), name: trimmed, historyTotal: 1, historyCompleted: wasCompleted ? 1 : 0 }];
+    commit(KEYS.markers);
 }

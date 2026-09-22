@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'vitest';
 import { applyBackup, backupFilename, buildBackup, parseBackup, serializeBackup, type Backup } from '../../src/backup';
+import { SCHEMA_VERSION } from '../../src/migrations';
 import { loadHabits, loadMood, loadSettings, loadTasks, DEFAULT_NOTIFICATIONS } from '../../src/store';
 import { mkTask } from './factories';
 import { seed } from './seed';
@@ -54,7 +55,7 @@ describe('резервная копия: сборка', () => {
     it('собирает все данные с меткой приложения и временем', async () => {
         const built = buildBackup(new Date('2026-09-19T12:00:00Z'));
         assert.equal(built.app, 'moi-den');
-        assert.equal(built.version, 1);
+        assert.equal(built.version, SCHEMA_VERSION);
         assert.equal(built.exportedAt, '2026-09-19T12:00:00.000Z');
         assert.deepEqual([built.tasks.length, built.habits.length, built.mood.length], [2, 2, 2]);
         assert.deepEqual(built.settings, { themeMode: 'dark', userName: 'Я', language: 'ru', notifications: DEFAULT_NOTIFICATIONS });

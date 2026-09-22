@@ -2,8 +2,19 @@ import { tr } from './i18n';
 import { formatDateShort, todayStr } from './dates';
 import { icon } from './icons';
 import { readPref, writePref } from './prefs';
-import { NO_CATEGORY, filterTasks, sortTasks, taskCategories, type TaskSort } from './stats';
-import { loadTasks, newId, saveTasks, type Priority, type Task } from './store';
+import { NO_CATEGORY, filterTasks, sortTasks, taskCategories, type TaskSort, type TaskStatus } from './stats';
+import {
+    ensureMarker,
+    loadMarkers,
+    loadTasks,
+    newId,
+    recordMarkerHistory,
+    saveTasks,
+    type Priority,
+    type Subtask,
+    type Task,
+} from './store';
+import { createSubtaskEditor } from './subtaskEditor';
 
 let currentTasks: Task[] = [];
 let editHandler: ((task: Task) => void) | null = null;
@@ -12,18 +23,19 @@ let editHandler: ((task: Task) => void) | null = null;
 export function setEditHandler(handler: (task: Task) => void): void {
     editHandler = handler;
 }
-let currentFilter: 'all' | 'active' | 'completed' = 'all';
+let currentFilter: TaskStatus = 'all';
 let currentCategory = ''; // '' — все категории, NO_CATEGORY — без категории
 let currentSort: TaskSort = 'added';
 
 // --- Настройки вида списка запоминаются между запусками ---
 const VIEW_KEY = 'taskView';
 const SORTS: TaskSort[] = ['added', 'deadline', 'priority', 'title'];
+const STATUSES: TaskStatus[] = ['all', 'active', 'completed', 'overdue'];
 
 function loadView(): void {
     try {
         const v = JSON.parse(readPref(VIEW_KEY) ?? '{}');
-        if (['all', 'active', 'completed'].includes(v.filter)) currentFilter = v.filter;
+        if (STATUSES.includes(v.filter)) currentFilter = v.filter;
         if (SORTS.includes(v.sort)) currentSort = v.sort;
         if (typeof v.category === 'string') currentCategory = v.category;
     } catch {
@@ -45,10 +57,36 @@ export function toggleTask(id: string): void {
     renderTasks();
 }
 
-export type NewTask = { text: string; date: string; time?: string; category: string; priority: Priority; notes?: string };
+export type NewTask = {
+    text: string;
+    date: string;
+    time?: string;
+    category: string;
+    priority: Priority;
+    notes?: string;
+    subtasks?: Subtask[];
+};
+
+/**
+ * Задача с подпунктами завершена, когда завершены все подпункты — и снята с завершения, как только
+ * хоть один подпункт снова не выполнен. Ручная отметка самой задачи (чекбокс в списке) подпункты не трогает.
+ */
+function syncCompletionFromSubtasks(task: Task): void {
+    if (task.subtasks.length === 0) return;
+    const allDone = task.subtasks.every((s) => s.completed);
+    if (allDone && !task.completed) {
+        task.completed = true;
+        task.completedAt = todayStr();
+    } else if (!allDone && task.completed) {
+        task.completed = false;
+        task.completedAt = undefined;
+    }
+}
 
 export function addTask(input: NewTask): Task {
-    const task: Task = { id: newId(), completed: false, notes: '', ...input };
+    const task: Task = { id: newId(), completed: false, notes: '', subtasks: [], ...input };
+    syncCompletionFromSubtasks(task);
+    if (task.category) ensureMarker(task.category); // категория запоминается как маркер — не придётся печатать заново
     currentTasks.push(task);
     saveTasks(currentTasks);
     renderTasks();
@@ -59,11 +97,27 @@ export function updateTask(id: string, patch: Partial<Omit<Task, 'id'>>): void {
     const task = currentTasks.find((t) => t.id === id);
     if (!task) return;
     Object.assign(task, patch);
+    if ('subtasks' in patch) syncCompletionFromSubtasks(task); // подпункты пришли из окна редактирования — пересчитать
+    if (patch.category) ensureMarker(patch.category);
+    saveTasks(currentTasks);
+    renderTasks();
+}
+
+/** Отмечает подпункт выполненным/невыполненным; пересчитывает завершённость самой задачи. */
+export function toggleSubtask(taskId: string, subtaskId: string): void {
+    const task = currentTasks.find((t) => t.id === taskId);
+    const subtask = task?.subtasks.find((s) => s.id === subtaskId);
+    if (!task || !subtask) return;
+    subtask.completed = !subtask.completed;
+    subtask.completedAt = subtask.completed ? todayStr() : undefined;
+    syncCompletionFromSubtasks(task);
     saveTasks(currentTasks);
     renderTasks();
 }
 
 export function removeTask(id: string): void {
+    const task = currentTasks.find((t) => t.id === id);
+    if (task?.category) recordMarkerHistory(task.category, task.completed); // задача уйдёт — её вклад в историю маркера остаётся
     currentTasks = currentTasks.filter((t) => t.id !== id);
     saveTasks(currentTasks);
     renderTasks();
@@ -96,18 +150,18 @@ export function createTaskElement(task: Task): HTMLLIElement {
         input.maxLength = 100;
         input.className = 'input task__edit';
         input.addEventListener('blur', () => {
-            if (input.parentNode !== li) return; // blur мог сработать повторно при замене элемента
+            if (!input.parentNode) return; // blur мог сработать повторно при замене элемента
             // пустой текст не сохраняем — остаётся прежний
             const text = input.value.trim();
             if (text) task.text = text;
             spanText.textContent = task.text;
-            li.replaceChild(spanText, input);
+            input.parentNode.replaceChild(spanText, input);
             saveTasks(currentTasks);
         });
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') input.blur();
         });
-        li.replaceChild(input, spanText);
+        spanText.parentNode?.replaceChild(input, spanText);
         input.focus();
     });
 
@@ -148,6 +202,15 @@ export function createTaskElement(task: Task): HTMLLIElement {
         meta.appendChild(chip);
     }
 
+    if (task.subtasks.length > 0) {
+        const done = task.subtasks.filter((s) => s.completed).length;
+        const progress = document.createElement('span');
+        progress.className = 'chip';
+        progress.title = tr('Подпункты');
+        progress.innerHTML = `${icon('list-checks', 14)}<span>${done}/${task.subtasks.length}</span>`;
+        meta.appendChild(progress);
+    }
+
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className = 'icon-btn icon-btn--sm';
@@ -167,8 +230,41 @@ export function createTaskElement(task: Task): HTMLLIElement {
     removeBtn.onclick = () => removeTask(task.id);
     meta.appendChild(removeBtn);
 
-    li.append(checkbox, spanText, meta);
+    const row = document.createElement('div');
+    row.className = 'task__row';
+    row.append(checkbox, spanText, meta);
+    li.appendChild(row);
+
+    if (task.subtasks.length > 0) li.appendChild(createSubtaskList(task));
+
     return li;
+}
+
+// --- Список подпунктов под задачей: только просмотр и отметка; добавляются/удаляются в окне задачи ---
+function createSubtaskList(task: Task): HTMLUListElement {
+    const list = document.createElement('ul');
+    list.className = 'task__subtasks';
+
+    for (const subtask of task.subtasks) {
+        const item = document.createElement('li');
+        item.className = subtask.completed ? 'subtask subtask--done' : 'subtask';
+
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.className = 'check check--sm';
+        check.checked = subtask.completed;
+        check.setAttribute('aria-label', tr('Выполнено'));
+        check.addEventListener('change', () => toggleSubtask(task.id, subtask.id));
+
+        const text = document.createElement('span');
+        text.className = 'subtask__text';
+        text.textContent = subtask.text;
+
+        item.append(check, text);
+        list.appendChild(item);
+    }
+
+    return list;
 }
 
 // --- Выпадающий список категорий: перестраивается вместе с данными ---
@@ -192,6 +288,19 @@ function renderCategoryOptions(): void {
     select.value = currentCategory;
 }
 
+/** Подсказки при вводе категории (поле формы и окно задачи используют один и тот же datalist). */
+function renderCategoryDatalist(): void {
+    const list = document.getElementById('category-options') as HTMLDataListElement | null;
+    if (!list) return;
+    list.replaceChildren(
+        ...loadMarkers().map((m) => {
+            const o = document.createElement('option');
+            o.value = m.name;
+            return o;
+        }),
+    );
+}
+
 // --- Рендер списка задач с учётом фильтра, категории и сортировки ---
 function renderTasks() {
     const taskList = document.getElementById('task-list') as HTMLUListElement | null;
@@ -200,6 +309,7 @@ function renderTasks() {
     taskList.innerHTML = '';
 
     renderCategoryOptions();
+    renderCategoryDatalist();
     const sortSelect = document.getElementById('task-sort') as HTMLSelectElement | null;
     if (sortSelect) sortSelect.value = currentSort;
 
@@ -262,7 +372,7 @@ function setupFilters() {
         const target = e.target as HTMLElement;
         const button = target.closest<HTMLElement>('button[data-filter]');
         if (button && button.dataset.filter) {
-            currentFilter = button.dataset.filter as 'all' | 'active' | 'completed';
+            currentFilter = button.dataset.filter as TaskStatus;
             saveView();
             renderTasks();
             highlight(button);
@@ -290,6 +400,7 @@ export function setupTodo() {
     const timeInput = document.getElementById('task-time') as HTMLInputElement | null;
     const categoryInput = document.getElementById('task-category') as HTMLInputElement | null;
     const notesInput = document.getElementById('task-notes') as HTMLTextAreaElement | null;
+    const subtaskEditor = createSubtaskEditor('task-subtasks', 'task-subtask-input', 'task-subtask-add');
 
     currentTasks = loadTasks();
     loadView();
@@ -320,14 +431,19 @@ export function setupTodo() {
             category: categoryInput.value.trim(),
             priority,
             notes: notesInput.value.trim(),
+            subtasks: subtaskEditor.get(),
         });
         form.reset(); // приоритет возвращается к «Обычный» (у него checked в разметке)
+        subtaskEditor.set([]); // form.reset() список подпунктов не трогает — очищаем отдельно
     });
 }
 
 // --- Очистка выполненных ---
 function setupClearCompleted() {
     document.getElementById('clear-completed')?.addEventListener('click', () => {
+        for (const t of currentTasks) {
+            if (t.completed && t.category) recordMarkerHistory(t.category, true);
+        }
         currentTasks = currentTasks.filter((t) => !t.completed);
         saveTasks(currentTasks);
         renderTasks();
