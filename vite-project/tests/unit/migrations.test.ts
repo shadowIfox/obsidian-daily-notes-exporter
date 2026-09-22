@@ -5,11 +5,11 @@ import { createMemoryBackend } from '../../src/storage';
 import { flushStore, initStore, loadHabits, loadSettings, loadTasks, DEFAULT_NOTIFICATIONS } from '../../src/store';
 import { parseBackup, BACKUP_VERSION, buildBackup } from '../../src/backup';
 
-const empty: RawData = { tasks: [], habits: [], mood: [], settings: {} };
+const empty: RawData = { tasks: [], habits: [], mood: [], settings: {}, markers: [] };
 
 describe('migrate', () => {
     it('текущая версия — без изменений, тот же объект', () => {
-        const data: RawData = { tasks: [{ text: 'x' }], habits: [], mood: [], settings: {} };
+        const data: RawData = { tasks: [{ text: 'x' }], habits: [], mood: [], settings: {}, markers: [] };
         assert.equal(migrate(data, SCHEMA_VERSION), data);
     });
 
@@ -76,6 +76,7 @@ describe('миграция 0 → 1 (данные до появления вер�
         ],
         mood: [{ date: '2026-09-19', rating: 4 }],
         settings: { themeMode: 'dark' },
+        markers: [],
     };
     const result = migrate(legacy, 0);
     const tasks = result.tasks as Record<string, unknown>[];
@@ -111,11 +112,12 @@ describe('миграция 0 → 1 (данные до появления вер�
     });
 
     it('не-массивы вместо списков переживают миграцию', () => {
-        assert.deepEqual(migrate({ tasks: undefined, habits: 'oops', mood: null, settings: undefined }, 0), {
+        assert.deepEqual(migrate({ tasks: undefined, habits: 'oops', mood: null, settings: undefined, markers: 'garbage' }, 0), {
             tasks: undefined,
             habits: 'oops',
             mood: null,
             settings: undefined,
+            markers: [], // маркеры пересчитываются из tasks на шаге 1→2 — без задач список пуст
         });
     });
 });

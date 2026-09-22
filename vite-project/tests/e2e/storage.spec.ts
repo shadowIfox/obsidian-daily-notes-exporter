@@ -52,7 +52,7 @@ test.describe('слой данных в браузере', () => {
             tasks: JSON.parse(localStorage.getItem('tasks') ?? '[]'),
             backup: JSON.parse(localStorage.getItem('migrationBackup') ?? 'null'),
         }));
-        expect(saved.version).toBe('1');
+        expect(saved.version).toBe('2');
         expect(saved.tasks[0]).toMatchObject({ text: 'Старая задача', completed: true });
         expect(saved.tasks[0].id).toBeTruthy();
         expect(saved.backup.fromVersion).toBe(0);

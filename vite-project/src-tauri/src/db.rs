@@ -5,7 +5,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use std::{path::Path, sync::Mutex};
 
 /// Допустимые ключи данных (список совпадает со StoreKey во фронтенде, storage.ts).
-pub const KEYS: [&str; 6] = ["tasks", "habits", "moodData", "userSettings", "schemaVersion", "migrationBackup"];
+pub const KEYS: [&str; 7] = ["tasks", "habits", "moodData", "userSettings", "categoryMarkers", "schemaVersion", "migrationBackup"];
 
 /// Версия структуры самой базы (не путать с версией схемы данных приложения: та лежит внутри, в ключе schemaVersion).
 const DB_VERSION: i32 = 2;

@@ -232,7 +232,8 @@
               </div>
               <div class="field task-form__category">
                 <label class="field__label" for="task-category">Категория</label>
-                <input id="task-category" name="task-category" type="text" class="input" placeholder="Учёба, Личное…" maxlength="30" />
+                <input id="task-category" name="task-category" type="text" class="input" placeholder="Учёба, Личное…" maxlength="30" list="category-options" />
+                <datalist id="category-options"></datalist>
               </div>
               <div class="field task-form__priority">
                 <span class="field__label">Приоритет</span>
@@ -246,6 +247,14 @@
                 <label class="field__label" for="task-notes">Заметка</label>
                 <textarea id="task-notes" name="task-notes" rows="2" class="input" placeholder="Подробности, ссылки, что нужно не забыть…"></textarea>
               </div>
+              <div class="field task-form__subtasks">
+                <span class="field__label">Подпункты</span>
+                <ul id="task-subtasks" class="subtask-editor"></ul>
+                <div class="input-group">
+                  <input id="task-subtask-input" class="input" maxlength="100" placeholder="Добавить подпункт…" />
+                  <button id="task-subtask-add" type="button" class="icon-btn" aria-label="Добавить подпункт" title="Добавить"><i data-icon="plus"></i></button>
+                </div>
+              </div>
               <button type="submit" class="btn btn--primary task-form__submit"><i data-icon="plus" data-size="18"></i> Добавить</button>
             </form>
 
@@ -255,6 +264,7 @@
                   <button type="button" class="segmented__btn" data-filter="all">Все</button>
                   <button type="button" class="segmented__btn" data-filter="active">Активные</button>
                   <button type="button" class="segmented__btn" data-filter="completed">Выполненные</button>
+                  <button type="button" class="segmented__btn" data-filter="overdue">Не сделаны</button>
                 </div>
                 <div class="toolbar__controls">
                   <select id="task-category-filter" class="input input--sm" aria-label="Категория"></select>
@@ -430,6 +440,14 @@
                 <div id="an-categories"></div>
               </section>
             </div>
+
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Маркеры</h2>
+                <span id="an-markers-meta" class="card__meta"></span>
+              </div>
+              <div id="an-markers"></div>
+            </section>
 
             <section class="card">
               <div class="card__head">
@@ -663,7 +681,7 @@
         <div class="details__grid">
           <div class="field"><label class="field__label" for="tm-date">Дата</label><input id="tm-date" type="date" class="input" data-clearable /></div>
           <div class="field"><label class="field__label" for="tm-time">Время</label><input id="tm-time" type="time" class="input" /></div>
-          <div class="field"><label class="field__label" for="tm-category">Категория</label><input id="tm-category" class="input" maxlength="30" placeholder="Учёба, Личное…" /></div>
+          <div class="field"><label class="field__label" for="tm-category">Категория</label><input id="tm-category" class="input" maxlength="30" placeholder="Учёба, Личное…" list="category-options" /></div>
         </div>
         <div class="field">
           <span class="field__label">Приоритет</span>
@@ -676,6 +694,14 @@
         <div class="field">
           <label class="field__label" for="tm-notes">Заметка</label>
           <textarea id="tm-notes" class="input" rows="3" placeholder="Подробности, ссылки, что нужно не забыть…"></textarea>
+        </div>
+        <div class="field">
+          <span class="field__label">Подпункты</span>
+          <ul id="tm-subtasks" class="subtask-editor"></ul>
+          <div class="input-group">
+            <input id="tm-subtask-input" class="input" maxlength="100" placeholder="Добавить подпункт…" />
+            <button id="tm-subtask-add" type="button" class="icon-btn" aria-label="Добавить подпункт" title="Добавить"><i data-icon="plus"></i></button>
+          </div>
         </div>
         <div class="modal__actions">
           <button id="task-modal-cancel" type="button" class="btn btn--ghost">Отмена</button>

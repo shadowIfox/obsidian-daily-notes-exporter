@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'vitest';
 import * as S from '../../src/stats';
-import { daysBack, doneTask, mkHabit, mkMood, mkTask } from './factories';
+import { daysBack, doneSubtask, doneTask, mkHabit, mkMarker, mkMood, mkSubtask, mkTask } from './factories';
 
 const T = '2026-09-19'; // суббота
 
@@ -50,6 +50,48 @@ describe('серии и недельные счётчики', () => {
     it('pickBestWorst', () => {
         assert.equal(S.pickBestWorst([0, 0, 0]), null);
         assert.deepEqual(S.pickBestWorst([1, 3, 0]), { best: 1, worst: 2 });
+    });
+
+    it('выполненные подпункты считаются как отдельное выполнение — по дням, стрику и категориям', () => {
+        const tasks = [
+            mkTask({
+                date: '2026-09-10',
+                category: 'Учёба',
+                completed: false, // сама задача не выполнена — считаются только подпункты
+                subtasks: [doneSubtask(T), doneSubtask('2026-09-18'), mkSubtask()],
+            }),
+            doneTask(T, { category: 'Дом' }),
+        ];
+
+        // День T: подпункт задачи 1 + сама задача 2 = 2
+        assert.deepEqual(
+            S.tasksCompletedByDay(tasks, T, 1).map((d) => d.count),
+            [2],
+        );
+        assert.equal(S.taskStreak(tasks, T), 2); // T и день до него (18-е) — оба есть события
+        assert.deepEqual(
+            S.tasksCompletedByWeekday(tasks, T).reduce((a, b) => a + b, 0),
+            3,
+        );
+
+        const cats = S.categoryBreakdown(tasks, T, 30);
+        assert.deepEqual(
+            cats.map((c) => [c.name, c.count]),
+            [
+                ['Учёба', 2], // два выполненных подпункта
+                ['Дом', 1],
+            ],
+        );
+    });
+
+    it('невыполненный подпункт или без completedAt в статистику не попадает', () => {
+        const tasks = [
+            mkTask({ subtasks: [mkSubtask({ completed: false }), { ...mkSubtask(), completed: true, completedAt: undefined }] }),
+        ];
+        assert.deepEqual(
+            S.tasksCompletedByDay(tasks, T, 1).map((d) => d.count),
+            [0],
+        );
     });
 });
 
@@ -216,6 +258,11 @@ describe('фильтры и сортировка раздела «Задачи»
         assert.deepEqual(titles(S.filterTasks(tasks, { status: 'active', category: 'дом' })), []);
     });
 
+    it('фильтр «не сделаны» — дедлайн прошёл и задача не выполнена', () => {
+        // «сегодня» — 2026-09-22: у Билеты и Дела дедлайн 2026-09-20 (прошёл); Арбуз с той же датой уже выполнен; у Ёжика даты нет
+        assert.deepEqual(titles(S.filterTasks(tasks, { status: 'overdue', category: '' }, '2026-09-22')), ['Билеты', 'Дела']);
+    });
+
     it('сортировка', () => {
         assert.deepEqual(titles(S.sortTasks(tasks, 'added')), ['Яблоки', 'Арбуз', 'Билеты', 'Ёжик', 'Дела']);
         assert.deepEqual(titles(S.sortTasks(tasks, 'deadline')), ['Дела', 'Билеты', 'Арбуз', 'Яблоки', 'Ёжик']); // дата → время; без даты в конце
@@ -378,5 +425,25 @@ describe('аналитика по периодам', () => {
                 null,
             );
         });
+    });
+});
+
+describe('markerStats', () => {
+    it('история удалённых задач суммируется с ещё живыми', () => {
+        const tasks = [mkTask({ category: 'Работа', completed: true }), mkTask({ category: 'Работа', completed: false })];
+        const markers = [
+            mkMarker({ id: 'm1', name: 'Работа', historyTotal: 3, historyCompleted: 2 }),
+            mkMarker({ id: 'm2', name: 'Дом', historyTotal: 1 }),
+        ];
+        assert.deepEqual(S.markerStats(tasks, markers), [
+            { id: 'm1', name: 'Работа', total: 5, completed: 3 },
+            { id: 'm2', name: 'Дом', total: 1, completed: 0 },
+        ]);
+    });
+
+    it('маркер без живых задач — только история', () => {
+        assert.deepEqual(S.markerStats([], [mkMarker({ id: 'm1', name: 'Архивная', historyTotal: 2, historyCompleted: 1 })]), [
+            { id: 'm1', name: 'Архивная', total: 2, completed: 1 },
+        ]);
     });
 });

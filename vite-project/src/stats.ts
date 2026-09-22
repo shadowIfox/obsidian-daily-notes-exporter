@@ -2,13 +2,13 @@
 
 import { tr } from './i18n';
 import { addDays, lastNDates, todayStr, weekRange, weekdayIndex } from './dates';
-import type { Habit, MoodEntry, Task } from './store';
+import type { Habit, Marker, MoodEntry, Task } from './store';
 
 export type DayCount = { date: string; count: number };
 export type MoodSeries = { days: number; points: { i: number; date: string; rating: number }[] };
 export type TaskListFilter = 'today' | 'week' | 'overdue';
 export type TaskSort = 'added' | 'deadline' | 'priority' | 'title';
-export type TaskStatus = 'all' | 'active' | 'completed';
+export type TaskStatus = 'all' | 'active' | 'completed' | 'overdue';
 
 /** Значение фильтра «Без категории». */
 export const NO_CATEGORY = '__none__';
@@ -39,21 +39,40 @@ function completionDay(t: Task): string | undefined {
     return t.completed ? t.completedAt || t.date || undefined : undefined;
 }
 
-/** Сколько задач выполнено в каждый день недели (Пн…Вс) за последние 7 дней. */
+/**
+ * Все выполненные «единицы» для статистики активности: сама задача (если выполнена) и каждый
+ * выполненный подпункт отдельно — с категорией родителя. Для счётчиков задач (сколько активно,
+ * просрочено и т.п.) и списков на страницах подпункты не участвуют — только здесь, где считается,
+ * сколько всего сделано и когда.
+ */
+function completionEvents(tasks: Task[]): { day: string; category: string }[] {
+    const events: { day: string; category: string }[] = [];
+    for (const t of tasks) {
+        const day = completionDay(t);
+        if (day) events.push({ day, category: t.category });
+        for (const s of t.subtasks) {
+            if (s.completed && s.completedAt) events.push({ day: s.completedAt, category: t.category });
+        }
+    }
+    return events;
+}
+
+/** Сколько задач (и подпунктов) выполнено в каждый день недели (Пн…Вс) за последние 7 дней. */
 export function tasksCompletedByWeekday(tasks: Task[], today: string = todayStr()): number[] {
     const week = new Set(lastNDates(7, today));
     const stats = Array<number>(7).fill(0);
-    for (const t of tasks) {
-        const day = completionDay(t);
-        if (day && week.has(day)) stats[weekdayIndex(day)]++;
+    for (const e of completionEvents(tasks)) {
+        if (week.has(e.day)) stats[weekdayIndex(e.day)]++;
     }
     return stats;
 }
 
-/** Сколько дней подряд (до сегодня) выполнялась хотя бы одна задача. */
+/** Сколько дней подряд (до сегодня) выполнялась хотя бы одна задача или подпункт. */
 export function taskStreak(tasks: Task[], today: string = todayStr()): number {
-    const days = tasks.map(completionDay).filter((d): d is string => Boolean(d));
-    return getStreak(days, today);
+    return getStreak(
+        completionEvents(tasks).map((e) => e.day),
+        today,
+    );
 }
 
 /** По каждой привычке — сколько из последних 7 дней она отмечена. */
@@ -121,12 +140,11 @@ export function moodOverview(entries: MoodEntry[], today: string = todayStr(), d
     };
 }
 
-/** Сколько задач выполнено в каждый из последних days дней (по возрастанию, последний — сегодня). */
+/** Сколько задач и подпунктов выполнено в каждый из последних days дней (по возрастанию, последний — сегодня). */
 export function tasksCompletedByDay(tasks: Task[], today: string = todayStr(), days = 7): DayCount[] {
     const counts = new Map(lastNDates(days, today).map((d) => [d, 0]));
-    for (const t of tasks) {
-        const day = completionDay(t);
-        if (day && counts.has(day)) counts.set(day, (counts.get(day) ?? 0) + 1);
+    for (const e of completionEvents(tasks)) {
+        if (counts.has(e.day)) counts.set(e.day, (counts.get(e.day) ?? 0) + 1);
     }
     return [...counts.entries()].map(([date, count]) => ({ date, count }));
 }
@@ -178,7 +196,7 @@ export type Period = 7 | 30 | 91;
 const sum = (a: number[]): number => a.reduce((x, y) => x + y, 0);
 const round1 = (n: number): number => Math.round(n * 10) / 10;
 
-/** Выполненные задачи за окно days дней и за предыдущее окно той же длины (для сравнения). */
+/** Выполненные задачи и подпункты за окно days дней и за предыдущее окно той же длины (для сравнения). */
 export function taskPeriodStats(tasks: Task[], today: string = todayStr(), days: number = 30) {
     const byDay = tasksCompletedByDay(tasks, today, days);
     const total = sum(byDay.map((d) => d.count));
@@ -216,14 +234,13 @@ export function aggregateWeeks(byDay: DayCount[]): DayCount[] {
     return groups;
 }
 
-/** Выполненные за период задачи по категориям: топ-limit, по убыванию. */
+/** Выполненные за период задачи и подпункты по категориям (подпункт — категория родителя): топ-limit, по убыванию. */
 export function categoryBreakdown(tasks: Task[], today: string = todayStr(), days: number = 30, limit = 5) {
     const window = new Set(lastNDates(days, today));
     const counts = new Map<string, number>();
-    for (const t of tasks) {
-        const day = completionDay(t);
-        if (!day || !window.has(day)) continue;
-        const name = t.category || tr('Без категории');
+    for (const e of completionEvents(tasks)) {
+        if (!window.has(e.day)) continue;
+        const name = e.category || tr('Без категории');
         counts.set(name, (counts.get(name) ?? 0) + 1);
     }
     return [...counts.entries()]
@@ -317,15 +334,39 @@ export function taskCategories(tasks: Task[]): string[] {
     return [...new Set(tasks.map((t) => t.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
 }
 
-/** Фильтр по статусу и категории; category: '' — любая, NO_CATEGORY — без категории. */
-export function filterTasks(tasks: Task[], opts: { status: TaskStatus; category: string }): Task[] {
+/** Фильтр по статусу и категории; category: '' — любая, NO_CATEGORY — без категории. «overdue» — дедлайн прошёл, не выполнена. */
+export function filterTasks(tasks: Task[], opts: { status: TaskStatus; category: string }, today: string = todayStr()): Task[] {
     return tasks.filter((t) => {
         if (opts.status === 'active' && t.completed) return false;
         if (opts.status === 'completed' && !t.completed) return false;
+        if (opts.status === 'overdue' && !(t.date && t.date < today && !t.completed)) return false;
         if (opts.category === NO_CATEGORY) return !t.category;
         if (opts.category) return t.category === opts.category;
         return true;
     });
+}
+
+export type MarkerStat = { id: string; name: string; total: number; completed: number };
+
+/**
+ * Статистика по маркерам за всё время: сохранённая история удалённых задач + ещё не удалённые задачи
+ * с этой категорией сейчас. Так число не теряется, когда задачу убирают из списка.
+ */
+export function markerStats(tasks: Task[], markers: Marker[]): MarkerStat[] {
+    const live = new Map<string, { total: number; completed: number }>();
+    for (const t of tasks) {
+        if (!t.category) continue;
+        const cur = live.get(t.category) ?? { total: 0, completed: 0 };
+        cur.total++;
+        if (t.completed) cur.completed++;
+        live.set(t.category, cur);
+    }
+    return markers
+        .map((m) => {
+            const l = live.get(m.name);
+            return { id: m.id, name: m.name, total: m.historyTotal + (l?.total ?? 0), completed: m.historyCompleted + (l?.completed ?? 0) };
+        })
+        .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'ru'));
 }
 
 /** Сортировка (возвращает новый массив; «added» — как добавлены). Задачи без даты идут в конце. */

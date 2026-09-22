@@ -53,7 +53,7 @@ test.describe('в приложении (подмена Tauri)', () => {
 
         await expect(page.locator('#task-list .task__text')).toHaveText(['Задача из браузера']);
         expect(await dbValue(page, 'tasks')).toContain('Задача из браузера');
-        expect(await dbValue(page, 'schemaVersion')).toBe('1');
+        expect(await dbValue(page, 'schemaVersion')).toBe('2');
 
         await page.locator('#task-text').fill('Новая задача');
         await page.locator('#task-text').press('Enter');

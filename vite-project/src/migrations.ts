@@ -13,9 +13,9 @@ import { tr } from './i18n';
 import { newId } from './utils/id';
 
 /** Текущая версия схемы. Совпадает с версией резервной копии. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
-export type RawData = { tasks: unknown; habits: unknown; mood: unknown; settings: unknown };
+export type RawData = { tasks: unknown; habits: unknown; mood: unknown; settings: unknown; markers: unknown };
 
 export type Migration = {
     from: number;
@@ -67,6 +67,23 @@ export const MIGRATIONS: Migration[] = [
             })),
             habits: mapRecords(data.habits, (h) => ({ ...h, id: hasId(h) ? h.id : newId() })),
         }),
+    },
+    {
+        from: 1,
+        to: 2,
+        description: 'Категории задач становятся маркерами: список выносится отдельно, чтобы переживать удаление задач',
+        up: (data) => {
+            const names = new Set<string>();
+            for (const t of Array.isArray(data.tasks) ? data.tasks : []) {
+                if (isRecord(t) && typeof t.category === 'string' && t.category.trim()) names.add(t.category.trim());
+            }
+            return {
+                ...data,
+                markers: [...names]
+                    .sort((a, b) => a.localeCompare(b, 'ru'))
+                    .map((name) => ({ id: newId(), name, historyTotal: 0, historyCompleted: 0 })),
+            };
+        },
     },
 ];
 

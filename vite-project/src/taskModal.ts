@@ -4,6 +4,7 @@
 
 import { tr } from './i18n';
 import { todayStr } from './dates';
+import { createSubtaskEditor } from './subtaskEditor';
 import type { Priority, Task } from './store';
 import { addTask, updateTask } from './todo';
 
@@ -12,6 +13,7 @@ type SavedHandler = (task: Task, created: boolean) => void;
 
 let onSaved: SavedHandler = () => {};
 let editing: Task | null = null;
+const subtaskEditor = createSubtaskEditor('tm-subtasks', 'tm-subtask-input', 'tm-subtask-add');
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
 
@@ -35,6 +37,9 @@ export function openTaskModal(opts: { date?: string; task?: Task } = {}): void {
     const priority = editing?.priority ?? 'normal';
     const radio = form.querySelector<HTMLInputElement>(`input[name="tm-priority"][value="${priority}"]`);
     if (radio) radio.checked = true;
+
+    // Клонируем — пока форма открыта, ничего не пишем в саму задачу
+    subtaskEditor.set(editing?.subtasks ?? []);
 
     modal.classList.add('is-open');
     el<HTMLInputElement>('tm-text')?.focus();
@@ -74,6 +79,7 @@ export function setupTaskModal(saved: SavedHandler): void {
             category: el<HTMLInputElement>('tm-category')!.value.trim(),
             priority: (form.querySelector<HTMLInputElement>('input[name="tm-priority"]:checked')?.value ?? 'normal') as Priority,
             notes: el<HTMLTextAreaElement>('tm-notes')!.value.trim(),
+            subtasks: subtaskEditor.get(),
         };
 
         if (editing) {

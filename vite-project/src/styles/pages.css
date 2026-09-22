@@ -49,23 +49,38 @@
 .task-form__time { grid-column: span 3; }
 .task-form__category { grid-column: span 4; }
 .task-form__priority { grid-column: span 5; }
-.task-form__notes { grid-column: span 9; }
-.task-form__submit { grid-column: span 3; justify-self: end; }
+.task-form__notes { grid-column: 1 / -1; }
+.task-form__subtasks { grid-column: 1 / -1; }
+.task-form__submit { grid-column: 1 / -1; }
 .task-form__priority .segmented { align-self: flex-start; }
 
 .task {
   display: flex;
-  align-items: center;
-  gap: var(--s-3);
+  flex-direction: column;
+  gap: var(--s-2);
   padding: var(--s-3) var(--s-4);
   background: var(--card-alt);
   border-radius: var(--r-md);
 }
+.task__row { display: flex; align-items: center; gap: var(--s-3); }
 .task__text { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; cursor: text; }
 .task__edit { flex: 1; height: 36px; background: var(--card); border-color: var(--ink); }
 .task__meta { display: flex; align-items: center; gap: var(--s-2); flex: none; }
 .task--done .task__text { font-weight: 500; color: var(--muted); text-decoration: line-through; }
 .task--done .badge { opacity: 0.55; }
+
+/* Подпункты под задачей: только просмотр и отметка */
+.task__subtasks { display: flex; flex-direction: column; gap: 2px; margin: 0; padding-left: 34px; list-style: none; }
+.subtask { display: flex; align-items: center; gap: var(--s-2); padding: 4px 0; }
+.subtask__text { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+.subtask--done .subtask__text { color: var(--muted); text-decoration: line-through; }
+.check--sm { width: 18px; height: 18px; }
+.check--sm:checked::after { width: 4px; height: 8px; }
+
+/* Редактор подпунктов в окне задачи */
+.subtask-editor { display: flex; flex-direction: column; gap: var(--s-2); margin: 0 0 var(--s-2); padding: 0; list-style: none; }
+.subtask-editor__row { display: flex; align-items: center; gap: var(--s-2); }
+.subtask-editor__text { flex: 1; min-width: 0; height: 36px; }
 
 /* ===== Привычки ===== */
 .inline-form { display: flex; align-items: flex-end; gap: var(--s-4); }

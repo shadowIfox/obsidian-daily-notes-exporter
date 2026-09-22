@@ -8,6 +8,7 @@ import {
     categoryBreakdown,
     getStreak,
     habitPeriodStats,
+    markerStats,
     moodPeriodStats,
     moodVsHabits,
     onTimeStats,
@@ -17,7 +18,7 @@ import {
     weekdayTotals,
     type Period,
 } from './stats';
-import { loadActiveHabits, loadMood, loadTasks } from './store';
+import { loadActiveHabits, loadMarkers, loadMood, loadTasks } from './store';
 import { generateHabitAdvice, generateMoodAdvice, generateTaskAdvice } from './tips';
 import {
     mountResponsive,
@@ -176,6 +177,24 @@ function renderTaskCharts(days: number, today: string): void {
                 ? `<p class="viz__empty">${tr('Пока нет данных.')}</p>`
                 : renderHBars(
                       cats.map((c) => ({ label: c.name, value: c.count, valueText: String(c.count), tip: `${c.name}: ${c.count}` })),
+                  );
+    }
+
+    // Маркеры — за всё время, переживают удаление задач (см. markerStats)
+    const markers = markerStats(tasks, loadMarkers());
+    setText('#an-markers-meta', tp('{n} маркер|{n} маркера|{n} маркеров', markers.length));
+    const markerBox = $('#an-markers');
+    if (markerBox) {
+        markerBox.innerHTML =
+            markers.length === 0
+                ? `<p class="viz__empty">${tr('Пока нет данных.')}</p>`
+                : renderHBars(
+                      markers.map((m) => ({
+                          label: m.name,
+                          value: m.total,
+                          valueText: `${m.completed}/${m.total}`,
+                          tip: tr('{name}: выполнено {completed} из {total}', { name: m.name, completed: m.completed, total: m.total }),
+                      })),
                   );
     }
 }

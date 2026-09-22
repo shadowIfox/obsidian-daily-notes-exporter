@@ -38,7 +38,7 @@ let d0 = await dl(0);
 check('«Скачать»: файл moi-den-backup-ГГГГ-ММ-ДД.json, тип application/json', /^moi-den-backup-\d{4}-\d\d-\d\d\.json$/.test(d0.name) && d0.type === 'application/json', d0.name + ' ' + d0.type);
 const orig = { tasks: await stored('tasks'), habits: await stored('habits'), mood: await stored('moodData') };
 const file0 = JSON.parse(d0.text);
-check('в файле метка приложения, версия, дата, все данные и настройки (время, приоритет, заметка, график привычки — на месте)', file0.app === 'moi-den' && file0.version === 1 && !!file0.exportedAt && file0.tasks.length === 2 && file0.tasks[0].time === '14:30' && file0.tasks[0].priority === 'high' && file0.tasks[0].notes === 'Спросить про договор' && file0.habits[0].days.join() === '0,2,4' && file0.mood.length === 2 && file0.settings.userName === 'Мария');
+check('в файле метка приложения, версия, дата, все данные и настройки (время, приоритет, заметка, график привычки — на месте)', file0.app === 'moi-den' && file0.version === 2 && !!file0.exportedAt && file0.tasks.length === 2 && file0.tasks[0].time === '14:30' && file0.tasks[0].priority === 'high' && file0.tasks[0].notes === 'Спросить про договор' && file0.habits[0].days.join() === '0,2,4' && file0.mood.length === 2 && file0.settings.userName === 'Мария');
 check('статус скачивания со склонениями: «2 задачи, 1 привычка, 2 записи настроения»', (await q('#backup-status')) === 'Копия сохранена: 2 задачи, 1 привычка, 2 записи настроения.', await q('#backup-status'));
 
 // ===== Ошибки выбора файла =====
